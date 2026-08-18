@@ -31,6 +31,7 @@ import { createRequestContext } from './request-context.js';
  */
 export async function handleRequest(request, env, ctx) {
   let response;
+  let isProxiedResponse = false;
   const monitor = new PerformanceMonitor();
   const requestContext = createRequestContext(request, env);
   const { config, isCorsPreflight, isDocker, url } = requestContext;
@@ -104,6 +105,7 @@ export async function handleRequest(request, env, ctx) {
               const { response: targetResponse } = resolvedTarget;
               response = targetResponse;
             } else {
+              isProxiedResponse = true;
               const { cacheTargetUrl, platform, targetUrl } = resolvedTarget;
               const authorization = request.headers.get('Authorization');
               const hasSensitiveHeaders = Boolean(
@@ -182,5 +184,5 @@ export async function handleRequest(request, env, ctx) {
 
   return isProtocolRequest(requestContext)
     ? responseWithCors
-    : addPerformanceHeaders(responseWithCors, monitor);
+    : addPerformanceHeaders(responseWithCors, monitor, { isProxiedResponse });
 }

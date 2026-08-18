@@ -20,6 +20,9 @@
  * Security utility functions for Xget
  */
 
+export const DEFAULT_CONTENT_SECURITY_POLICY =
+  "default-src 'none'; img-src 'self'; script-src 'none'";
+
 /**
  * Resolves the allowed CORS origin for the current request.
  * @param {Request} request
@@ -84,14 +87,17 @@ export function addCorsHeaders(headers, request, config) {
  * - Content-Security-Policy (resource loading restrictions)
  * - Permissions-Policy (privacy-invasive feature restrictions)
  * @param {Headers} headers - Headers object to modify (mutates in place)
+ * @param {{ includeContentSecurityPolicy?: boolean }} [options]
  * @returns {Headers} Modified headers object (same reference)
  */
-export function addSecurityHeaders(headers) {
+export function addSecurityHeaders(headers, { includeContentSecurityPolicy = true } = {}) {
   headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   headers.set('X-Frame-Options', 'DENY');
   headers.set('X-XSS-Protection', '1; mode=block');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  headers.set('Content-Security-Policy', "default-src 'none'; img-src 'self'; script-src 'none'");
+  if (includeContentSecurityPolicy) {
+    headers.set('Content-Security-Policy', DEFAULT_CONTENT_SECURITY_POLICY);
+  }
   headers.set('Permissions-Policy', 'interest-cohort=()');
   return headers;
 }

@@ -35,6 +35,38 @@ describe('Runtime helper coverage', () => {
     expect(response.headers.get('X-Frame-Options')).toBe('DENY');
   });
 
+  it('removes the legacy restrictive CSP from cached proxied responses', () => {
+    const monitor = new PerformanceMonitor();
+    const response = addPerformanceHeaders(
+      new Response('<html></html>', {
+        status: 200,
+        headers: {
+          'Content-Security-Policy': "default-src 'none'; img-src 'self'; script-src 'none'",
+          'X-Content-Type-Options': 'nosniff'
+        }
+      }),
+      monitor,
+      { isProxiedResponse: true }
+    );
+
+    expect(response.headers.has('Content-Security-Policy')).toBe(false);
+  });
+
+  it('preserves an upstream CSP on proxied responses', () => {
+    const monitor = new PerformanceMonitor();
+    const upstreamCsp = "default-src 'none'; style-src https://github.githubassets.com";
+    const response = addPerformanceHeaders(
+      new Response('<html></html>', {
+        status: 200,
+        headers: { 'Content-Security-Policy': upstreamCsp }
+      }),
+      monitor,
+      { isProxiedResponse: true }
+    );
+
+    expect(response.headers.get('Content-Security-Policy')).toBe(upstreamCsp);
+  });
+
   it('rewrites only supported upstream response types', () => {
     expect(shouldRewriteTextResponse('pypi', '/pypi/simple/demo/', 'text/html')).toBe(true);
     expect(shouldRewriteTextResponse('npm', '/npm/demo', 'application/json')).toBe(true);

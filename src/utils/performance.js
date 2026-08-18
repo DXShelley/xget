@@ -20,7 +20,7 @@
  * Performance monitoring utilities for Xget
  */
 
-import { addSecurityHeaders } from './security.js';
+import { addSecurityHeaders, DEFAULT_CONTENT_SECURITY_POLICY } from './security.js';
 
 /**
  * Monitors performance metrics during request processing.
@@ -76,12 +76,23 @@ export class PerformanceMonitor {
  * **Note:** This header is only added to non-protocol responses (not Git/Docker/AI).
  * @param {Response} response - The original response object
  * @param {PerformanceMonitor} monitor - Performance monitor instance with collected metrics
+ * @param {{ isProxiedResponse?: boolean }} [options]
  * @returns {Response} New response with added performance and security headers
  */
-export function addPerformanceHeaders(response, monitor) {
+export function addPerformanceHeaders(response, monitor, { isProxiedResponse = false } = {}) {
   const headers = new Headers(response.headers);
   headers.set('X-Performance-Metrics', JSON.stringify(monitor.getMetrics()));
-  addSecurityHeaders(headers);
+  addSecurityHeaders(headers, { includeContentSecurityPolicy: !isProxiedResponse });
+
+  // Responses written by older versions may still carry Xget's restrictive CSP in cache.
+  if (
+    isProxiedResponse &&
+    headers.get('Content-Security-Policy') === DEFAULT_CONTENT_SECURITY_POLICY &&
+    headers.has('X-Content-Type-Options')
+  ) {
+    headers.delete('Content-Security-Policy');
+  }
+
   return new Response(response.body, {
     status: response.status,
     headers

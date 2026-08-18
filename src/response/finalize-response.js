@@ -168,7 +168,8 @@ async function finalizeSuccessfulResponse({
       }
     }
 
-    addSecurityHeaders(headers);
+    // Preserve the upstream CSP so proxied web pages can load their own assets.
+    addSecurityHeaders(headers, { includeContentSecurityPolicy: false });
   }
 
   let finalizedResponse = new Response(responseBody, {

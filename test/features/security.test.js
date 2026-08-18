@@ -25,8 +25,8 @@ describe('Security Features', () => {
       expect(response.headers.get('X-XSS-Protection')).toBe('1; mode=block');
     });
 
-    it('should include Content-Security-Policy header', async () => {
-      const response = await SELF.fetch('https://example.com/gh/test/repo/file.txt');
+    it('should include Content-Security-Policy header on locally generated responses', async () => {
+      const response = await SELF.fetch('https://example.com/', { redirect: 'manual' });
 
       const csp = response.headers.get('Content-Security-Policy');
       expect(csp).toBeTruthy();

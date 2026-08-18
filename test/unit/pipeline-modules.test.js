@@ -113,4 +113,35 @@ describe('Pipeline modules', () => {
       String(new TextEncoder().encode(body).byteLength)
     );
   });
+
+  it('preserves upstream CSP for proxied HTML responses', async () => {
+    const request = new Request('https://example.com/gh/user/repo');
+    const requestContext = createRequestContext(request, {});
+    const upstreamCsp = "default-src 'none'; style-src 'self' https://github.githubassets.com";
+
+    const response = await finalizeResponse({
+      cache: null,
+      cacheTargetUrl: 'https://github.com/user/repo',
+      canUseCache: true,
+      config: CONFIG,
+      ctx: /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} }),
+      effectivePath: '/gh/user/repo',
+      hasSensitiveHeaders: false,
+      monitor: new PerformanceMonitor(),
+      platform: 'gh',
+      request,
+      requestContext,
+      response: new Response('<html><head></head></html>', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Security-Policy': upstreamCsp
+        }
+      }),
+      responseGeneratedLocally: false,
+      url: new URL(request.url)
+    });
+
+    expect(response.headers.get('Content-Security-Policy')).toBe(upstreamCsp);
+  });
 });
