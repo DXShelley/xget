@@ -84,7 +84,8 @@ Xget 已受邀入驻
 - **🔗 连接复用**：在运行时和上游允许的前提下，复用标准 HTTP
   keep-alive 与连接复用能力
 - **📊 请求耗时可观测**：在协议兼容的情况下，可通过 `X-Performance-Metrics`
-  响应头暴露阶段性耗时信息
+  和 `X-Cache-Status` 响应头暴露阶段性耗时与缓存状态；缓存状态为 `HIT`、
+  `MISS` 或 `BYPASS`
 
 ### 🌐 多平台深度集成
 
@@ -121,7 +122,7 @@ Xget 已受邀入驻
 - **性能监控系统**：
   - 内置 `PerformanceMonitor` 类，实时追踪请求各阶段耗时
   - 通过 `X-Performance-Metrics` 响应头提供详细性能数据
-  - 支持缓存命中率统计和优化建议
+  - 通过 `X-Cache-Status` 报告普通请求的 `HIT`、`MISS` 或 `BYPASS`
 
 ### 🎯 Git 协议完全兼容
 
@@ -945,6 +946,34 @@ git clone https://gitlab.com/gitlab-org/gitlab.git  # 自动转换为 Xget URL
 git clone https://codeberg.org/forgejo/forgejo.git  # 自动转换为 Xget URL
 git clone https://android.googlesource.com/platform/frameworks/base.git  # 自动转换为 Xget URL
 ```
+
+全局 `insteadOf` 规则适合 `clone` 和 `fetch`，不建议用于需要认证的 GitHub `push`。推送前请确保远程仓库的 fetch URL 使用代理、push URL 使用官方 GitHub：
+
+```bash
+git remote set-url origin https://fast.dxshelley.fun/gh/[所有者]/[存储库].git
+git remote set-url --push origin https://github.com/[所有者]/[存储库].git
+git remote -v
+```
+
+如果明确写入 GitHub URL 后仍访问代理，请检查并清理全局 `insteadOf` 重写规则，详见[《部署与代理故障排查》](docs/deployment-troubleshooting.zh-Hans.md)。
+
+### GitHub 公共仓库只读 Web 浏览
+
+在绑定到 `fast.dxshelley.fun` 的部署中，GitHub 公共仓库页面使用独立的 Web 只读入口：
+
+- `https://fast.dxshelley.fun/search?q=hermes` 会快捷跳转到 `https://fast.dxshelley.fun/gh/DXShelley/xget`。
+- `https://fast.dxshelley.fun/gh/[所有者]/[存储库]` 及其 `tree`、`blob`、`commits`、`branches` 等页面由本域代理。
+- 页面中的 GitHub Web 链接、GitHub Assets、Raw、API 等固定白名单资源会改写到本域；无关外部链接保持原地址。
+- 登录、Signup、Fork、编辑、Issue/PR 新建、Settings 和其他写入入口不经过代理，直接跳转到原始 `github.com`。
+- 不转发浏览器 `Cookie`、`Authorization` 或请求体；不提供登录、Fork、评论、提交、推送及其他写操作。
+
+快捷词默认只有 `hermes`。Cloudflare Workers 环境变量 `GITHUB_WEB_SHORTCUTS` 可追加或覆盖快捷词，格式为逗号分隔的 `关键词=/所有者/存储库`，例如：
+
+```text
+GITHUB_WEB_SHORTCUTS=hermes=/DXShelley/xget,docs=/owner/repository
+```
+
+旧的 `/gh/...` Git、归档下载和其他非浏览器请求继续使用原有代理流程；Web 模块仅接管浏览器 HTML 导航。部署前请确认 Worker 能稳定访问 `github.com` 及文档中列出的 GitHub 资源域名。
 
 ### 主流下载工具集成
 
@@ -2545,6 +2574,8 @@ client = OpenAI(
 
 5. **绑定自定义域名**（可选）：在 Cloudflare Workers 控制台中绑定你的自定义域名
 
+部署条件、Fork Secrets、Codecov 失败和 Git 代理配置的详细排查，请参阅[《部署与代理故障排查》](docs/deployment-troubleshooting.zh-Hans.md)。
+
 ### 部署到 Cloudflare Pages
 
 1. **fork 本存储库**：[Fork xixu-me/Xget](https://github.com/xixu-me/Xget/fork)
@@ -2878,6 +2909,8 @@ npm run test:watch
 
 ## 🔍 故障排除
 
+部署与代理相关的完整排查流程请参阅[《部署与代理故障排查》](docs/deployment-troubleshooting.zh-Hans.md)。
+
 ### 常见问题
 
 **Q: 下载速度没有明显提升？**
@@ -2896,7 +2929,7 @@ A: 确认使用了正确的 URL 格式，且 Git 客户端版本支持 HTTPS 代
 在响应头中返回性能指标：
 
 - `X-Performance-Metrics`: 包含请求各阶段的耗时统计
-- `X-Cache-Status`: 显示缓存命中状态
+- `X-Cache-Status`: 显示普通请求的 `HIT`、`MISS` 或 `BYPASS`
 
 ### 日志调试
 

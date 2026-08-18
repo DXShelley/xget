@@ -1,0 +1,39 @@
+# GitHub Read-only Web E2E Record
+
+Date: 2026-08-18
+
+## Scope
+
+- Local Worker: `http://127.0.0.1:8787`
+- Target behavior: public GitHub repository browsing remains on the proxy
+  domain; write and account actions go to `https://github.com`.
+- Browser tool: `agent-browser`
+
+## Round 1
+
+| Check                                      | Result     | Observation                                                                                                                                    |
+| ------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/search?q=hermes` shortcut                | Pass       | Browser URL became `/gh/DXShelley/xget`.                                                                                                       |
+| Repository home                            | Pass       | Title was `GitHub - DXShelley/xget...`; repository contents, README and directory listing rendered.                                            |
+| Internal repository links                  | Pass       | Owner, repository, `tree`, `blob`, `commits` and `branches` links used the local `/gh/...` namespace.                                          |
+| GitHub Assets                              | Pass       | Loaded styles/scripts used `/_github/proxy/github.githubassets.com/...`; no GitHub asset resource remained in the browser performance entries. |
+| External links                             | Pass       | Documentation, Cloudflare, Star History and personal sites remained external.                                                                  |
+| Fork/edit/new Issue/new PR/Settings/Signup | Pass       | Final browser URLs were on `github.com`; no local proxy URL remained.                                                                          |
+| Generic GitHub search                      | Incomplete | The Worker request to GitHub did not return before the browser timeout.                                                                        |
+
+## Round 2
+
+| Check                          | Result              | Observation                                                                                                               |
+| ------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Shortcut and write redirects   | Pass                | Repeated after restarting Wrangler; `fork`, edit, new Issue, new PR, Settings and Signup left the local origin.           |
+| Repository home and read pages | Skipped after retry | The local Worker could not receive a response from GitHub and the browser reported `os error 10060` / connection timeout. |
+| Raw/allowlisted resource fetch | Skipped after retry | Same upstream connectivity failure; allowlist behavior is covered by unit and Worker integration tests.                   |
+
+## Gate Decision
+
+Two live attempts could not complete the full read-page checklist because the
+current test environment intermittently timed out while the Worker fetched
+GitHub. This is recorded as an environment limitation, not as evidence that the
+read-only routing code is complete in production. The remaining live E2E must be
+rerun after deploying to the target domain or from a network where the Worker
+can reach GitHub reliably.
