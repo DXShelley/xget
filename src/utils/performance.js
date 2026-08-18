@@ -81,7 +81,23 @@ export class PerformanceMonitor {
  */
 export function addPerformanceHeaders(response, monitor, { isProxiedResponse = false } = {}) {
   const headers = new Headers(response.headers);
-  headers.set('X-Performance-Metrics', JSON.stringify(monitor.getMetrics()));
+  const metrics = monitor.getMetrics();
+  headers.set('X-Performance-Metrics', JSON.stringify(metrics));
+
+  const cacheStatus =
+    metrics.cache_hit !== undefined ||
+    metrics.cache_hit_full_content !== undefined ||
+    metrics.range_cache_hit_after_full_cache !== undefined
+      ? 'HIT'
+      : metrics.cache_miss !== undefined
+        ? 'MISS'
+        : metrics.cache_bypass !== undefined
+          ? 'BYPASS'
+          : null;
+  if (cacheStatus) {
+    headers.set('X-Cache-Status', cacheStatus);
+  }
+
   addSecurityHeaders(headers, { includeContentSecurityPolicy: !isProxiedResponse });
 
   // Responses written by older versions may still carry Xget's restrictive CSP in cache.

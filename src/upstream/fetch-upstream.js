@@ -249,6 +249,7 @@ async function executeFetch({ fetchOptions, request, requestContext, requestHead
  *     url: URL
  *   },
  *   response: Response,
+ *   signal: AbortSignal,
  *   targetUrl: string,
  *   finalFetchOptions: RequestInit
  * }} options
@@ -261,6 +262,7 @@ async function retryDockerWithAnonymousToken({
   requestContext,
   requestHeaders,
   response,
+  signal,
   targetUrl
 }) {
   const authenticateStr = response.headers.get('WWW-Authenticate');
@@ -269,7 +271,7 @@ async function retryDockerWithAnonymousToken({
   if (authenticateStr) {
     try {
       const wwwAuthenticate = parseAuthenticate(authenticateStr);
-      const tokenResponse = await fetchToken(wwwAuthenticate, scope || '', '');
+      const tokenResponse = await fetchToken(wwwAuthenticate, scope || '', '', signal);
 
       if (tokenResponse.ok) {
         const token = await readRegistryTokenResponse(tokenResponse);
@@ -296,6 +298,9 @@ async function retryDockerWithAnonymousToken({
         }
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
       console.warn('Token fetch failed:', error);
     }
   }
@@ -340,6 +345,7 @@ export async function fetchUpstreamResponse({
 }) {
   let response;
   let responseGeneratedLocally = false;
+  const deadline = Date.now() + config.TIMEOUT_SECONDS * 1000;
   const { fetchOptions, requestHeaders } = createFetchOptions({
     authorization,
     canUseCache,
@@ -356,10 +362,17 @@ export async function fetchUpstreamResponse({
     let timeoutId;
 
     try {
+      const remainingTime = deadline - Date.now();
+      if (remainingTime <= 0) {
+        response = createErrorResponse('Request timeout', 408);
+        responseGeneratedLocally = true;
+        break;
+      }
+
       monitor.mark(`attempt_${attempts}`);
 
       const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), config.TIMEOUT_SECONDS * 1000);
+      timeoutId = setTimeout(() => controller.abort(), remainingTime);
 
       fetchOptions.signal = controller.signal;
       response = await executeFetch({
@@ -384,6 +397,7 @@ export async function fetchUpstreamResponse({
           requestContext,
           requestHeaders,
           response,
+          signal: controller.signal,
           targetUrl
         });
 
@@ -400,7 +414,15 @@ export async function fetchUpstreamResponse({
 
       attempts++;
       if (attempts < config.MAX_RETRIES) {
-        await new Promise(resolve => setTimeout(resolve, config.RETRY_DELAY_MS * attempts));
+        const retryRemainingTime = deadline - Date.now();
+        if (retryRemainingTime <= 0) {
+          response = createErrorResponse('Request timeout', 408);
+          responseGeneratedLocally = true;
+          break;
+        }
+
+        const retryDelay = Math.min(config.RETRY_DELAY_MS * attempts, retryRemainingTime);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     } catch (error) {
       attempts++;
@@ -416,7 +438,15 @@ export async function fetchUpstreamResponse({
         break;
       }
 
-      await new Promise(resolve => setTimeout(resolve, config.RETRY_DELAY_MS * attempts));
+      const remainingTime = deadline - Date.now();
+      if (remainingTime <= 0) {
+        response = createErrorResponse('Request timeout', 408);
+        responseGeneratedLocally = true;
+        break;
+      }
+
+      const retryDelay = Math.min(config.RETRY_DELAY_MS * attempts, remainingTime);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
     } finally {
       if (timeoutId !== undefined) {
         clearTimeout(timeoutId);

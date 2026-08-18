@@ -344,7 +344,7 @@ describe('Worker regression coverage', () => {
     expect(response.headers.get('Content-Length')).toBe('321');
   });
 
-  it('wraps upstream client errors in detailed JSON responses', async () => {
+  it('wraps upstream client errors without exposing the upstream body', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('teapot', {
         status: 418,
@@ -360,7 +360,8 @@ describe('Worker regression coverage', () => {
     const body = await response.json();
 
     expect(response.status).toBe(418);
-    expect(body.error).toContain('Upstream server error (418): teapot');
+    expect(body.error).toBe('Upstream server error (418)');
+    expect(body.error).not.toContain('teapot');
   });
 
   it('retries upstream 5xx responses before succeeding', async () => {
@@ -447,7 +448,7 @@ describe('Worker regression coverage', () => {
     expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutToken);
   });
 
-  it('returns a generic 500 when retry configuration prevents any upstream attempt', async () => {
+  it('falls back to safe retry defaults for invalid retry configuration', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('ok', {
         status: 200,
@@ -461,9 +462,9 @@ describe('Worker regression coverage', () => {
       executionContext
     );
 
-    expect(response.status).toBe(500);
-    expect(await response.text()).toBe('No response received after all retry attempts');
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('ok');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it('logs and recovers when request setup throws unexpectedly', async () => {

@@ -18,6 +18,51 @@
 
 import { PLATFORMS } from './platform-catalog.js';
 
+const DEFAULT_ALLOWED_METHODS = Object.freeze(['GET', 'HEAD']);
+const SUPPORTED_HTTP_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']);
+
+/**
+ * Parses an integer environment override only when it is an actual bounded integer.
+ * @param {unknown} value
+ * @param {number} fallback
+ * @param {number} minimum
+ * @param {number} maximum
+ * @returns {number} Parsed integer within the configured bounds, or the fallback value.
+ */
+function parseBoundedInteger(value, fallback, minimum, maximum) {
+  if (typeof value !== 'number' && typeof value !== 'string') {
+    return fallback;
+  }
+
+  const normalized = String(value).trim();
+  if (!/^-?\d+$/.test(normalized)) {
+    return fallback;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum
+    ? parsed
+    : fallback;
+}
+
+/**
+ * Normalizes ordinary proxy methods while keeping protocol-specific methods explicit.
+ * @param {unknown} value
+ * @returns {string[]} Supported, normalized methods with duplicates removed.
+ */
+function parseAllowedMethods(value) {
+  if (typeof value !== 'string') {
+    return [...DEFAULT_ALLOWED_METHODS];
+  }
+
+  const methods = value
+    .split(',')
+    .map(method => method.trim().toUpperCase())
+    .filter(method => SUPPORTED_HTTP_METHODS.has(method));
+
+  return methods.length ? [...new Set(methods)] : [...DEFAULT_ALLOWED_METHODS];
+}
+
 /**
  * Security-related configuration options for request validation and CORS.
  * @typedef {object} SecurityConfig
@@ -132,12 +177,6 @@ import { PLATFORMS } from './platform-catalog.js';
  * // ['https://example.com', 'https://app.example.com']
  */
 export function createConfig(env = {}) {
-  const allowedMethods =
-    typeof env.ALLOWED_METHODS === 'string'
-      ? env.ALLOWED_METHODS.split(',')
-          .map(method => method.trim())
-          .filter(Boolean)
-      : ['GET', 'HEAD'];
   const allowedOrigins =
     typeof env.ALLOWED_ORIGINS === 'string'
       ? env.ALLOWED_ORIGINS.split(',')
@@ -146,14 +185,14 @@ export function createConfig(env = {}) {
       : ['*'];
 
   return {
-    TIMEOUT_SECONDS: parseInt(String(env.TIMEOUT_SECONDS), 10) || 30,
-    MAX_RETRIES: parseInt(String(env.MAX_RETRIES), 10) || 3,
-    RETRY_DELAY_MS: parseInt(String(env.RETRY_DELAY_MS), 10) || 1000,
-    CACHE_DURATION: parseInt(String(env.CACHE_DURATION), 10) || 1800, // 30 minutes
+    TIMEOUT_SECONDS: parseBoundedInteger(env.TIMEOUT_SECONDS, 30, 1, 120),
+    MAX_RETRIES: parseBoundedInteger(env.MAX_RETRIES, 3, 1, 5),
+    RETRY_DELAY_MS: parseBoundedInteger(env.RETRY_DELAY_MS, 1000, 0, 10000),
+    CACHE_DURATION: parseBoundedInteger(env.CACHE_DURATION, 1800, 0, 86400), // 30 minutes
     SECURITY: {
-      ALLOWED_METHODS: allowedMethods.length ? allowedMethods : ['GET', 'HEAD'],
+      ALLOWED_METHODS: parseAllowedMethods(env.ALLOWED_METHODS),
       ALLOWED_ORIGINS: allowedOrigins.length ? allowedOrigins : ['*'],
-      MAX_PATH_LENGTH: parseInt(String(env.MAX_PATH_LENGTH), 10) || 2048
+      MAX_PATH_LENGTH: parseBoundedInteger(env.MAX_PATH_LENGTH, 2048, 256, 8192)
     },
     PLATFORMS
   };

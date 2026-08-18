@@ -42,33 +42,36 @@ import { addSecurityHeaders, createErrorResponse } from '../utils/security.js';
  * }} options
  * @returns {Promise<Response>} Final error response.
  */
-async function finalizeErrorResponse({ requestContext, response, responseGeneratedLocally }) {
+async function finalizeErrorResponse({
+  effectivePath,
+  platform,
+  requestContext,
+  response,
+  responseGeneratedLocally
+}) {
   if (responseGeneratedLocally || response.ok || response.status === 206) {
     return response;
   }
 
   if (requestContext.isDocker && response.status === 401) {
     if (!response.headers.has('WWW-Authenticate')) {
-      const isCustomError =
-        response.headers.get('content-type') === 'application/json' &&
-        (await response.clone().text()).includes('UNAUTHORIZED');
-
-      if (!isCustomError) {
-        const errorText = await response.text().catch(() => '');
-        return createErrorResponse(
-          `Authentication required for this container registry resource. This may be a private repository. Original error: ${errorText}`,
-          401,
-          true
-        );
-      }
+      return createErrorResponse(
+        'Authentication required for this container registry resource. This may be a private repository.',
+        401,
+        true
+      );
     }
 
     return response;
   }
 
-  const errorText = await response.text().catch(() => 'Unknown error');
+  console.warn('Upstream response failed:', {
+    status: response.status,
+    platform,
+    path: effectivePath.slice(0, 256)
+  });
   return createErrorResponse(
-    `Upstream server error (${response.status}): ${errorText}`,
+    `Upstream server error (${response.status})`,
     response.status,
     true
   );

@@ -11,6 +11,43 @@ import {
 import { getAllowedMethods, isDockerRequest, validateRequest } from '../../src/utils/validation.js';
 
 describe('Utility Functions', () => {
+  describe('createConfig', () => {
+    it('uses defaults for invalid or out-of-range numeric overrides', () => {
+      const config = createConfig({
+        TIMEOUT_SECONDS: '1.5',
+        MAX_RETRIES: '-1',
+        RETRY_DELAY_MS: '10001',
+        CACHE_DURATION: '86401',
+        MAX_PATH_LENGTH: '255'
+      });
+
+      expect(config.TIMEOUT_SECONDS).toBe(30);
+      expect(config.MAX_RETRIES).toBe(3);
+      expect(config.RETRY_DELAY_MS).toBe(1000);
+      expect(config.CACHE_DURATION).toBe(1800);
+      expect(config.SECURITY.MAX_PATH_LENGTH).toBe(2048);
+    });
+
+    it('accepts bounded zero values where zero is meaningful', () => {
+      const config = createConfig({ RETRY_DELAY_MS: '0', CACHE_DURATION: '0' });
+
+      expect(config.RETRY_DELAY_MS).toBe(0);
+      expect(config.CACHE_DURATION).toBe(0);
+    });
+
+    it('filters unsupported methods and normalizes valid methods', () => {
+      const config = createConfig({ ALLOWED_METHODS: 'get, OPTIONS, trace, POST,post' });
+
+      expect(config.SECURITY.ALLOWED_METHODS).toEqual(['GET', 'POST']);
+    });
+
+    it('falls back when no configured method is supported', () => {
+      const config = createConfig({ ALLOWED_METHODS: 'OPTIONS,CONNECT,TRACE' });
+
+      expect(config.SECURITY.ALLOWED_METHODS).toEqual(['GET', 'HEAD']);
+    });
+  });
+
   describe('isGitRequest', () => {
     it('should identify Git info/refs requests', () => {
       const request = new Request('https://example.com/repo.git/info/refs');
@@ -152,10 +189,10 @@ describe('Utility Functions', () => {
     });
 
     it('should reject paths longer than the configured maximum', () => {
-      const request = new Request(`https://example.com/gh/${'a'.repeat(200)}`);
+      const request = new Request(`https://example.com/gh/${'a'.repeat(300)}`);
       const url = new URL(request.url);
 
-      const result = validateRequest(request, url, createConfig({ MAX_PATH_LENGTH: '32' }));
+      const result = validateRequest(request, url, createConfig({ MAX_PATH_LENGTH: '256' }));
       expect(result.valid).toBe(false);
       expect(result.status).toBe(414);
     });

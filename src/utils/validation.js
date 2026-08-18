@@ -27,6 +27,8 @@ import { isAIInferenceRequest } from '../protocols/ai.js';
 import { isGitLFSRequest, isGitRequest } from '../protocols/git.js';
 import { isHuggingFaceAPIRequest } from '../protocols/huggingface.js';
 
+const PROTOCOL_ALLOWED_METHODS = Object.freeze(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']);
+
 /**
  * Computes protocol and request traits used across validation, routing, and response handling.
  * @param {Request} request
@@ -181,7 +183,7 @@ export function getAllowedMethods(request, url, config = CONFIG) {
   const traits = getRequestTraits(request, url);
 
   return isProtocolRequest(traits)
-    ? ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']
+    ? [...PROTOCOL_ALLOWED_METHODS]
     : config.SECURITY.ALLOWED_METHODS;
 }
 
@@ -214,7 +216,7 @@ export function validateRequest(
   traits = getRequestTraits(request, url)
 ) {
   const allowedMethods = isProtocolRequest(traits)
-    ? ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']
+    ? PROTOCOL_ALLOWED_METHODS
     : config.SECURITY.ALLOWED_METHODS;
 
   if (!allowedMethods.includes(request.method)) {

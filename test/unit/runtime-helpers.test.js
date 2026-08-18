@@ -67,6 +67,26 @@ describe('Runtime helper coverage', () => {
     expect(response.headers.get('Content-Security-Policy')).toBe(upstreamCsp);
   });
 
+  it('exposes cache hit, miss, and bypass status separately', () => {
+    const hitMonitor = new PerformanceMonitor();
+    hitMonitor.mark('cache_hit');
+    expect(
+      addPerformanceHeaders(new Response('hit'), hitMonitor).headers.get('X-Cache-Status')
+    ).toBe('HIT');
+
+    const missMonitor = new PerformanceMonitor();
+    missMonitor.mark('cache_miss');
+    expect(
+      addPerformanceHeaders(new Response('miss'), missMonitor).headers.get('X-Cache-Status')
+    ).toBe('MISS');
+
+    const bypassMonitor = new PerformanceMonitor();
+    bypassMonitor.mark('cache_bypass');
+    expect(
+      addPerformanceHeaders(new Response('bypass'), bypassMonitor).headers.get('X-Cache-Status')
+    ).toBe('BYPASS');
+  });
+
   it('rewrites only supported upstream response types', () => {
     expect(shouldRewriteTextResponse('pypi', '/pypi/simple/demo/', 'text/html')).toBe(true);
     expect(shouldRewriteTextResponse('npm', '/npm/demo', 'application/json')).toBe(true);

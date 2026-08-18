@@ -103,7 +103,8 @@ supported platform URL to Xget's acceleration format with one click
 - **🔗 Connection Reuse**: Uses standard HTTP connection reuse and keep-alive
   behavior where the runtime and upstream allow it
 - **📊 Request Timing Visibility**: Can expose timing data through
-  `X-Performance-Metrics` headers where protocol compatibility allows
+  `X-Performance-Metrics` and `X-Cache-Status` headers where protocol
+  compatibility allows. Cache status is `HIT`, `MISS`, or `BYPASS`.
 
 ### 🌐 Deep Multi-Platform Integration
 
@@ -151,7 +152,7 @@ supported platform URL to Xget's acceleration format with one click
     durations
   - Detailed performance data provided via `X-Performance-Metrics` response
     header
-  - Cache hit rate statistics and optimization recommendations
+  - `X-Cache-Status` reports `HIT`, `MISS`, or `BYPASS` for ordinary requests
 
 ### 🎯 Full Git Protocol Compatibility
 
@@ -2988,7 +2989,7 @@ correctly used.
 Performance metrics are returned in response headers:
 
 - `X-Performance-Metrics`: Contains timing statistics for request stages
-- `X-Cache-Status`: Shows cache hit status
+- `X-Cache-Status`: Shows `HIT`, `MISS`, or `BYPASS` for ordinary requests
 
 ### Log Debugging
 

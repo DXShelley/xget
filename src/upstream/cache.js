@@ -72,6 +72,7 @@ export async function tryReadCachedResponse({
     isHF ||
     hasSensitiveHeaders
   ) {
+    monitor.mark('cache_bypass');
     return null;
   }
 
@@ -99,12 +100,16 @@ export async function tryReadCachedResponse({
     });
     const fullCachedResponse = await cache.match(fullContentKey);
     if (fullCachedResponse) {
+      monitor.mark('cache_hit');
       monitor.mark('cache_hit_full_content');
       return fullCachedResponse;
     }
   } catch (cacheError) {
+    monitor.mark('cache_bypass');
     console.warn('Cache API unavailable:', cacheError);
+    return null;
   }
 
+  monitor.mark('cache_miss');
   return null;
 }

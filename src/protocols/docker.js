@@ -55,9 +55,10 @@ export function parseAuthenticate(authenticateStr) {
  * @param {{realm: string, service: string}} wwwAuthenticate - Authentication info from WWW-Authenticate header
  * @param {string} scope - The scope for the token (e.g., "repository:library/nginx:pull")
  * @param {string} authorization - Authorization header value (optional, for authenticated access)
+ * @param {AbortSignal} [signal] - Optional cancellation signal for the token request
  * @returns {Promise<Response>} Token response containing JWT token
  */
-export async function fetchToken(wwwAuthenticate, scope, authorization) {
+export async function fetchToken(wwwAuthenticate, scope, authorization, signal) {
   const url = new URL(wwwAuthenticate.realm);
   if (wwwAuthenticate.service.length) {
     url.searchParams.set('service', wwwAuthenticate.service);
@@ -69,7 +70,7 @@ export async function fetchToken(wwwAuthenticate, scope, authorization) {
   if (authorization) {
     headers.set('Authorization', authorization);
   }
-  return await fetch(url, { method: 'GET', headers });
+  return await fetch(url, { method: 'GET', headers, signal });
 }
 
 /**
@@ -305,28 +306,45 @@ export async function handleDockerAuth(request, url, config) {
 
   const upstreamUrl = config.PLATFORMS[target.platformKey];
   const authorization = request.headers.get('Authorization');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.TIMEOUT_SECONDS * 1000);
 
-  // 1. Fetch the upstream root (v2) to get the proper realm and service
-  // We use the upstream URL + /v2/
-  const v2Url = new URL(`${upstreamUrl}/v2/`);
-  const v2Resp = await fetch(v2Url.toString(), {
-    method: 'GET',
-    redirect: 'follow'
-  });
+  try {
+    // Fetch the upstream root (v2) to get the proper realm and service.
+    const v2Url = new URL(`${upstreamUrl}/v2/`);
+    const v2Resp = await fetch(v2Url.toString(), {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal
+    });
 
-  if (v2Resp.status !== 401) {
-    // If not 401, maybe no auth needed? Or error.
-    // Just forward the response?
-    return v2Resp;
+    if (v2Resp.status !== 401) {
+      return v2Resp;
+    }
+
+    const authenticateStr = v2Resp.headers.get('WWW-Authenticate');
+    if (authenticateStr === null) {
+      return v2Resp;
+    }
+
+    const wwwAuthenticate = parseAuthenticate(authenticateStr);
+    return await fetchToken(
+      wwwAuthenticate,
+      target.upstreamScope,
+      authorization || '',
+      controller.signal
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return createErrorResponse('Docker authentication timeout', 408);
+    }
+
+    console.error(
+      'Docker authentication upstream request failed:',
+      error instanceof Error ? error.message : 'unknown error'
+    );
+    return createErrorResponse('Docker authentication failed', 502);
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const authenticateStr = v2Resp.headers.get('WWW-Authenticate');
-  if (authenticateStr === null) {
-    return v2Resp;
-  }
-
-  const wwwAuthenticate = parseAuthenticate(authenticateStr);
-
-  // 3. Fetch the token from the upstream realm
-  return await fetchToken(wwwAuthenticate, target.upstreamScope, authorization || '');
 }

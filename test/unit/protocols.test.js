@@ -3,6 +3,7 @@ import worker from '../../src/index.js';
 import { CONFIG } from '../../src/config/index.js';
 import { isAIInferenceRequest } from '../../src/protocols/ai.js';
 import {
+  fetchToken,
   getScopeFromUrl,
   handleDockerAuth,
   readRegistryTokenResponse
@@ -268,6 +269,46 @@ describe('Docker Authentication', () => {
     );
 
     expect(token).toBeNull();
+  });
+
+  it('passes the active abort signal to token services', async () => {
+    const controller = new AbortController();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
+    await fetchToken(
+      { realm: 'https://ghcr.io/token', service: 'ghcr.io' },
+      'repository:private/repo:pull',
+      '',
+      controller.signal
+    );
+
+    expect(fetchSpy.mock.calls[0][1]?.signal).toBe(controller.signal);
+  });
+
+  it('bounds standalone Docker authentication and clears its timer', async () => {
+    const timeoutToken = { id: 'docker-auth-timeout' };
+    const clearTimeoutSpy = vi.fn();
+    vi.stubGlobal(
+      'setTimeout',
+      vi.fn(callback => {
+        callback();
+        return timeoutToken;
+      })
+    );
+    vi.stubGlobal('clearTimeout', clearTimeoutSpy);
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
+      expect(init?.signal?.aborted).toBe(true);
+      const error = new Error('aborted');
+      error.name = 'AbortError';
+      throw error;
+    });
+
+    const request = new Request('https://example.com/cr/ghcr/v2/auth');
+    const response = await handleDockerAuth(request, new URL(request.url), CONFIG);
+
+    expect(response.status).toBe(408);
+    expect(await response.text()).toBe('Docker authentication timeout');
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutToken);
   });
 
   it('falls back cleanly when the token service returns an empty success body', async () => {

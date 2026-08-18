@@ -75,6 +75,48 @@ describe('Pipeline modules', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('caps retry waits by the total request deadline', async () => {
+    const request = new Request('https://example.com/gh/user/repo/file.txt');
+    const requestContext = createRequestContext(request, {});
+    /** @type {number[]} */
+    const timeoutDelays = [];
+    let timerCall = 0;
+
+    vi.stubGlobal(
+      'setTimeout',
+      vi.fn((callback, delay) => {
+        timerCall++;
+        timeoutDelays.push(delay);
+        if (timerCall === 2) {
+          callback();
+        }
+        return { timerCall };
+      })
+    );
+    vi.stubGlobal('clearTimeout', vi.fn());
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('temporary-network-error'))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    const result = await fetchUpstreamResponse({
+      authorization: null,
+      canUseCache: true,
+      config: { ...CONFIG, MAX_RETRIES: 2, RETRY_DELAY_MS: 10000, TIMEOUT_SECONDS: 1 },
+      effectivePath: '/gh/user/repo/file.txt',
+      monitor: new PerformanceMonitor(),
+      platform: 'gh',
+      request,
+      requestContext,
+      shouldPassthroughRequest: false,
+      targetUrl: 'https://github.com/user/repo/file.txt'
+    });
+
+    expect(result.response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(timeoutDelays.every(delay => delay <= 1000)).toBe(true);
+  });
+
   it('rewrites npm metadata and refreshes content length during response finalization', async () => {
     const request = new Request('https://example.com/npm/pkg');
     const requestContext = createRequestContext(request, {});
