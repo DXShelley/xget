@@ -309,6 +309,80 @@ describe('GitHub read-only Web routing', () => {
     expect(fetchSpy.mock.calls[0][1]?.body).toBeUndefined();
   });
 
+  it('separates HTML, JSON, and fragment GET cache variants', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const config = { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5, CACHE_DURATION: 1800 };
+
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+        headers: { Accept: 'text/html' }
+      }),
+      targetUrl: 'https://github.com/go-gitea/gitea',
+      config
+    });
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'version',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }),
+      targetUrl: 'https://github.com/go-gitea/gitea',
+      config
+    });
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+        headers: { Accept: 'text/html', 'X-PJAX': 'true' }
+      }),
+      targetUrl: 'https://github.com/go-gitea/gitea',
+      config
+    });
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+        headers: { Accept: 'text/html', 'X-PJAX': 'true', 'X-PJAX-Container': '#repo' }
+      }),
+      targetUrl: 'https://github.com/go-gitea/gitea',
+      config
+    });
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+        headers: { Accept: 'text/html', 'X-PJAX': 'true', 'X-PJAX-Container': '#issues' }
+      }),
+      targetUrl: 'https://github.com/go-gitea/gitea',
+      config
+    });
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea', { method: 'POST' }),
+      targetUrl: 'https://github.com/go-gitea/gitea',
+      config
+    });
+
+    const githubFetchCalls = fetchSpy.mock.calls.filter(
+      call => call[0] === 'https://github.com/go-gitea/gitea'
+    );
+    const cacheKeys = githubFetchCalls
+      .map(call => /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (call[1]))
+      .map(options => options.cf?.cacheKey)
+      .filter(Boolean);
+    const [[, firstGithubFetchOptions], , , , , [, lastGithubFetchOptions]] = githubFetchCalls;
+    const cacheOptions = /** @type {RequestInit & { cf?: Record<string, unknown> } } */ (
+      firstGithubFetchOptions
+    );
+    expect(cacheOptions.cf?.cacheEverything).toBe(true);
+    expect(cacheOptions.cf?.cacheTtl).toBe(1800);
+    expect(cacheKeys[0]).toContain('__xget_github_variant=html');
+    expect(cacheKeys[1]).toContain('__xget_github_variant=json');
+    expect(cacheKeys[2]).toContain('__xget_github_variant=fragment');
+    expect(cacheKeys[3]).not.toBe(cacheKeys[4]);
+    expect(new Set(cacheKeys).size).toBe(5);
+    const nonGetOptions = /** @type {RequestInit & { cf?: Record<string, unknown> } } */ (
+      lastGithubFetchOptions
+    );
+    expect(nonGetOptions.cf?.cacheEverything).toBe(false);
+    expect(nonGetOptions.cf?.cacheKey).toBeUndefined();
+  });
+
   it('keeps read-only GitHub links local and sends write links to GitHub', () => {
     const origin = 'https://fast.example';
 

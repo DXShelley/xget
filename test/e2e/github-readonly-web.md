@@ -44,6 +44,18 @@ Worker version is deployed.
 
 The production domain must be rechecked after deploying this Worker version.
 
+## Round 6 (HTML/JSON cache isolation)
+
+| Check                                  | Result                  | Observation                                                                                                                                                       |
+| -------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Same URL with HTML and JSON Accept     | Pass (unit/integration) | Cloudflare cache keys include representation variants such as `html`, `json`, `fragment` and `other`; HTML and JSON responses cannot occupy the same cache entry. |
+| Distinct PJAX/Turbo containers         | Pass (unit/integration) | Fragment cache keys include a bounded container suffix, so targets such as `#repo` and `#issues` cannot share a cache entry.                                      |
+| Public GET cache performance           | Preserved               | `cacheEverything` and the configured `CACHE_DURATION` remain enabled for GET requests; only the internal cache key gains a small representation suffix.           |
+| GitHub `/commits/main/` upstream `429` | Out of scope            | The independent upstream rate-limit issue is intentionally not changed by this fix.                                                                               |
+
+The production domain must be rechecked after deploying this Worker version,
+including a fresh HTML navigation after a JSON Fetch to the same repository URL.
+
 ## Round 1
 
 | Check                                      | Result     | Observation                                                                                                                                    |

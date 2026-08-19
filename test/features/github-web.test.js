@@ -56,6 +56,37 @@ describe('GitHub read-only Web integration', () => {
     expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
   });
 
+  it('keeps HTML and JSON repository responses in separate edge-cache variants', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+
+    await worker.fetch(
+      new Request('https://fast.example/gh/go-gitea/gitea', {
+        headers: { Accept: 'text/html' }
+      }),
+      {},
+      executionContext
+    );
+    await worker.fetch(
+      new Request('https://fast.example/gh/go-gitea/gitea', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'version',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }),
+      {},
+      executionContext
+    );
+
+    const cacheKeys = fetchSpy.mock.calls
+      .filter(call => call[0] === 'https://github.com/go-gitea/gitea')
+      .map(call => /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (call[1]))
+      .map(options => options.cf?.cacheKey);
+    expect(cacheKeys[0]).not.toBe(cacheKeys[1]);
+    expect(cacheKeys[0]).toContain('__xget_github_variant=html');
+    expect(cacheKeys[1]).toContain('__xget_github_variant=json');
+  });
+
   it('proxies GitHub Web JSON fetches used to fill repository metadata', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(

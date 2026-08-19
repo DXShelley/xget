@@ -38,6 +38,57 @@ export function getGithubRequestHeaders(request) {
 }
 
 /**
+ * Classifies the representation expected by a GitHub Web request.
+ * @param {Request} request
+ * @returns {'html' | 'json' | 'fragment' | `fragment-${string}` | 'other'} Cache representation variant.
+ */
+function getGithubCacheVariant(request) {
+  const accept = (request.headers.get('Accept') || '').toLowerCase();
+  const hasJsonOnlyAccept =
+    accept.includes('application/json') &&
+    !accept.includes('text/html') &&
+    !accept.includes('application/xhtml+xml');
+  const isFragmentRequest =
+    request.headers.has('X-PJAX') ||
+    request.headers.has('X-PJAX-Container') ||
+    request.headers.has('X-Turbo-Frame') ||
+    request.headers.get('X-Requested-With')?.toLowerCase() === 'xmlhttprequest';
+
+  if (hasJsonOnlyAccept) {
+    return 'json';
+  }
+
+  if (isFragmentRequest) {
+    const target =
+      request.headers.get('X-PJAX-Container') || request.headers.get('X-Turbo-Frame') || '';
+
+    return target ? `fragment-${target.slice(0, 96)}` : 'fragment';
+  }
+
+  if (
+    accept.includes('text/html') ||
+    accept.includes('application/xhtml+xml') ||
+    request.headers.get('Sec-Fetch-Mode') === 'navigate'
+  ) {
+    return 'html';
+  }
+
+  return 'other';
+}
+
+/**
+ * Builds a representation-specific Cloudflare cache key without changing the upstream URL.
+ * @param {string} targetUrl
+ * @param {Request} request
+ * @returns {string} Cache key for the upstream representation.
+ */
+function getGithubCacheKey(targetUrl, request) {
+  const cacheKey = new URL(targetUrl);
+  cacheKey.searchParams.set('__xget_github_variant', getGithubCacheVariant(request));
+  return cacheKey.toString();
+}
+
+/**
  * Fetches a public GitHub Web resource without forwarding credentials. Bodies are only forwarded for an explicitly allowlisted endpoint.
  * @param {{ request: Request, targetUrl: string, config: { MAX_RETRIES: number, RETRY_DELAY_MS: number, TIMEOUT_SECONDS: number, CACHE_DURATION?: number }, forwardBody?: boolean }} options
  * @returns {Promise<{ response: Response, responseGeneratedLocally: boolean }>} Upstream result.
@@ -70,6 +121,7 @@ export async function fetchGithubWeb({ request, targetUrl, config, forwardBody =
           http3: true,
           cacheTtl: Number(config.CACHE_DURATION) || 0,
           cacheEverything: request.method === 'GET',
+          ...(request.method === 'GET' ? { cacheKey: getGithubCacheKey(targetUrl, request) } : {}),
           preconnect: true
         }
       };
