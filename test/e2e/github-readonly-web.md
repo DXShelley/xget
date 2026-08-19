@@ -44,6 +44,24 @@ Worker version is deployed.
 
 The production domain must be rechecked after deploying this Worker version.
 
+## Round 8 (public preference Cookie boundary)
+
+| Check                                                                 | Result       | Observation                                                                                                                                      |
+| --------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Cookie sanitizer                                                      | Pass (unit)  | Only `cpu_bucket`, `preferred_color_mode` and `tz` are forwarded; session, account, device and unknown cookies are removed.                      |
+| Cookie cache isolation                                                | Pass (unit)  | The allowlisted preference representation is included in the GitHub Web cache key; account/session values are never included.                    |
+| Production `/commits/main/` without Cookie                            | `429`        | `https://fast.dxshelley.fun` returned the local upstream-error contract with status `429`.                                                       |
+| Production `/commits/main/` with public preference Cookies            | `429`        | The deployed Worker version still returned `429`; this version predates the allowlist change, so it does not verify the new forwarding behavior. |
+| Production `/commits/main/` with mixed account and preference Cookies | `429`        | Same result as the no-Cookie and public-preference probes; account cookies were not exposed in the response.                                     |
+| Local live `/commits/main/`                                           | Inconclusive | The local Wrangler Worker could not reach GitHub from the test environment and timed out before receiving a response.                            |
+
+The direct source probes were also unavailable during this round because the
+test environment timed out connecting to `github.com`. Earlier same-day probes
+had returned `200` from the source and `429` through the production Web proxy.
+The result supports a shared Worker-egress / GitHub Web rate-limit boundary, but
+a post-deployment production probe is required to confirm that the new public
+preference Cookie allowlist is active.
+
 ## Round 6 (HTML/JSON cache isolation)
 
 | Check                                  | Result                  | Observation                                                                                                                                                       |

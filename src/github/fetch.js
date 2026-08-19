@@ -15,6 +15,40 @@ const SAFE_REQUEST_HEADERS = new Set([
   'x-turbo-frame'
 ]);
 
+const PUBLIC_GITHUB_COOKIE_NAMES = Object.freeze(['cpu_bucket', 'preferred_color_mode', 'tz']);
+
+/**
+ * Extracts only GitHub cookies that affect public presentation or routing.
+ * Account, session, device, login, and unknown cookies are intentionally excluded.
+ * @param {Request} request
+ * @returns {string} Normalized public preference Cookie header.
+ */
+function getPublicGithubCookieHeader(request) {
+  const cookieHeader = request.headers.get('Cookie') || '';
+  if (!cookieHeader) {
+    return '';
+  }
+
+  const cookies = new Map();
+  for (const item of cookieHeader.split(';')) {
+    const separator = item.indexOf('=');
+    if (separator <= 0) {
+      continue;
+    }
+
+    const name = item.slice(0, separator).trim();
+    if (!PUBLIC_GITHUB_COOKIE_NAMES.includes(name) || cookies.has(name)) {
+      continue;
+    }
+
+    cookies.set(name, item.slice(separator + 1).trim());
+  }
+
+  return PUBLIC_GITHUB_COOKIE_NAMES.filter(name => cookies.has(name))
+    .map(name => `${name}=${cookies.get(name)}`)
+    .join('; ');
+}
+
 /**
  * Copies only navigation headers that do not carry user credentials.
  * @param {Request} request
@@ -31,6 +65,11 @@ export function getGithubRequestHeaders(request) {
 
   if (!headers.has('Accept')) {
     headers.set('Accept', 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8');
+  }
+
+  const publicCookieHeader = getPublicGithubCookieHeader(request);
+  if (publicCookieHeader) {
+    headers.set('Cookie', publicCookieHeader);
   }
 
   headers.set('Accept-Encoding', 'gzip, deflate, br');
@@ -85,6 +124,10 @@ function getGithubCacheVariant(request) {
 function getGithubCacheKey(targetUrl, request) {
   const cacheKey = new URL(targetUrl);
   cacheKey.searchParams.set('__xget_github_variant', getGithubCacheVariant(request));
+  const publicCookieHeader = getPublicGithubCookieHeader(request);
+  if (publicCookieHeader) {
+    cacheKey.searchParams.set('__xget_github_cookie', publicCookieHeader);
+  }
   return cacheKey.toString();
 }
 

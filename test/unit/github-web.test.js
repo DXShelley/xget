@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   GITHUB_PROXY_HOSTS,
   getGithubWebShortcuts,
@@ -18,6 +18,10 @@ import {
   rewriteGithubUrl
 } from '../../src/github/rewrite.js';
 import { finalizeGithubWebResponse } from '../../src/github/response.js';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('GitHub read-only Web routing', () => {
   it('maps hermes to repository search', () => {
@@ -368,14 +372,15 @@ describe('GitHub read-only Web routing', () => {
     expect(getGithubProxyTarget(undefined, '/anything')).toBeNull();
   });
 
-  it('forwards only safe navigation headers and never forwards credentials or bodies', () => {
+  it('forwards only safe navigation headers and public preference cookies', () => {
     const request = new Request('https://fast.example/xixu-me/Xget', {
       method: 'GET',
       headers: {
         Accept: 'text/html',
         'Accept-Language': 'zh-CN',
         Authorization: 'Bearer secret',
-        Cookie: 'logged_in=true',
+        Cookie:
+          'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai; _gh_sess=secret; _octo=tracking; logged_in=yes; unknown=drop',
         'X-PJAX': 'true'
       }
     });
@@ -385,7 +390,48 @@ describe('GitHub read-only Web routing', () => {
     expect(headers.get('Accept-Language')).toBe('zh-CN');
     expect(headers.get('X-PJAX')).toBe('true');
     expect(headers.get('Authorization')).toBeNull();
-    expect(headers.get('Cookie')).toBeNull();
+    expect(headers.get('Cookie')).toBe(
+      'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai'
+    );
+  });
+
+  it('isolates public preference cookies in GitHub Web cache keys', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const config = { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5, CACHE_DURATION: 1800 };
+
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea/commits/main/', {
+        headers: {
+          Accept: 'text/html',
+          Cookie: 'preferred_color_mode=light; _gh_sess=must-not-key'
+        }
+      }),
+      targetUrl: 'https://github.com/go-gitea/gitea/commits/main/',
+      config
+    });
+    await fetchGithubWeb({
+      request: new Request('https://fast.example/gh/go-gitea/gitea/commits/main/', {
+        headers: { Accept: 'text/html', Cookie: 'preferred_color_mode=dark' }
+      }),
+      targetUrl: 'https://github.com/go-gitea/gitea/commits/main/',
+      config
+    });
+
+    const githubFetchCalls = fetchSpy.mock.calls.filter(
+      call => call[0] === 'https://github.com/go-gitea/gitea/commits/main/'
+    );
+    const [[, firstGithubFetchOptions], [, secondGithubFetchOptions]] = githubFetchCalls;
+    const firstOptions = /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (
+      firstGithubFetchOptions
+    );
+    const secondOptions = /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (
+      secondGithubFetchOptions
+    );
+
+    expect(new Headers(firstOptions.headers).get('Cookie')).toBe('preferred_color_mode=light');
+    expect(new Headers(secondOptions.headers).get('Cookie')).toBe('preferred_color_mode=dark');
+    expect(firstOptions.cf?.cacheKey).not.toContain('must-not-key');
+    expect(firstOptions.cf?.cacheKey).not.toBe(secondOptions.cf?.cacheKey);
   });
 
   it('uses manual redirects and retries transient GitHub failures', async () => {
