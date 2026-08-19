@@ -20,6 +20,7 @@ const GITHUB_TOP_LEVEL_READ_PATHS = new Set([
 const GITHUB_GLOBAL_WRITE_PATH_PATTERN =
   /^\/(?:account|login|notifications|oauth|organizations|sessions|settings|signup)(?:\/|$)/i;
 const GITHUB_REPOSITORY_PATH_PATTERN = /^\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)(?:\/.*)?$/;
+const GITHUB_PROFILE_PATH_PATTERN = /^\/[A-Za-z0-9_.-]+$/;
 const GITHUB_REPOSITORY_WRITE_PATH_PATTERN =
   /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(?:compare(?:\/|$)|discussions\/new(?:\/|$)|edit(?:\/|$)|fork(?:\/|$)|issues\/new(?:\/|$)|milestones\/new(?:\/|$)|pulls?\/new(?:\/|$)|security(?:\/|$)|settings(?:\/|$))/i;
 const GITHUB_MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -105,6 +106,15 @@ export function isGithubRepositoryPath(pathname) {
 }
 
 /**
+ * Checks whether a path resembles a public user or organization page.
+ * @param {string} pathname
+ * @returns {boolean} True when the path has one GitHub account segment.
+ */
+export function isGithubProfilePath(pathname) {
+  return GITHUB_PROFILE_PATH_PATTERN.test(pathname) && !pathname.startsWith('/_github/');
+}
+
+/**
  * Determines whether a request must be handed to the canonical GitHub host.
  * @param {string} pathname
  * @param {string} [method]
@@ -178,8 +188,11 @@ export function classifyGithubWebRequest(request, url, env = {}) {
     }
 
     if (
-      isBrowserNavigationRequest(request) &&
-      (githubWebPath === '/search' || isGithubRepositoryPath(githubWebPath))
+      isBrowserRequest &&
+      (githubWebPath === '/search' ||
+        GITHUB_TOP_LEVEL_READ_PATHS.has(githubWebPath) ||
+        isGithubProfilePath(githubWebPath) ||
+        isGithubRepositoryPath(githubWebPath))
     ) {
       const upstreamUrl = getGithubUpstreamUrl(githubWebPath, search);
       if (!upstreamUrl) {
@@ -218,10 +231,24 @@ export function classifyGithubWebRequest(request, url, env = {}) {
     return { kind: 'redirect', targetUrl: getGithubCanonicalUrl(pathname, search) };
   }
 
+  if (
+    isBrowserNavigationRequest(request) &&
+    (isGithubProfilePath(pathname) || isGithubRepositoryPath(pathname))
+  ) {
+    return { kind: 'redirect', targetUrl: `${url.origin}${GITHUB_WEB_PREFIX}${pathname}${search}` };
+  }
+
   if (pathname === '/search') {
     const keyword = (url.searchParams.get('q') || '').trim().toLowerCase();
     const shortcut = getGithubWebShortcuts(env)[keyword];
     if (shortcut) {
+      if (shortcut === '/search') {
+        const searchUrl = new URL(`${url.origin}${GITHUB_WEB_PREFIX}/search`);
+        searchUrl.searchParams.set('q', keyword);
+        searchUrl.searchParams.set('type', 'repositories');
+        return { kind: 'redirect', targetUrl: searchUrl.toString() };
+      }
+
       return { kind: 'redirect', targetUrl: `${url.origin}${GITHUB_WEB_PREFIX}${shortcut}` };
     }
 

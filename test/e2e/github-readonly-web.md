@@ -37,3 +37,18 @@ GitHub. This is recorded as an environment limitation, not as evidence that the
 read-only routing code is complete in production. The remaining live E2E must be
 rerun after deploying to the target domain or from a network where the Worker
 can reach GitHub reliably.
+
+## Current Route Contract
+
+The current implementation supersedes the historical shortcut observation above:
+
+| Request | Expected behavior |
+| --- | --- |
+| `/search?q=hermes` | Redirects to `/gh/search?q=hermes&type=repositories` |
+| `/gh/Homebrew` | Proxies the public GitHub organization page |
+| `/gh/Homebrew/brew` | Proxies the public repository page |
+| Browser fetches under `/gh/...` | Stay on the GitHub Web proxy and receive rewritten responses |
+| GitHub CSS, JavaScript, images and API resources | Use `/_github/proxy/{allowlisted-host}/...` |
+
+The regression suite covering these rules is `test/unit/github-web.test.js` and
+`test/features/github-web.test.js`.

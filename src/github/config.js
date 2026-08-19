@@ -7,24 +7,37 @@ export const GITHUB_WEB_PREFIX = '/gh';
 
 /** @type {Readonly<Record<string, string>>} */
 export const DEFAULT_GITHUB_WEB_SHORTCUTS = Object.freeze({
-  hermes: '/DXShelley/xget'
+  hermes: '/search'
 });
 
 /** @type {Readonly<Record<string, string>>} */
 export const GITHUB_PROXY_HOSTS = Object.freeze({
   'api.github.com': 'https://api.github.com',
   'avatars.githubusercontent.com': 'https://avatars.githubusercontent.com',
+  'camo.githubusercontent.com': 'https://camo.githubusercontent.com',
   'codeload.github.com': 'https://codeload.github.com',
+  'github-cloud.s3.amazonaws.com': 'https://github-cloud.s3.amazonaws.com',
   'github.githubassets.com': 'https://github.githubassets.com',
+  'identicons.github.com': 'https://identicons.github.com',
+  'marketplace-screenshots.githubusercontent.com':
+    'https://marketplace-screenshots.githubusercontent.com',
+  'media.githubusercontent.com': 'https://media.githubusercontent.com',
   'objects.githubusercontent.com': 'https://objects.githubusercontent.com',
+  'objects-origin.githubusercontent.com': 'https://objects-origin.githubusercontent.com',
   'opengraph.githubassets.com': 'https://opengraph.githubassets.com',
+  'private-avatars.githubusercontent.com': 'https://private-avatars.githubusercontent.com',
+  'private-user-images.githubusercontent.com': 'https://private-user-images.githubusercontent.com',
   'raw.githubusercontent.com': 'https://raw.githubusercontent.com',
+  'release-assets.githubusercontent.com': 'https://release-assets.githubusercontent.com',
   'repository-images.githubusercontent.com': 'https://repository-images.githubusercontent.com',
+  'secured-user-images.githubusercontent.com': 'https://secured-user-images.githubusercontent.com',
+  'spotlights-feed.github.com': 'https://spotlights-feed.github.com',
   'user-images.githubusercontent.com': 'https://user-images.githubusercontent.com'
 });
 
 const SHORTCUT_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
 const REPOSITORY_PATH_PATTERN = /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/.*)?$/;
+const SEARCH_PATH = '/search';
 
 /**
  * Checks for ASCII control characters without embedding control escapes in a regex.
@@ -54,8 +67,17 @@ function isSafeRepositoryPath(value) {
 }
 
 /**
+ * Validates a local path used by a shortcut.
+ * @param {string} value
+ * @returns {boolean} True when the shortcut points to a supported read path.
+ */
+function isSafeShortcutPath(value) {
+  return value === SEARCH_PATH || isSafeRepositoryPath(value);
+}
+
+/**
  * Reads shortcut configuration from the environment while retaining defaults.
- * Format: `keyword=/owner/repository,other=/owner/other`.
+ * Format: `keyword=/owner/repository,other=/owner/other`; `/search` is also supported.
  * @param {Record<string, unknown>} [env]
  * @returns {{ [keyword: string]: string }} Normalized shortcut map.
  */
@@ -71,7 +93,7 @@ export function getGithubWebShortcuts(env = {}) {
 
     const keyword = item.slice(0, separator).trim().toLowerCase();
     const path = item.slice(separator + 1).trim();
-    if (SHORTCUT_KEY_PATTERN.test(keyword) && isSafeRepositoryPath(path)) {
+    if (SHORTCUT_KEY_PATTERN.test(keyword) && isSafeShortcutPath(path)) {
       shortcuts[keyword] = path;
     }
   }

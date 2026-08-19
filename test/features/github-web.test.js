@@ -13,7 +13,7 @@ describe('GitHub read-only Web integration', () => {
     vi.restoreAllMocks();
   });
 
-  it('redirects the hermes shortcut without contacting an upstream', async () => {
+  it('redirects the hermes shortcut to repository search without contacting an upstream', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const response = await worker.fetch(
       new Request('https://fast.example/search?q=Hermes'),
@@ -22,7 +22,9 @@ describe('GitHub read-only Web integration', () => {
     );
 
     expect(response.status).toBe(302);
-    expect(response.headers.get('Location')).toBe('https://fast.example/gh/DXShelley/xget');
+    expect(response.headers.get('Location')).toBe(
+      'https://fast.example/gh/search?q=hermes&type=repositories'
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -94,6 +96,31 @@ describe('GitHub read-only Web integration', () => {
       'https://raw.githubusercontent.com/DXShelley/hermes/main/README.md'
     );
     expect(await response.text()).toBe('asset');
+  });
+
+  it('proxies GitHub CSS and rewrites asset URLs inside the stylesheet', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(
+          'body { background-image: url(https://github.githubassets.com/assets/icon.svg); }',
+          { status: 200, headers: { 'Content-Type': 'text/css; charset=utf-8' } }
+        )
+      );
+
+    const response = await worker.fetch(
+      new Request('https://fast.example/_github/proxy/github.githubassets.com/assets/app.css', {
+        headers: { Accept: 'text/css,*/*;q=0.1' }
+      }),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://github.githubassets.com/assets/app.css');
+    expect(await response.text()).toContain(
+      'https://fast.example/_github/proxy/github.githubassets.com/assets/icon.svg'
+    );
   });
 
   it('applies the existing path safety policy before GitHub Web proxying', async () => {

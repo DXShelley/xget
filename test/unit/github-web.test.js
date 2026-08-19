@@ -19,8 +19,8 @@ import {
 import { finalizeGithubWebResponse } from '../../src/github/response.js';
 
 describe('GitHub read-only Web routing', () => {
-  it('maps hermes to the configured fork repository', () => {
-    expect(getGithubWebShortcuts()).toMatchObject({ hermes: '/DXShelley/xget' });
+  it('maps hermes to repository search', () => {
+    expect(getGithubWebShortcuts()).toMatchObject({ hermes: '/search' });
 
     const result = classifyGithubWebRequest(
       new Request('https://fast.example/search?q=Hermes'),
@@ -29,7 +29,7 @@ describe('GitHub read-only Web routing', () => {
 
     expect(result).toEqual({
       kind: 'redirect',
-      targetUrl: 'https://fast.example/gh/DXShelley/xget'
+      targetUrl: 'https://fast.example/gh/search?q=hermes&type=repositories'
     });
   });
 
@@ -37,12 +37,12 @@ describe('GitHub read-only Web routing', () => {
     expect(
       getGithubWebShortcuts({ GITHUB_WEB_SHORTCUTS: 'xget=/xixu-me/Xget,docs=/owner/repo' })
     ).toEqual({
-      hermes: '/DXShelley/xget',
+      hermes: '/search',
       xget: '/xixu-me/Xget',
       docs: '/owner/repo'
     });
     expect(getGithubWebShortcuts({ GITHUB_WEB_SHORTCUTS: 'bad=//evil.test,../bad=/a/b' })).toEqual({
-      hermes: '/DXShelley/xget'
+      hermes: '/search'
     });
   });
 
@@ -70,6 +70,39 @@ describe('GitHub read-only Web routing', () => {
     expect(browserRepository).toEqual({
       kind: 'proxy',
       upstreamUrl: 'https://github.com/xixu-me/Xget/blob/main/README.md'
+    });
+
+    const missingPrefix = classifyGithubWebRequest(
+      new Request('https://fast.example/Homebrew/brew', {
+        headers: { Accept: 'text/html' }
+      }),
+      new URL('https://fast.example/Homebrew/brew')
+    );
+    expect(missingPrefix).toEqual({
+      kind: 'redirect',
+      targetUrl: 'https://fast.example/gh/Homebrew/brew'
+    });
+
+    const browserProfile = classifyGithubWebRequest(
+      new Request('https://fast.example/gh/Homebrew', {
+        headers: { Accept: 'text/html' }
+      }),
+      new URL('https://fast.example/gh/Homebrew')
+    );
+    expect(browserProfile).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/Homebrew'
+    });
+
+    const browserFetch = classifyGithubWebRequest(
+      new Request('https://fast.example/gh/xixu-me/Xget', {
+        headers: { Accept: '*/*', 'Sec-Fetch-Mode': 'cors' }
+      }),
+      new URL('https://fast.example/gh/xixu-me/Xget')
+    );
+    expect(browserFetch).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/xixu-me/Xget'
     });
   });
 
@@ -178,6 +211,12 @@ describe('GitHub read-only Web routing', () => {
     expect(getGithubProxyTarget('raw.githubusercontent.com', '/owner/repo/main.txt')).toBe(
       `${GITHUB_PROXY_HOSTS['raw.githubusercontent.com']}/owner/repo/main.txt`
     );
+    expect(getGithubProxyTarget('github.githubassets.com', '/assets/app.css')).toBe(
+      'https://github.githubassets.com/assets/app.css'
+    );
+    expect(getGithubProxyTarget('github-cloud.s3.amazonaws.com', '/asset')).toBe(
+      'https://github-cloud.s3.amazonaws.com/asset'
+    );
     expect(getGithubProxyTarget('evil.example', '/anything')).toBeNull();
     expect(getGithubProxyTarget(undefined, '/anything')).toBeNull();
   });
@@ -234,6 +273,10 @@ describe('GitHub read-only Web routing', () => {
     expect(rewriteGithubUrl('https://github.com/xixu-me/Xget/blob/main/README.md', origin)).toBe(
       `${origin}/gh/xixu-me/Xget/blob/main/README.md`
     );
+    expect(rewriteGithubUrl('https://github.com/search?q=hermes&type=repositories', origin)).toBe(
+      `${origin}/gh/search?q=hermes&type=repositories`
+    );
+    expect(rewriteGithubUrl('/Homebrew/brew', origin)).toBe(`${origin}/gh/Homebrew/brew`);
     expect(rewriteGithubUrl('/xixu-me/Xget/fork', origin)).toBe(
       'https://github.com/xixu-me/Xget/fork'
     );
@@ -246,6 +289,7 @@ describe('GitHub read-only Web routing', () => {
   it('rewrites HTML attributes and absolute URLs while preserving unrelated links', () => {
     const html = `
       <a href="https://github.com/xixu-me/Xget">repo</a>
+      <a href="/Homebrew/brew">relative repo</a>
       <a href="/xixu-me/Xget/issues/new">new issue</a>
       <img src="https://github.githubassets.com/assets/app.js">
       <a href="https://docs.example.com">external</a>
@@ -254,6 +298,7 @@ describe('GitHub read-only Web routing', () => {
     const rewritten = rewriteGithubHtml(html, 'https://fast.example');
 
     expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget"');
+    expect(rewritten).toContain('href="https://fast.example/gh/Homebrew/brew"');
     expect(rewritten).toContain('href="https://github.com/xixu-me/Xget/issues/new"');
     expect(rewritten).toContain(
       'src="https://fast.example/_github/proxy/github.githubassets.com/assets/app.js"'

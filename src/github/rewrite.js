@@ -68,11 +68,7 @@ export function rewriteGithubUrl(value, origin) {
       return getGithubCanonicalUrl(parsed.pathname, parsed.search);
     }
 
-    const localPrefix =
-      parsed.pathname === '/search' || parsed.pathname.startsWith('/search/')
-        ? ''
-        : GITHUB_WEB_PREFIX;
-    return `${origin}${localPrefix}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return `${origin}${GITHUB_WEB_PREFIX}${parsed.pathname}${parsed.search}${parsed.hash}`;
   }
 
   if (GITHUB_PROXY_HOSTS[host]) {
