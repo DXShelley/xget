@@ -106,6 +106,21 @@ describe('GitHub read-only Web routing', () => {
       upstreamUrl: 'https://github.com/xixu-me/Xget'
     });
 
+    const githubFetch = classifyGithubWebRequest(
+      new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }),
+      new URL('https://fast.example/gh/go-gitea/gitea/latest-commit')
+    );
+    expect(githubFetch).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/go-gitea/gitea/latest-commit'
+    });
+
     const manifest = classifyGithubWebRequest(
       new Request('https://fast.example/gh/manifest.json', {
         headers: { Accept: 'application/manifest+json', 'Sec-Fetch-Mode': 'cors' }

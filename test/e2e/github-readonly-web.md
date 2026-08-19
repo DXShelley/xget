@@ -34,6 +34,15 @@ again after the Worker deployment.
 The production domain still serves the pre-fix JavaScript bundle until the new
 Worker version is deployed.
 
+## Round 5 (repository metadata Fetch regression)
+
+| Check                                 | Result                   | Observation                                                                                                                                                                                                              |
+| ------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Latest commit message and time        | Root cause fixed (tests) | GitHub uses JSON Fetch requests such as `/latest-commit` with `X-GitHub-Client-Version` and `X-Requested-With`; these requests now stay in the GitHub Web route and are rewritten back to the local `/gh/...` namespace. |
+| Repository metadata Fetch integration | Pass (unit/integration)  | A Worker test confirms `/gh/{owner}/{repo}/latest-commit` is proxied to GitHub and the commit metadata payload reaches the page.                                                                                         |
+
+The production domain must be rechecked after deploying this Worker version.
+
 ## Round 1
 
 | Check                                      | Result     | Observation                                                                                                                                    |

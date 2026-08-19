@@ -73,12 +73,17 @@ function isBrowserNavigationRequest(request) {
 }
 
 /**
- * Checks whether a request carries browser Fetch Metadata headers.
+ * Checks whether a request carries browser Fetch Metadata or GitHub Web Fetch headers.
  * @param {Request} request
- * @returns {boolean} True when the request originated from browser code.
+ * @returns {boolean} True when the request originated from browser code or GitHub Web code.
  */
 function isBrowserFetchRequest(request) {
-  return request.headers.has('Sec-Fetch-Mode') || request.headers.has('Sec-Fetch-Site');
+  return (
+    request.headers.has('Sec-Fetch-Mode') ||
+    request.headers.has('Sec-Fetch-Site') ||
+    request.headers.has('X-GitHub-Client-Version') ||
+    request.headers.get('X-Requested-With')?.toLowerCase() === 'xmlhttprequest'
+  );
 }
 
 /**

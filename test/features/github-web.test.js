@@ -56,6 +56,37 @@ describe('GitHub read-only Web integration', () => {
     expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
   });
 
+  it('proxies GitHub Web JSON fetches used to fill repository metadata', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          shortMessageHtmlLink:
+            '<a href="/go-gitea/gitea/commit/abc123">Fix repository metadata</a>'
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json; charset=utf-8' }
+        }
+      )
+    );
+
+    const response = await worker.fetch(
+      new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/go-gitea/gitea/latest-commit');
+    expect(await response.text()).toContain('Fix repository metadata');
+  });
+
   it('proxies repository read pages with a CSP that allows local asset descendants', async () => {
     const paths = [
       '/gh/xixu-me/xget',
