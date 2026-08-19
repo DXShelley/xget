@@ -28,6 +28,8 @@ const GITHUB_MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const GITHUB_READ_METHODS = new Set(['GET', 'HEAD']);
 const GITHUB_BROWSER_STATS_HOST = 'api.github.com';
 const GITHUB_BROWSER_STATS_PATH = '/_private/browser/stats';
+const GITHUB_BROWSER_COLLECT_HOST = 'collector.github.com';
+const GITHUB_BROWSER_COLLECT_PATH = '/github/collect';
 
 /**
  * Checks for ASCII control characters without embedding control escapes in a regex.
@@ -241,8 +243,13 @@ export function classifyGithubWebRequest(request, url, env = {}) {
       host?.toLowerCase() === GITHUB_BROWSER_STATS_HOST &&
       proxyPath === GITHUB_BROWSER_STATS_PATH &&
       request.method.toUpperCase() === 'POST';
+    const isBrowserCollectRequest =
+      host?.toLowerCase() === GITHUB_BROWSER_COLLECT_HOST &&
+      proxyPath === GITHUB_BROWSER_COLLECT_PATH &&
+      request.method.toUpperCase() === 'POST';
+    const shouldForwardBody = isBrowserStatsRequest || isBrowserCollectRequest;
 
-    if (!GITHUB_READ_METHODS.has(request.method.toUpperCase()) && !isBrowserStatsRequest) {
+    if (!GITHUB_READ_METHODS.has(request.method.toUpperCase()) && !shouldForwardBody) {
       return { kind: 'reject' };
     }
 
@@ -254,7 +261,7 @@ export function classifyGithubWebRequest(request, url, env = {}) {
     return {
       kind: 'proxy',
       upstreamUrl: `${upstreamUrl}${search}`,
-      ...(isBrowserStatsRequest ? { forwardBody: true } : {})
+      ...(shouldForwardBody ? { forwardBody: true } : {})
     };
   }
 

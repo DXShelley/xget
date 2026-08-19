@@ -321,6 +321,31 @@ describe('GitHub read-only Web routing', () => {
         new URL('https://fast.example/_github/proxy/api.github.com/repos/DXShelley/xget')
       )
     ).toEqual({ kind: 'reject' });
+
+    expect(
+      classifyGithubWebRequest(
+        new Request('https://fast.example/_github/proxy/collector.github.com/github/collect', {
+          method: 'POST',
+          body: '{"event":"page_view"}',
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        new URL('https://fast.example/_github/proxy/collector.github.com/github/collect')
+      )
+    ).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://collector.github.com/github/collect',
+      forwardBody: true
+    });
+
+    expect(
+      classifyGithubWebRequest(
+        new Request('https://fast.example/_github/proxy/collector.github.com/github/other', {
+          method: 'POST',
+          body: '{}'
+        }),
+        new URL('https://fast.example/_github/proxy/collector.github.com/github/other')
+      )
+    ).toEqual({ kind: 'reject' });
   });
 
   it('builds GitHub upstream URLs without allowing an arbitrary host', () => {
@@ -335,6 +360,9 @@ describe('GitHub read-only Web routing', () => {
     );
     expect(getGithubProxyTarget('github-cloud.s3.amazonaws.com', '/asset')).toBe(
       'https://github-cloud.s3.amazonaws.com/asset'
+    );
+    expect(getGithubProxyTarget('collector.github.com', '/github/collect')).toBe(
+      'https://collector.github.com/github/collect'
     );
     expect(getGithubProxyTarget('evil.example', '/anything')).toBeNull();
     expect(getGithubProxyTarget(undefined, '/anything')).toBeNull();
@@ -523,16 +551,22 @@ describe('GitHub read-only Web routing', () => {
     expect(
       rewriteGithubText('"url":"https://api.github.com/repos/xixu-me/Xget"', 'https://fast.example')
     ).toBe('"url":"https://fast.example/_github/proxy/api.github.com/repos/xixu-me/Xget"');
+    expect(
+      rewriteGithubText(
+        'fetch("https://collector.github.com/github/collect")',
+        'https://fast.example'
+      )
+    ).toBe('fetch("https://fast.example/_github/proxy/collector.github.com/github/collect")');
   });
 
   it('rewrites CSP proxy origins as path prefixes without matching nested hostnames', () => {
     expect(
       rewriteGithubCsp(
-        'style-src github.githubassets.com; connect-src uploads.github.com gist.github.com github.com raw.githubusercontent.com',
+        'style-src github.githubassets.com; connect-src uploads.github.com gist.github.com github.com raw.githubusercontent.com collector.github.com',
         'https://fast.example'
       )
     ).toBe(
-      'style-src https://fast.example/_github/proxy/github.githubassets.com/; connect-src uploads.github.com gist.github.com https://fast.example https://fast.example/_github/proxy/raw.githubusercontent.com/'
+      'style-src https://fast.example/_github/proxy/github.githubassets.com/; connect-src uploads.github.com gist.github.com https://fast.example https://fast.example/_github/proxy/raw.githubusercontent.com/ https://fast.example/_github/proxy/collector.github.com/'
     );
   });
 

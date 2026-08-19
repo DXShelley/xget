@@ -58,12 +58,13 @@ including a fresh HTML navigation after a JSON Fetch to the same repository URL.
 
 ## Round 7 (repository security and same-origin Fetch paths)
 
-| Check                          | Result                  | Observation                                                                                                                       |
-| ------------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Repository `/security` page    | Pass (unit/integration) | The repository security page remains on `/gh/{owner}/{repo}/security`; it is no longer classified as a generic write path.        |
-| Security write entry points    | Pass (unit)             | Explicit paths such as `/security/advisories/new` still redirect to canonical GitHub.                                             |
-| Same-origin repository Fetches | Pass (unit/integration) | Bare browser Fetch paths such as `/{owner}/{repo}/latest-commit` and PJAX repository paths proxy to the corresponding GitHub URL. |
-| Commits upstream `429`         | Out of scope            | The existing independent `/commits/main/` upstream rate-limit behavior remains unchanged.                                         |
+| Check                          | Result                  | Observation                                                                                                                          |
+| ------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Repository `/security` page    | Pass (unit/integration) | The repository security page remains on `/gh/{owner}/{repo}/security`; it is no longer classified as a generic write path.           |
+| Security write entry points    | Pass (unit)             | Explicit paths such as `/security/advisories/new` still redirect to canonical GitHub.                                                |
+| Same-origin repository Fetches | Pass (unit/integration) | Bare browser Fetch paths such as `/{owner}/{repo}/latest-commit` and PJAX repository paths proxy to the corresponding GitHub URL.    |
+| Collector telemetry POST       | Pass (unit/integration) | The exact `collector.github.com/github/collect` analytics POST is proxied with its body; other collector POST paths remain rejected. |
+| Commits upstream `429`         | Out of scope            | The existing independent `/commits/main/` upstream rate-limit behavior remains unchanged.                                            |
 
 The production domain must be rechecked after deployment by opening the
 repository overview, then checking Security, Branches, Tags and the latest

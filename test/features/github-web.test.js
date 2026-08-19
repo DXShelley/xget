@@ -289,6 +289,33 @@ describe('GitHub read-only Web integration', () => {
     );
   });
 
+  it('proxies the GitHub collector POST without enabling other collector writes', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response('ok', { status: 200, headers: { 'Content-Type': 'text/plain' } })
+      );
+
+    const response = await worker.fetch(
+      new Request('https://fast.example/_github/proxy/collector.github.com/github/collect', {
+        method: 'POST',
+        body: '{"event":"page_view"}',
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://collector.github.com/github/collect');
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Content-Type')).toBe(
+      'application/json'
+    );
+    expect(await new Response(fetchSpy.mock.calls[0][1]?.body).text()).toBe(
+      '{"event":"page_view"}'
+    );
+  });
+
   it('proxies GitHub CSS and rewrites asset URLs inside the stylesheet', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')

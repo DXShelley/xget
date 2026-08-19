@@ -16,6 +16,7 @@ export const GITHUB_PROXY_HOSTS = Object.freeze({
   'avatars.githubusercontent.com': 'https://avatars.githubusercontent.com',
   'camo.githubusercontent.com': 'https://camo.githubusercontent.com',
   'codeload.github.com': 'https://codeload.github.com',
+  'collector.github.com': 'https://collector.github.com',
   'github-cloud.s3.amazonaws.com': 'https://github-cloud.s3.amazonaws.com',
   'github.githubassets.com': 'https://github.githubassets.com',
   'identicons.github.com': 'https://identicons.github.com',
