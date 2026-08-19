@@ -40,6 +40,7 @@ Worker version is deployed.
 | ------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Latest commit message and time        | Root cause fixed (tests) | GitHub uses JSON Fetch requests such as `/latest-commit` with `X-GitHub-Client-Version` and `X-Requested-With`; these requests now stay in the GitHub Web route and are rewritten back to the local `/gh/...` namespace. |
 | Repository metadata Fetch integration | Pass (unit/integration)  | A Worker test confirms `/gh/{owner}/{repo}/latest-commit` is proxied to GitHub and the commit metadata payload reaches the page.                                                                                         |
+| Browser stats POST                    | Pass (unit/integration)  | Only the exact `api.github.com/_private/browser/stats` endpoint is forwarded with its body; other GitHub API write methods remain rejected.                                                                              |
 
 The production domain must be rechecked after deploying this Worker version.
 

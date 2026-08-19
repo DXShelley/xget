@@ -3,6 +3,7 @@ import { createErrorResponse } from '../utils/security.js';
 const SAFE_REQUEST_HEADERS = new Set([
   'accept',
   'accept-language',
+  'content-type',
   'sec-fetch-dest',
   'sec-fetch-mode',
   'sec-fetch-site',
@@ -37,13 +38,15 @@ export function getGithubRequestHeaders(request) {
 }
 
 /**
- * Fetches a public GitHub Web resource without forwarding credentials or bodies.
- * @param {{ request: Request, targetUrl: string, config: { MAX_RETRIES: number, RETRY_DELAY_MS: number, TIMEOUT_SECONDS: number, CACHE_DURATION?: number } }} options
+ * Fetches a public GitHub Web resource without forwarding credentials. Bodies are only forwarded for an explicitly allowlisted endpoint.
+ * @param {{ request: Request, targetUrl: string, config: { MAX_RETRIES: number, RETRY_DELAY_MS: number, TIMEOUT_SECONDS: number, CACHE_DURATION?: number }, forwardBody?: boolean }} options
  * @returns {Promise<{ response: Response, responseGeneratedLocally: boolean }>} Upstream result.
  */
-export async function fetchGithubWeb({ request, targetUrl, config }) {
+export async function fetchGithubWeb({ request, targetUrl, config, forwardBody = false }) {
   const headers = getGithubRequestHeaders(request);
-  const maxRetries = Math.max(1, Number(config.MAX_RETRIES) || 1);
+  const shouldForwardBody =
+    forwardBody && request.method !== 'GET' && request.method !== 'HEAD' && request.body !== null;
+  const maxRetries = shouldForwardBody ? 1 : Math.max(1, Number(config.MAX_RETRIES) || 1);
   let response;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -60,6 +63,7 @@ export async function fetchGithubWeb({ request, targetUrl, config }) {
       const fetchOptions = {
         method: request.method,
         headers,
+        body: shouldForwardBody ? request.body : undefined,
         redirect: 'manual',
         signal: controller.signal,
         cf: {

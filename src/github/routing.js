@@ -26,6 +26,8 @@ const GITHUB_REPOSITORY_WRITE_PATH_PATTERN =
   /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(?:compare(?:\/|$)|discussions\/new(?:\/|$)|edit(?:\/|$)|fork(?:\/|$)|issues\/new(?:\/|$)|milestones\/new(?:\/|$)|pulls?\/new(?:\/|$)|security(?:\/|$)|settings(?:\/|$))/i;
 const GITHUB_MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const GITHUB_READ_METHODS = new Set(['GET', 'HEAD']);
+const GITHUB_BROWSER_STATS_HOST = 'api.github.com';
+const GITHUB_BROWSER_STATS_PATH = '/_private/browser/stats';
 
 /**
  * Checks for ASCII control characters without embedding control escapes in a regex.
@@ -177,7 +179,7 @@ export function getGithubUpstreamUrl(pathname, search = '') {
  * @param {Request} request
  * @param {URL} url
  * @param {Record<string, unknown>} [env]
- * @returns {{ kind: 'proxy'; upstreamUrl: string } | { kind: 'redirect'; targetUrl: string } | { kind: 'reject' } | null} Route decision.
+ * @returns {{ kind: 'proxy'; upstreamUrl: string; forwardBody?: boolean } | { kind: 'redirect'; targetUrl: string } | { kind: 'reject' } | null} Route decision.
  */
 export function classifyGithubWebRequest(request, url, env = {}) {
   const { pathname, search } = url;
@@ -224,13 +226,27 @@ export function classifyGithubWebRequest(request, url, env = {}) {
   }
 
   if (pathname.startsWith('/_github/proxy/')) {
-    if (!GITHUB_READ_METHODS.has(request.method.toUpperCase())) {
+    const [, , , host, ...pathParts] = pathname.split('/');
+    const proxyPath = `/${pathParts.join('/')}`;
+    const isBrowserStatsRequest =
+      host?.toLowerCase() === GITHUB_BROWSER_STATS_HOST &&
+      proxyPath === GITHUB_BROWSER_STATS_PATH &&
+      request.method.toUpperCase() === 'POST';
+
+    if (!GITHUB_READ_METHODS.has(request.method.toUpperCase()) && !isBrowserStatsRequest) {
       return { kind: 'reject' };
     }
 
-    const [, , , host, ...pathParts] = pathname.split('/');
-    const upstreamUrl = getGithubProxyTarget(host, `/${pathParts.join('/')}`);
-    return upstreamUrl ? { kind: 'proxy', upstreamUrl: `${upstreamUrl}${search}` } : null;
+    const upstreamUrl = getGithubProxyTarget(host, proxyPath);
+    if (!upstreamUrl) {
+      return null;
+    }
+
+    return {
+      kind: 'proxy',
+      upstreamUrl: `${upstreamUrl}${search}`,
+      ...(isBrowserStatsRequest ? { forwardBody: true } : {})
+    };
   }
 
   if (isGithubWritePath(pathname, request.method)) {

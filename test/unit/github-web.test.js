@@ -223,6 +223,21 @@ describe('GitHub read-only Web routing', () => {
   it('rejects non-read methods for allowlisted GitHub assets', () => {
     expect(
       classifyGithubWebRequest(
+        new Request('https://fast.example/_github/proxy/api.github.com/_private/browser/stats', {
+          method: 'POST',
+          body: '{"event":"page_view"}',
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        new URL('https://fast.example/_github/proxy/api.github.com/_private/browser/stats')
+      )
+    ).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://api.github.com/_private/browser/stats',
+      forwardBody: true
+    });
+
+    expect(
+      classifyGithubWebRequest(
         new Request('https://fast.example/_github/proxy/api.github.com/repos/DXShelley/xget', {
           method: 'OPTIONS'
         }),

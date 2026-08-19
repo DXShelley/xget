@@ -52,7 +52,8 @@ export async function handleGithubWebRequest({ request, url, env, config }) {
   const { response } = await fetchGithubWeb({
     request,
     targetUrl: route.upstreamUrl,
-    config
+    config,
+    forwardBody: route.forwardBody
   });
 
   return {

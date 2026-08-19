@@ -175,6 +175,33 @@ describe('GitHub read-only Web integration', () => {
     expect(await response.text()).toBe('asset');
   });
 
+  it('proxies the GitHub browser stats POST without enabling other API writes', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response('ok', { status: 200, headers: { 'Content-Type': 'text/plain' } })
+      );
+
+    const response = await worker.fetch(
+      new Request('https://fast.example/_github/proxy/api.github.com/_private/browser/stats', {
+        method: 'POST',
+        body: '{"event":"page_view"}',
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://api.github.com/_private/browser/stats');
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Content-Type')).toBe(
+      'application/json'
+    );
+    expect(await new Response(fetchSpy.mock.calls[0][1]?.body).text()).toBe(
+      '{"event":"page_view"}'
+    );
+  });
+
   it('proxies GitHub CSS and rewrites asset URLs inside the stylesheet', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
