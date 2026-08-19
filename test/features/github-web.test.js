@@ -169,6 +169,55 @@ describe('GitHub read-only Web integration', () => {
     );
   });
 
+  it('rewrites GitHub icon links while proxying repository HTML', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        '<link rel="apple-touch-icon" href="https://github.githubassets.com/assets/apple-touch-icon.png">',
+        {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        }
+      )
+    );
+
+    const response = await worker.fetch(
+      new Request('https://fast.example/gh/Homebrew/brew', {
+        headers: { Accept: 'text/html' }
+      }),
+      {},
+      executionContext
+    );
+
+    expect(await response.text()).toContain(
+      'href="https://fast.example/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png"'
+    );
+  });
+
+  it('proxies and rewrites the GitHub Web manifest', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          icons: [{ src: 'https://github.githubassets.com/assets/apple-touch-icon.png' }]
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/manifest+json' } }
+      )
+    );
+
+    const response = await worker.fetch(
+      new Request('https://fast.example/gh/manifest.json', {
+        headers: { Accept: 'application/manifest+json', 'Sec-Fetch-Mode': 'cors' }
+      }),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/manifest.json');
+    expect(await response.text()).toContain(
+      'https://fast.example/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png'
+    );
+  });
+
   it('applies the existing path safety policy before GitHub Web proxying', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const response = await worker.fetch(

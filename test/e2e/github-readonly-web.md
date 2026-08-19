@@ -23,6 +23,17 @@ the requests because the CSP source omitted the proxy path's trailing `/`. The
 fix is verified against the local Worker; production behavior must be checked
 again after the Worker deployment.
 
+## Round 4 (JavaScript and manifest regression)
+
+| Check                    | Result                  | Observation                                                                                                                        |
+| ------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub JavaScript syntax | Pass (local transform)  | The real `app-runtime` bundle parses as an ES module after rewriting; template expressions such as `${t[1]}` remain intact.        |
+| `/gh/manifest.json`      | Pass (unit/integration) | Manifest JSON is handled by the GitHub Web branch and icon URLs use `/_github/proxy/github.githubassets.com/...`.                  |
+| Manifest icon CSP        | Root cause confirmed    | The old route returned unrewritten `application/manifest+json`; Chrome then requested the original GitHub icon and CSP blocked it. |
+
+The production domain still serves the pre-fix JavaScript bundle until the new
+Worker version is deployed.
+
 ## Round 1
 
 | Check                                      | Result     | Observation                                                                                                                                    |

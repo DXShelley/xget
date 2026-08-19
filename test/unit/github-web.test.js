@@ -105,6 +105,17 @@ describe('GitHub read-only Web routing', () => {
       kind: 'proxy',
       upstreamUrl: 'https://github.com/xixu-me/Xget'
     });
+
+    const manifest = classifyGithubWebRequest(
+      new Request('https://fast.example/gh/manifest.json', {
+        headers: { Accept: 'application/manifest+json', 'Sec-Fetch-Mode': 'cors' }
+      }),
+      new URL('https://fast.example/gh/manifest.json')
+    );
+    expect(manifest).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/manifest.json'
+    });
   });
 
   it('leaves existing Xget platform routes to the legacy router', () => {
@@ -307,6 +318,14 @@ describe('GitHub read-only Web routing', () => {
     expect(rewritten).toContain('href="https://docs.example.com"');
   });
 
+  it('rewrites static JavaScript URL prefixes without consuming template expressions', () => {
+    const script = 'const url = `https://github.com/github/github/blob/master/${t[1]}#L${t[2]}`;';
+
+    expect(rewriteGithubText(script, 'https://fast.example')).toBe(
+      'const url = `https://fast.example/gh/github/github/blob/master/${t[1]}#L${t[2]}`;'
+    );
+  });
+
   it('rewrites redirect headers and embedded text URLs', () => {
     expect(rewriteGithubLocation('/xixu-me/Xget/blob/main/README.md', 'https://fast.example')).toBe(
       'https://fast.example/gh/xixu-me/Xget/blob/main/README.md'
@@ -353,5 +372,21 @@ describe('GitHub read-only Web routing', () => {
       'https://fast.example/_github/proxy/github.githubassets.com'
     );
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('rewrites GitHub manifest icon URLs through the local asset proxy', async () => {
+    const response = await finalizeGithubWebResponse({
+      response: new Response(
+        JSON.stringify({
+          icons: [{ src: 'https://github.githubassets.com/assets/apple-touch-icon.png' }]
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/manifest+json; charset=utf-8' } }
+      ),
+      origin: 'https://fast.example'
+    });
+
+    expect(await response.text()).toContain(
+      'https://fast.example/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png'
+    );
   });
 });

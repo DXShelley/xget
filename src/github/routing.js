@@ -10,6 +10,7 @@ const GITHUB_TOP_LEVEL_READ_PATHS = new Set([
   '/collections',
   '/explore',
   '/features',
+  '/manifest.json',
   '/marketplace',
   '/search',
   '/security',

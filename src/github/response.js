@@ -19,6 +19,7 @@ export async function finalizeGithubWebResponse({ response, origin }) {
   const isTextPayload =
     isHtml ||
     contentType.includes('application/json') ||
+    contentType.includes('application/manifest+json') ||
     contentType.includes('javascript') ||
     contentType.includes('text/css');
   /** @type {string | ReadableStream<Uint8Array> | null} */
@@ -48,7 +49,11 @@ export async function finalizeGithubWebResponse({ response, origin }) {
     headers.delete('ETag');
   }
 
-  if (isHtml || contentType.includes('application/json')) {
+  if (
+    isHtml ||
+    contentType.includes('application/json') ||
+    contentType.includes('application/manifest+json')
+  ) {
     headers.set('Cache-Control', 'no-store');
   }
 

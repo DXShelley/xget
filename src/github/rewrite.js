@@ -3,7 +3,7 @@ import { getGithubCanonicalUrl, isGithubWritePath } from './routing.js';
 
 const GITHUB_HOSTS = ['github.com', ...Object.keys(GITHUB_PROXY_HOSTS)];
 const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
-  `https?:\\/\\/(?:${GITHUB_HOSTS.map(escapeRegex).join('|')})[^\\s"'<>\\\\]*`,
+  `https?:\\/\\/(?:${GITHUB_HOSTS.map(escapeRegex).join('|')})[^\\s"'<>\\\\$\\x60]*`,
   'gi'
 );
 const HTML_ATTRIBUTE_PATTERN =
