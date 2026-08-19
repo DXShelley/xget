@@ -75,7 +75,7 @@ describe('GitHub read-only Web routing', () => {
 
     const missingPrefix = classifyGithubWebRequest(
       new Request('https://fast.example/Homebrew/brew', {
-        headers: { Accept: 'text/html' }
+        headers: { Accept: 'text/html', 'Sec-Fetch-Mode': 'navigate' }
       }),
       new URL('https://fast.example/Homebrew/brew')
     );
@@ -130,6 +130,83 @@ describe('GitHub read-only Web routing', () => {
     expect(manifest).toEqual({
       kind: 'proxy',
       upstreamUrl: 'https://github.com/manifest.json'
+    });
+  });
+
+  it('proxies GitHub browser Fetches from same-origin repository paths', () => {
+    const latestCommit = classifyGithubWebRequest(
+      new Request('https://fast.example/go-gitea/gitea/latest-commit', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'version',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }),
+      new URL('https://fast.example/go-gitea/gitea/latest-commit')
+    );
+    const pjaxBranches = classifyGithubWebRequest(
+      new Request('https://fast.example/go-gitea/gitea/branches', {
+        headers: {
+          Accept: 'text/html',
+          'Sec-Fetch-Mode': 'cors',
+          'X-PJAX': 'true',
+          'X-PJAX-Container': '#repo-content-pjax-container'
+        }
+      }),
+      new URL('https://fast.example/go-gitea/gitea/branches')
+    );
+    const pjaxTags = classifyGithubWebRequest(
+      new Request('https://fast.example/go-gitea/gitea/tags', {
+        headers: {
+          Accept: 'text/html',
+          'Sec-Fetch-Mode': 'cors',
+          'X-PJAX': 'true',
+          'X-PJAX-Container': '#repo-content-pjax-container'
+        }
+      }),
+      new URL('https://fast.example/go-gitea/gitea/tags')
+    );
+
+    expect(latestCommit).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/go-gitea/gitea/latest-commit'
+    });
+    expect(pjaxBranches).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/go-gitea/gitea/branches'
+    });
+    expect(pjaxTags).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/go-gitea/gitea/tags'
+    });
+  });
+
+  it('keeps the repository security page read-only while redirecting security writes', () => {
+    expect(isGithubWritePath('/go-gitea/gitea/security', 'GET')).toBe(false);
+    expect(isGithubWritePath('/go-gitea/gitea/security/', 'GET')).toBe(false);
+    expect(isGithubWritePath('/go-gitea/gitea/security/advisories/new', 'GET')).toBe(true);
+
+    const securityPage = classifyGithubWebRequest(
+      new Request('https://fast.example/gh/go-gitea/gitea/security', {
+        headers: { Accept: 'text/html' }
+      }),
+      new URL('https://fast.example/gh/go-gitea/gitea/security')
+    );
+    expect(securityPage).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/go-gitea/gitea/security'
+    });
+
+    expect(
+      classifyGithubWebRequest(
+        new Request('https://fast.example/gh/go-gitea/gitea/security/', {
+          headers: { Accept: 'text/html' }
+        }),
+        new URL('https://fast.example/gh/go-gitea/gitea/security/')
+      )
+    ).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/go-gitea/gitea/security/'
     });
   });
 
@@ -391,6 +468,12 @@ describe('GitHub read-only Web routing', () => {
     );
     expect(rewriteGithubUrl('https://github.com/search?q=hermes&type=repositories', origin)).toBe(
       `${origin}/gh/search?q=hermes&type=repositories`
+    );
+    expect(rewriteGithubUrl('/go-gitea/gitea/security', origin)).toBe(
+      `${origin}/gh/go-gitea/gitea/security`
+    );
+    expect(rewriteGithubUrl('/go-gitea/gitea/security/advisories/new', origin)).toBe(
+      'https://github.com/go-gitea/gitea/security/advisories/new'
     );
     expect(rewriteGithubUrl('/Homebrew/brew', origin)).toBe(`${origin}/gh/Homebrew/brew`);
     expect(rewriteGithubUrl('/xixu-me/Xget/fork', origin)).toBe(

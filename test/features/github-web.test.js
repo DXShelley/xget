@@ -118,11 +118,66 @@ describe('GitHub read-only Web integration', () => {
     expect(await response.text()).toContain('Fix repository metadata');
   });
 
+  it('proxies same-origin GitHub Fetch paths used by repository navigation', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ shortMessageHtmlLink: 'Latest commit' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      })
+    );
+
+    const response = await worker.fetch(
+      new Request('https://fast.example/go-gitea/gitea/latest-commit', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'version',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/go-gitea/gitea/latest-commit');
+    expect(await response.text()).toContain('Latest commit');
+  });
+
+  it.each(['/go-gitea/gitea/branches', '/go-gitea/gitea/tags'])(
+    'proxies same-origin PJAX repository navigation for %s',
+    async path => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('<div id="repo-content-pjax-container">content</div>', {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        })
+      );
+
+      const response = await worker.fetch(
+        new Request(`https://fast.example${path}`, {
+          headers: {
+            Accept: 'text/html',
+            'Sec-Fetch-Mode': 'cors',
+            'X-PJAX': 'true',
+            'X-PJAX-Container': '#repo-content-pjax-container'
+          }
+        }),
+        {},
+        executionContext
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain('repo-content-pjax-container');
+      expect(fetchSpy.mock.calls[0][0]).toBe(`https://github.com${path}`);
+    }
+  );
+
   it('proxies repository read pages with a CSP that allows local asset descendants', async () => {
     const paths = [
       '/gh/xixu-me/xget',
       '/gh/xixu-me/xget/tree/main/src',
-      '/gh/xixu-me/xget/blob/main/README.zh-Hans.md'
+      '/gh/xixu-me/xget/blob/main/README.zh-Hans.md',
+      '/gh/go-gitea/gitea/security'
     ];
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
@@ -160,7 +215,8 @@ describe('GitHub read-only Web integration', () => {
     expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
       'https://github.com/xixu-me/xget',
       'https://github.com/xixu-me/xget/tree/main/src',
-      'https://github.com/xixu-me/xget/blob/main/README.zh-Hans.md'
+      'https://github.com/xixu-me/xget/blob/main/README.zh-Hans.md',
+      'https://github.com/go-gitea/gitea/security'
     ]);
   });
 

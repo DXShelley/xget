@@ -23,7 +23,7 @@ const GITHUB_GLOBAL_WRITE_PATH_PATTERN =
 const GITHUB_REPOSITORY_PATH_PATTERN = /^\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)(?:\/.*)?$/;
 const GITHUB_PROFILE_PATH_PATTERN = /^\/[A-Za-z0-9_.-]+$/;
 const GITHUB_REPOSITORY_WRITE_PATH_PATTERN =
-  /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(?:compare(?:\/|$)|discussions\/new(?:\/|$)|edit(?:\/|$)|fork(?:\/|$)|issues\/new(?:\/|$)|milestones\/new(?:\/|$)|pulls?\/new(?:\/|$)|security(?:\/|$)|settings(?:\/|$))/i;
+  /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(?:compare(?:\/|$)|discussions\/new(?:\/|$)|edit(?:\/|$)|fork(?:\/|$)|issues\/new(?:\/|$)|milestones\/new(?:\/|$)|pulls?\/new(?:\/|$)|security\/(?:advisories\/new|analysis|settings)(?:\/|$)|settings(?:\/|$))/i;
 const GITHUB_MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const GITHUB_READ_METHODS = new Set(['GET', 'HEAD']);
 const GITHUB_BROWSER_STATS_HOST = 'api.github.com';
@@ -86,6 +86,15 @@ function isBrowserFetchRequest(request) {
     request.headers.has('X-GitHub-Client-Version') ||
     request.headers.get('X-Requested-With')?.toLowerCase() === 'xmlhttprequest'
   );
+}
+
+/**
+ * Checks whether a request is a non-navigation browser Fetch for a repository path.
+ * @param {Request} request
+ * @returns {boolean} True when the request is browser Fetch traffic rather than document navigation.
+ */
+function isBrowserRepositoryFetchRequest(request) {
+  return isBrowserFetchRequest(request) && request.headers.get('Sec-Fetch-Mode') !== 'navigate';
 }
 
 /**
@@ -251,6 +260,15 @@ export function classifyGithubWebRequest(request, url, env = {}) {
 
   if (isGithubWritePath(pathname, request.method)) {
     return { kind: 'redirect', targetUrl: getGithubCanonicalUrl(pathname, search) };
+  }
+
+  if (
+    isBrowserRepositoryFetchRequest(request) &&
+    GITHUB_READ_METHODS.has(request.method.toUpperCase()) &&
+    isGithubRepositoryPath(pathname)
+  ) {
+    const upstreamUrl = getGithubUpstreamUrl(pathname, search);
+    return upstreamUrl ? { kind: 'proxy', upstreamUrl } : null;
   }
 
   if (
