@@ -56,6 +56,52 @@ describe('GitHub read-only Web integration', () => {
     expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
   });
 
+  it('proxies repository read pages with a CSP that allows local asset descendants', async () => {
+    const paths = [
+      '/gh/xixu-me/xget',
+      '/gh/xixu-me/xget/tree/main/src',
+      '/gh/xixu-me/xget/blob/main/README.zh-Hans.md'
+    ];
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          '<link rel="stylesheet" href="https://github.githubassets.com/assets/app.css">',
+          {
+            status: 200,
+            headers: {
+              'Content-Security-Policy':
+                'style-src github.githubassets.com; connect-src uploads.github.com github.com',
+              'Content-Type': 'text/html; charset=utf-8'
+            }
+          }
+        )
+    );
+
+    for (const path of paths) {
+      const response = await worker.fetch(
+        new Request(`https://fast.example${path}`, { headers: { Accept: 'text/html' } }),
+        {},
+        executionContext
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain(
+        'https://fast.example/_github/proxy/github.githubassets.com/assets/app.css'
+      );
+      expect(response.headers.get('Content-Security-Policy')).toContain(
+        'https://fast.example/_github/proxy/github.githubassets.com/'
+      );
+      expect(response.headers.get('Content-Security-Policy')).toContain('uploads.github.com');
+    }
+
+    expect(fetchSpy).toHaveBeenCalledTimes(paths.length);
+    expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+      'https://github.com/xixu-me/xget',
+      'https://github.com/xixu-me/xget/tree/main/src',
+      'https://github.com/xixu-me/xget/blob/main/README.zh-Hans.md'
+    ]);
+  });
+
   it('sends mutation requests to the canonical GitHub URL without proxying them', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const response = await worker.fetch(

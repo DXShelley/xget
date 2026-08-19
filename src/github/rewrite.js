@@ -9,7 +9,7 @@ const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
 const HTML_ATTRIBUTE_PATTERN =
   /((?:href|src|srcset|action|formaction|poster|cite|data-turbo-frame|data-url)\s*=\s*)(["'])(.*?)\2/gi;
 const CSP_HOST_PATTERN = new RegExp(
-  `(?:https?:\\/\\/)?(?:${GITHUB_HOSTS.map(escapeRegex).join('|')})(?=[:/\\s;]|$)`,
+  `(^|[\\s;,])(?:https?:\\/\\/)?(${GITHUB_HOSTS.map(escapeRegex).join('|')})(?::\\d+)?(?=([/\\s;,]|$))`,
   'gi'
 );
 
@@ -147,8 +147,13 @@ export function rewriteGithubLocation(location, origin) {
  * @returns {string} CSP with GitHub hosts mapped to local routes.
  */
 export function rewriteGithubCsp(policy, origin) {
-  return policy.replace(CSP_HOST_PATTERN, token => {
-    const host = token.replace(/^https?:\/\//i, '').toLowerCase();
-    return host === 'github.com' ? origin : `${origin}/_github/proxy/${host}`;
+  return policy.replace(CSP_HOST_PATTERN, (match, separator, host, nextCharacter) => {
+    const normalizedHost = host.toLowerCase();
+    if (normalizedHost === 'github.com') {
+      return `${separator}${origin}`;
+    }
+
+    const pathSuffix = nextCharacter === '/' ? '' : '/';
+    return `${separator}${origin}/_github/proxy/${normalizedHost}${pathSuffix}`;
   });
 }

@@ -12,6 +12,7 @@ import {
 import { fetchGithubWeb, getGithubRequestHeaders } from '../../src/github/fetch.js';
 import {
   rewriteGithubHtml,
+  rewriteGithubCsp,
   rewriteGithubLocation,
   rewriteGithubText,
   rewriteGithubUrl
@@ -316,6 +317,17 @@ describe('GitHub read-only Web routing', () => {
     expect(
       rewriteGithubText('"url":"https://api.github.com/repos/xixu-me/Xget"', 'https://fast.example')
     ).toBe('"url":"https://fast.example/_github/proxy/api.github.com/repos/xixu-me/Xget"');
+  });
+
+  it('rewrites CSP proxy origins as path prefixes without matching nested hostnames', () => {
+    expect(
+      rewriteGithubCsp(
+        'style-src github.githubassets.com; connect-src uploads.github.com gist.github.com github.com raw.githubusercontent.com',
+        'https://fast.example'
+      )
+    ).toBe(
+      'style-src https://fast.example/_github/proxy/github.githubassets.com/; connect-src uploads.github.com gist.github.com https://fast.example https://fast.example/_github/proxy/raw.githubusercontent.com/'
+    );
   });
 
   it('finalizes text responses without leaking cookies or stale encoded-body headers', async () => {

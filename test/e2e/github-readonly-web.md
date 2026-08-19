@@ -1,13 +1,27 @@
 # GitHub Read-only Web E2E Record
 
-Date: 2026-08-18
+Date: 2026-08-19
 
 ## Scope
 
 - Local Worker: `http://127.0.0.1:8787`
 - Target behavior: public GitHub repository browsing remains on the proxy
   domain; write and account actions go to `https://github.com`.
-- Browser tool: `agent-browser`
+- Browser tool: Chrome CDP (native protocol fallback)
+
+## Round 3 (CSP/style regression)
+
+| Check                                    | Result                  | Observation                                                                                              |
+| ---------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| Repository home, `tree` and `blob` pages | Pass (local Worker)     | Chrome CDP observed 20 CSS responses per read page, with zero stylesheet failures and zero CSP blocks.   |
+| GitHub asset CSP                         | Pass (local Worker)     | Proxy asset origins now end with `/`, so CSP permits descendants such as `/assets/*.css`.                |
+| Compound GitHub hostnames in CSP         | Pass (unit/integration) | `uploads.github.com` and `gist.github.com` remain unchanged; only exact allowlisted hosts are rewritten. |
+
+The production-domain response was the original report's failure mode: the CSS
+URLs were present and returned `200`, but Chrome rejected them before sending
+the requests because the CSP source omitted the proxy path's trailing `/`. The
+fix is verified against the local Worker; production behavior must be checked
+again after the Worker deployment.
 
 ## Round 1
 
