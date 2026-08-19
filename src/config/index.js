@@ -40,9 +40,7 @@ function parseBoundedInteger(value, fallback, minimum, maximum) {
   }
 
   const parsed = Number(normalized);
-  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum
-    ? parsed
-    : fallback;
+  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : fallback;
 }
 
 /**

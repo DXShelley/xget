@@ -70,11 +70,7 @@ async function finalizeErrorResponse({
     platform,
     path: effectivePath.slice(0, 256)
   });
-  return createErrorResponse(
-    `Upstream server error (${response.status})`,
-    response.status,
-    true
-  );
+  return createErrorResponse(`Upstream server error (${response.status})`, response.status, true);
 }
 
 /**
