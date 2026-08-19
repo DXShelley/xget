@@ -62,6 +62,20 @@ The result supports a shared Worker-egress / GitHub Web rate-limit boundary, but
 a post-deployment production probe is required to confirm that the new public
 preference Cookie allowlist is active.
 
+## Round 9 (full Cookie forwarding experiment)
+
+| Check                                               | Result                  | Observation                                                                                                          |
+| --------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Full Cookie forwarding                              | Pass (unit/integration) | The GitHub Web transport forwards the incoming `Cookie` header verbatim, while `Authorization` remains filtered.     |
+| Cookie-bearing cache safety                         | Pass (unit)             | Any request with a `Cookie` header disables `cacheEverything`, `cacheTtl` and the custom shared cache key.           |
+| Production `/commits/main/` with no Cookie          | `429` baseline          | The currently deployed Worker returned `429`; it does not contain this full-forwarding change.                       |
+| Production `/commits/main/` with full Cookie header | `429` baseline          | The currently deployed Worker still returned `429`; this is not a post-deployment result for the new implementation. |
+| Local live `/commits/main/` with full Cookie header | Inconclusive            | Wrangler could not receive a response from GitHub before the request timeout in this environment.                    |
+
+This round cannot establish that full Cookie forwarding removes the GitHub Web
+rate limit until the new Worker version is deployed. It does establish that the
+implementation does not put account-specific responses into a shared edge cache.
+
 ## Round 6 (HTML/JSON cache isolation)
 
 | Check                                  | Result                  | Observation                                                                                                                                                       |

@@ -372,7 +372,7 @@ describe('GitHub read-only Web routing', () => {
     expect(getGithubProxyTarget(undefined, '/anything')).toBeNull();
   });
 
-  it('forwards only safe navigation headers and public preference cookies', () => {
+  it('forwards all request cookies while still filtering authorization', () => {
     const request = new Request('https://fast.example/xixu-me/Xget', {
       method: 'GET',
       headers: {
@@ -391,11 +391,11 @@ describe('GitHub read-only Web routing', () => {
     expect(headers.get('X-PJAX')).toBe('true');
     expect(headers.get('Authorization')).toBeNull();
     expect(headers.get('Cookie')).toBe(
-      'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai'
+      'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai; _gh_sess=secret; _octo=tracking; logged_in=yes; unknown=drop'
     );
   });
 
-  it('isolates public preference cookies in GitHub Web cache keys', async () => {
+  it('forwards account cookies without enabling shared GitHub Web caching', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
     const config = { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5, CACHE_DURATION: 1800 };
 
@@ -403,7 +403,7 @@ describe('GitHub read-only Web routing', () => {
       request: new Request('https://fast.example/gh/go-gitea/gitea/commits/main/', {
         headers: {
           Accept: 'text/html',
-          Cookie: 'preferred_color_mode=light; _gh_sess=must-not-key'
+          Cookie: 'preferred_color_mode=light; _gh_sess=must-forward'
         }
       }),
       targetUrl: 'https://github.com/go-gitea/gitea/commits/main/',
@@ -421,17 +421,23 @@ describe('GitHub read-only Web routing', () => {
       call => call[0] === 'https://github.com/go-gitea/gitea/commits/main/'
     );
     const [[, firstGithubFetchOptions], [, secondGithubFetchOptions]] = githubFetchCalls;
-    const firstOptions = /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (
+    const firstOptions = /** @type {RequestInit & { cf?: Record<string, unknown> }} */ (
       firstGithubFetchOptions
     );
-    const secondOptions = /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (
+    const secondOptions = /** @type {RequestInit & { cf?: Record<string, unknown> }} */ (
       secondGithubFetchOptions
     );
 
-    expect(new Headers(firstOptions.headers).get('Cookie')).toBe('preferred_color_mode=light');
+    expect(new Headers(firstOptions.headers).get('Cookie')).toBe(
+      'preferred_color_mode=light; _gh_sess=must-forward'
+    );
     expect(new Headers(secondOptions.headers).get('Cookie')).toBe('preferred_color_mode=dark');
-    expect(firstOptions.cf?.cacheKey).not.toContain('must-not-key');
-    expect(firstOptions.cf?.cacheKey).not.toBe(secondOptions.cf?.cacheKey);
+    expect(firstOptions.cf?.cacheEverything).toBe(false);
+    expect(firstOptions.cf?.cacheTtl).toBe(0);
+    expect(firstOptions.cf?.cacheKey).toBeUndefined();
+    expect(secondOptions.cf?.cacheEverything).toBe(false);
+    expect(secondOptions.cf?.cacheTtl).toBe(0);
+    expect(secondOptions.cf?.cacheKey).toBeUndefined();
   });
 
   it('uses manual redirects and retries transient GitHub failures', async () => {
@@ -456,7 +462,7 @@ describe('GitHub read-only Web routing', () => {
     expect(result.response.status).toBe(302);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(fetchSpy.mock.calls[0][1]?.redirect).toBe('manual');
-    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBe('secret=1');
     expect(fetchSpy.mock.calls[0][1]?.body).toBeUndefined();
   });
 

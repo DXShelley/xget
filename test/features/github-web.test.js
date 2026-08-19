@@ -53,7 +53,9 @@ describe('GitHub read-only Web integration', () => {
     expect(body).not.toContain('href="/DXShelley/hermes/fork"');
     expect(body).toContain('https://github.com/DXShelley/hermes/fork');
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/DXShelley/hermes');
-    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBe(
+      'must-not-forward=true'
+    );
   });
 
   it('keeps HTML and JSON repository responses in separate edge-cache variants', async () => {
