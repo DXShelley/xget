@@ -1,46 +1,64 @@
-# GitHub Public Cookie Forwarding Implementation Plan
+# GitHub REST Dynamic Data Implementation Plan
 
 > **For agentic workers:** Execute this plan inline with a test checkpoint after each implementation step.
 
-**Goal:** Forward the complete incoming Cookie header for GitHub Web requests, avoid shared caching for cookie-bearing responses, and measure whether this changes `/commits/main/` availability.
+**Goal:** Revert the experiment that forwarded all Cookies, then serve repository metadata, commits, branches and tags through a cached GitHub REST API backed by an optional read-only GitHub App.
 
-**Architecture:** Preserve the existing safe navigation-header filter, but forward the incoming `Cookie` header verbatim. Any request carrying Cookie bypasses Cloudflare shared caching so account-specific content and session state cannot be stored or served to another user. Keep all `Set-Cookie` headers removed at the response boundary.
+**Architecture:** Restore the prior public-preference Cookie policy for GitHub Web HTML requests. Route only repository REST metadata endpoints through a dedicated API transport; the browser keeps using the local rewritten API URL, while the Worker obtains an installation token server-side and caches successful JSON responses with status-aware TTLs. If App credentials are absent or unavailable, use anonymous GitHub API access as a compatibility fallback.
 
-**Tech Stack:** Cloudflare Workers `fetch`, JavaScript, Vitest, Wrangler, Prettier.
+**Tech Stack:** Cloudflare Workers, Web Crypto RS256 JWT signing, GitHub REST API, JavaScript, Vitest, Wrangler.
 
 ## Global Constraints
 
-- Public GitHub Web browsing remains read-only.
-- The incoming Cookie header is forwarded verbatim when present.
-- Cookie-bearing responses must not use shared Cloudflare cache.
-- Existing non-GitHub proxy behavior must remain unchanged.
-- Only successful public responses may participate in shared caching.
+- GitHub browsing remains read-only; mutation methods still redirect or reject.
+- GitHub App credentials must never be sent to the browser or included in cache keys.
+- Only successful API responses are edge-cacheable; `4xx`, `5xx` and rate-limit responses are not cached.
+- Existing GitHub Web HTML, asset proxying, and non-GitHub routes remain unchanged.
+- Required Worker secrets are `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PRIVATE_KEY`.
 
-### Task 1: Establish Cookie Policy Tests
-
-**Files:**
-- Modify: `test/unit/github-web.test.js`
-
-- [x] Add tests proving the sanitizer forwards all Cookie values while still filtering Authorization, and does not preserve `Set-Cookie` after response finalization.
-- [x] Add a test proving Cookie-bearing requests disable shared GitHub Web caching.
-- [x] Run the focused test file and confirm the new tests fail before implementation.
-
-### Task 2: Implement Sanitization and Cache Isolation
+### Task 1: Restore the Previous Cookie Behavior
 
 **Files:**
 - Modify: `src/github/fetch.js`
+- Modify: `test/unit/github-web.test.js`
+- Modify: `test/features/github-web.test.js`
 
-- [x] Forward the incoming Cookie header without parsing or filtering cookie names.
-- [x] Disable shared Cloudflare caching whenever the request contains Cookie.
-- [x] Preserve existing request-header filtering, redirect behavior, retry behavior, and response handling.
-- [x] Run the focused GitHub unit and feature tests.
+- [x] Restore the explicit public preference Cookie allowlist and preference-specific Web cache variants from commit `74fa2d0`.
+- [x] Restore tests proving account/session/device/unknown Cookies are not forwarded by GitHub Web HTML transport.
+- [x] Run the focused GitHub tests and confirm the rollback is green.
 
-### Task 3: Verify and Explore the Runtime Boundary
+### Task 2: Add GitHub App API Transport
 
 **Files:**
+- Create: `src/github/api.js`
+- Modify: `src/config/index.js`
+- Test: `test/unit/github-api.test.js`
+
+- [x] Implement PKCS#8 PEM decoding, Web Crypto RS256 JWT signing, installation-token exchange, and per-isolate token expiry caching.
+- [x] Send API requests with `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`, and server-side Bearer authentication only when all App secrets are configured.
+- [x] Use a cache key independent of user Cookies and `cacheTtlByStatus` that caches only `200-299` responses.
+- [x] Retry transient `5xx` responses but never retry `429` or other `4xx` responses.
+- [x] Add tests for anonymous fallback, App token exchange, cache options, and no token leakage.
+
+### Task 3: Route Dynamic Repository Data to the API
+
+**Files:**
+- Modify: `src/github/routing.js`
+- Modify: `src/github/handle-request.js`
+- Modify: `test/unit/github-web.test.js`
+- Modify: `test/features/github-web.test.js`
+
+- [x] Recognize only safe `api.github.com/repos/{owner}/{repo}` metadata, `commits`, `branches`, and `tags` GET/HEAD paths as App-backed API requests.
+- [x] Keep other allowlisted API resources on the existing generic proxy and keep all API writes rejected.
+- [x] Pass the route through the dedicated API transport and existing JSON URL/CSP finalization.
+- [x] Verify the browser-facing URL remains under `/_github/proxy/api.github.com/` and API JSON shape is unchanged.
+
+### Task 4: Document Deployment and Verify Runtime
+
+**Files:**
+- Modify: `README.md`
 - Modify: `test/e2e/github-readonly-web.md`
 
-- [x] Run format, lint, type-check, and focused tests; the full suite timed out in the Cloudflare Workers test pool without producing a failure report.
-- [x] Compare production requests with no Cookie and a full Cookie header; both returned `429` on the currently deployed version, which predates this change.
-- [x] Record status, cache headers, and the local error contract in `test/e2e/github-readonly-web.md`.
-- [x] Record that `/gh/go-gitea/gitea/commits/main/` did not reach `200` in this environment; post-deployment verification remains required.
+- [x] Document GitHub App permissions, installation scope, Worker secrets, cache TTL, and anonymous fallback behavior.
+- [x] Verify local tests for commits, branches, tags and API rate-limit responses.
+- [ ] After deployment, compare repository page network requests and confirm dynamic API responses remain on the local domain and return `200` without caching errors.

@@ -8,10 +8,10 @@ import {
 
 /**
  * Finalizes a public GitHub Web response for the local origin.
- * @param {{ response: Response, origin: string }} options
+ * @param {{ response: Response, origin: string, cacheDuration?: number }} options
  * @returns {Promise<Response>} Rewritten response.
  */
-export async function finalizeGithubWebResponse({ response, origin }) {
+export async function finalizeGithubWebResponse({ response, origin, cacheDuration }) {
   const { body: responseBody, headers: responseHeaders, status, statusText } = response;
   const headers = new Headers(responseHeaders);
   const contentType = headers.get('content-type') || '';
@@ -50,6 +50,13 @@ export async function finalizeGithubWebResponse({ response, origin }) {
   }
 
   if (
+    Number.isFinite(cacheDuration) &&
+    status >= 200 &&
+    status < 300 &&
+    (contentType.includes('application/json') || contentType.includes('application/manifest+json'))
+  ) {
+    headers.set('Cache-Control', `public, max-age=${Math.max(0, Number(cacheDuration))}`);
+  } else if (
     isHtml ||
     contentType.includes('application/json') ||
     contentType.includes('application/manifest+json')

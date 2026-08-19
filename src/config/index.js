@@ -94,6 +94,7 @@ function parseAllowedMethods(value) {
  * @property {number} MAX_RETRIES - Maximum number of retry attempts for failed requests (default: 3)
  * @property {number} RETRY_DELAY_MS - Delay between retry attempts in milliseconds (default: 1000)
  * @property {number} CACHE_DURATION - Cache duration in seconds for successful responses (default: 1800)
+ * @property {number} GITHUB_API_CACHE_DURATION - Cache duration in seconds for successful GitHub API responses (default: 60)
  * @property {SecurityConfig} SECURITY - Security-related configurations
  * @property {{ [key: string]: string }} PLATFORMS - Platform-specific base URL mappings
  * @example
@@ -133,6 +134,7 @@ function parseAllowedMethods(value) {
  * - `MAX_RETRIES` - Override max retry attempts (default: 3)
  * - `RETRY_DELAY_MS` - Override retry delay (default: 1000)
  * - `CACHE_DURATION` - Override cache TTL (default: 1800 = 30 minutes)
+ * - `GITHUB_API_CACHE_DURATION` - Override successful GitHub API JSON cache TTL (default: 60 seconds)
  * - `ALLOWED_METHODS` - Comma-separated HTTP methods (default: 'GET,HEAD')
  * - `ALLOWED_ORIGINS` - Comma-separated CORS origins (default: '*')
  * - `MAX_PATH_LENGTH` - Override max path length (default: 2048)
@@ -187,6 +189,7 @@ export function createConfig(env = {}) {
     MAX_RETRIES: parseBoundedInteger(env.MAX_RETRIES, 3, 1, 5),
     RETRY_DELAY_MS: parseBoundedInteger(env.RETRY_DELAY_MS, 1000, 0, 10000),
     CACHE_DURATION: parseBoundedInteger(env.CACHE_DURATION, 1800, 0, 86400), // 30 minutes
+    GITHUB_API_CACHE_DURATION: parseBoundedInteger(env.GITHUB_API_CACHE_DURATION, 60, 0, 3600),
     SECURITY: {
       ALLOWED_METHODS: parseAllowedMethods(env.ALLOWED_METHODS),
       ALLOWED_ORIGINS: allowedOrigins.length ? allowedOrigins : ['*'],

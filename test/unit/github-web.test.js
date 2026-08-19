@@ -7,6 +7,7 @@ import {
 import {
   classifyGithubWebRequest,
   getGithubUpstreamUrl,
+  isGithubRepositoryApiPath,
   isGithubWritePath
 } from '../../src/github/routing.js';
 import { fetchGithubWeb, getGithubRequestHeaders } from '../../src/github/fetch.js';
@@ -135,6 +136,40 @@ describe('GitHub read-only Web routing', () => {
       kind: 'proxy',
       upstreamUrl: 'https://github.com/manifest.json'
     });
+  });
+
+  it('routes repository REST data through the dedicated API transport', () => {
+    expect(isGithubRepositoryApiPath('/repos/go-gitea/gitea')).toBe(true);
+    expect(isGithubRepositoryApiPath('/repos/go-gitea/gitea/commits')).toBe(true);
+    expect(isGithubRepositoryApiPath('/repos/go-gitea/gitea/branches')).toBe(true);
+    expect(isGithubRepositoryApiPath('/repos/go-gitea/gitea/tags/v1.0.0')).toBe(true);
+    expect(isGithubRepositoryApiPath('/repos/go-gitea/gitea/issues')).toBe(false);
+
+    expect(
+      classifyGithubWebRequest(
+        new Request(
+          'https://fast.example/_github/proxy/api.github.com/repos/go-gitea/gitea/commits?sha=main',
+          { headers: { Accept: 'application/json' } }
+        ),
+        new URL(
+          'https://fast.example/_github/proxy/api.github.com/repos/go-gitea/gitea/commits?sha=main'
+        )
+      )
+    ).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://api.github.com/repos/go-gitea/gitea/commits?sha=main',
+      api: true
+    });
+
+    expect(
+      classifyGithubWebRequest(
+        new Request('https://fast.example/_github/proxy/api.github.com/repos/go-gitea/gitea', {
+          method: 'POST',
+          body: '{}'
+        }),
+        new URL('https://fast.example/_github/proxy/api.github.com/repos/go-gitea/gitea')
+      )
+    ).toEqual({ kind: 'reject' });
   });
 
   it('proxies GitHub browser Fetches from same-origin repository paths', () => {
@@ -372,7 +407,7 @@ describe('GitHub read-only Web routing', () => {
     expect(getGithubProxyTarget(undefined, '/anything')).toBeNull();
   });
 
-  it('forwards all request cookies while still filtering authorization', () => {
+  it('forwards only safe navigation headers and public preference cookies', () => {
     const request = new Request('https://fast.example/xixu-me/Xget', {
       method: 'GET',
       headers: {
@@ -391,11 +426,11 @@ describe('GitHub read-only Web routing', () => {
     expect(headers.get('X-PJAX')).toBe('true');
     expect(headers.get('Authorization')).toBeNull();
     expect(headers.get('Cookie')).toBe(
-      'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai; _gh_sess=secret; _octo=tracking; logged_in=yes; unknown=drop'
+      'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai'
     );
   });
 
-  it('forwards account cookies without enabling shared GitHub Web caching', async () => {
+  it('isolates public preference cookies in GitHub Web cache keys', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
     const config = { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5, CACHE_DURATION: 1800 };
 
@@ -403,7 +438,7 @@ describe('GitHub read-only Web routing', () => {
       request: new Request('https://fast.example/gh/go-gitea/gitea/commits/main/', {
         headers: {
           Accept: 'text/html',
-          Cookie: 'preferred_color_mode=light; _gh_sess=must-forward'
+          Cookie: 'preferred_color_mode=light; _gh_sess=must-not-key'
         }
       }),
       targetUrl: 'https://github.com/go-gitea/gitea/commits/main/',
@@ -421,23 +456,17 @@ describe('GitHub read-only Web routing', () => {
       call => call[0] === 'https://github.com/go-gitea/gitea/commits/main/'
     );
     const [[, firstGithubFetchOptions], [, secondGithubFetchOptions]] = githubFetchCalls;
-    const firstOptions = /** @type {RequestInit & { cf?: Record<string, unknown> }} */ (
+    const firstOptions = /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (
       firstGithubFetchOptions
     );
-    const secondOptions = /** @type {RequestInit & { cf?: Record<string, unknown> }} */ (
+    const secondOptions = /** @type {RequestInit & { cf?: { cacheKey?: string } }} */ (
       secondGithubFetchOptions
     );
 
-    expect(new Headers(firstOptions.headers).get('Cookie')).toBe(
-      'preferred_color_mode=light; _gh_sess=must-forward'
-    );
+    expect(new Headers(firstOptions.headers).get('Cookie')).toBe('preferred_color_mode=light');
     expect(new Headers(secondOptions.headers).get('Cookie')).toBe('preferred_color_mode=dark');
-    expect(firstOptions.cf?.cacheEverything).toBe(false);
-    expect(firstOptions.cf?.cacheTtl).toBe(0);
-    expect(firstOptions.cf?.cacheKey).toBeUndefined();
-    expect(secondOptions.cf?.cacheEverything).toBe(false);
-    expect(secondOptions.cf?.cacheTtl).toBe(0);
-    expect(secondOptions.cf?.cacheKey).toBeUndefined();
+    expect(firstOptions.cf?.cacheKey).not.toContain('must-not-key');
+    expect(firstOptions.cf?.cacheKey).not.toBe(secondOptions.cf?.cacheKey);
   });
 
   it('uses manual redirects and retries transient GitHub failures', async () => {
@@ -462,7 +491,7 @@ describe('GitHub read-only Web routing', () => {
     expect(result.response.status).toBe(302);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(fetchSpy.mock.calls[0][1]?.redirect).toBe('manual');
-    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBe('secret=1');
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
     expect(fetchSpy.mock.calls[0][1]?.body).toBeUndefined();
   });
 
@@ -645,6 +674,19 @@ describe('GitHub read-only Web routing', () => {
       'https://fast.example/_github/proxy/github.githubassets.com'
     );
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('allows short browser caching for successful GitHub API JSON', async () => {
+    const response = await finalizeGithubWebResponse({
+      response: new Response('[]', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      }),
+      origin: 'https://fast.example',
+      cacheDuration: 60
+    });
+
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=60');
   });
 
   it('rewrites GitHub manifest icon URLs through the local asset proxy', async () => {

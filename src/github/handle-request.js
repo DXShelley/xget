@@ -1,3 +1,4 @@
+import { fetchGithubApi } from './api.js';
 import { fetchGithubWeb } from './fetch.js';
 import { classifyGithubWebRequest } from './routing.js';
 import { finalizeGithubWebResponse } from './response.js';
@@ -5,7 +6,7 @@ import { createErrorResponse } from '../utils/security.js';
 import { validateRequest } from '../utils/validation.js';
 
 /**
- * Handles a public, anonymous GitHub Web request.
+ * Handles a public, read-only GitHub Web or REST API request.
  * @param {{ request: Request, url: URL, env: Record<string, unknown>, config: import('../config/index.js').ApplicationConfig }} options
  * @returns {Promise<{ response: Response, isProxiedResponse: boolean } | null>} Handled result.
  */
@@ -49,15 +50,26 @@ export async function handleGithubWebRequest({ request, url, env, config }) {
     };
   }
 
-  const { response } = await fetchGithubWeb({
-    request,
-    targetUrl: route.upstreamUrl,
-    config,
-    forwardBody: route.forwardBody
-  });
+  const { response } = route.api
+    ? await fetchGithubApi({
+        request,
+        targetUrl: route.upstreamUrl,
+        config,
+        env
+      })
+    : await fetchGithubWeb({
+        request,
+        targetUrl: route.upstreamUrl,
+        config,
+        forwardBody: route.forwardBody
+      });
 
   return {
-    response: await finalizeGithubWebResponse({ response, origin: url.origin }),
+    response: await finalizeGithubWebResponse({
+      response,
+      origin: url.origin,
+      ...(route.api ? { cacheDuration: config.GITHUB_API_CACHE_DURATION } : {})
+    }),
     isProxiedResponse: true
   };
 }
