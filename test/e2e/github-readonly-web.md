@@ -62,6 +62,20 @@ The result supports a shared Worker-egress / GitHub Web rate-limit boundary, but
 a post-deployment production probe is required to confirm that the new public
 preference Cookie allowlist is active.
 
+## Round 9 (full Cookie forwarding experiment)
+
+| Check                                               | Result                  | Observation                                                                                                          |
+| --------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Full Cookie forwarding                              | Pass (unit/integration) | The GitHub Web transport forwards the incoming `Cookie` header verbatim, while `Authorization` remains filtered.     |
+| Cookie-bearing cache safety                         | Pass (unit)             | Any request with a `Cookie` header disables `cacheEverything`, `cacheTtl` and the custom shared cache key.           |
+| Production `/commits/main/` with no Cookie          | `429` baseline          | The currently deployed Worker returned `429`; it does not contain this full-forwarding change.                       |
+| Production `/commits/main/` with full Cookie header | `429` baseline          | The currently deployed Worker still returned `429`; this is not a post-deployment result for the new implementation. |
+| Local live `/commits/main/` with full Cookie header | Inconclusive            | Wrangler could not receive a response from GitHub before the request timeout in this environment.                    |
+
+This round cannot establish that full Cookie forwarding removes the GitHub Web
+rate limit until the new Worker version is deployed. It does establish that the
+implementation does not put account-specific responses into a shared edge cache.
+
 ## Round 6 (HTML/JSON cache isolation)
 
 | Check                                  | Result                  | Observation                                                                                                                                                       |
@@ -87,22 +101,6 @@ including a fresh HTML navigation after a JSON Fetch to the same repository URL.
 The production domain must be rechecked after deployment by opening the
 repository overview, then checking Security, Branches, Tags and the latest
 commit area while observing that requests remain on `fast.dxshelley.fun`.
-
-## Round 9 (REST API dynamic repository data)
-
-| Check                   | Result                   | Observation                                                                                                               |
-| ----------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| Repository metadata API | Pass (local Worker)      | `/_github/proxy/api.github.com/repos/go-gitea/gitea` returned `200` JSON with `Cache-Control: public, max-age=60`.        |
-| Commits API             | Pass (local Worker)      | `.../commits?sha=main&per_page=1` returned `200` JSON and remained under the local API namespace.                         |
-| Branches API            | Pass (local Worker)      | `.../branches?per_page=1` returned `200` JSON; embedded commit links were rewritten to local API proxy URLs.              |
-| Tags API                | Pass (local Worker)      | `.../tags?per_page=1` returned `200` JSON; archive links were rewritten according to the existing read-only URL policy.   |
-| API cache policy        | Pass (unit/local Worker) | Successful JSON responses use the configured `60` second TTL; `429` and other errors are not retried or cached.           |
-| GitHub App fallback     | Pass (unit)              | App installation `403/404` falls back to anonymous API access without exposing the App token to the browser or cache key. |
-
-The local runtime probe used anonymous API access because no App secrets are
-configured in the local Wrangler environment. A post-deployment browser probe is
-still required to confirm the production Worker has the three App secrets and
-that repository page requests use the local API namespace.
 
 ## Round 1
 
@@ -137,14 +135,13 @@ can reach GitHub reliably.
 
 The current implementation supersedes the historical shortcut observation above:
 
-| Request                                         | Expected behavior                                                  |
-| ----------------------------------------------- | ------------------------------------------------------------------ |
-| `/search?q=hermes`                              | Redirects to `/gh/search?q=hermes&type=repositories`               |
-| `/gh/Homebrew`                                  | Proxies the public GitHub organization page                        |
-| `/gh/Homebrew/brew`                             | Proxies the public repository page                                 |
-| Browser fetches under `/gh/...`                 | Stay on the GitHub Web proxy and receive rewritten responses       |
-| GitHub CSS, JavaScript and images               | Use `/_github/proxy/{allowlisted-host}/...`                        |
-| Repository metadata, commits, branches and tags | Use `/_github/proxy/api.github.com/repos/...` and cached REST JSON |
+| Request                                          | Expected behavior                                            |
+| ------------------------------------------------ | ------------------------------------------------------------ |
+| `/search?q=hermes`                               | Redirects to `/gh/search?q=hermes&type=repositories`         |
+| `/gh/Homebrew`                                   | Proxies the public GitHub organization page                  |
+| `/gh/Homebrew/brew`                              | Proxies the public repository page                           |
+| Browser fetches under `/gh/...`                  | Stay on the GitHub Web proxy and receive rewritten responses |
+| GitHub CSS, JavaScript, images and API resources | Use `/_github/proxy/{allowlisted-host}/...`                  |
 
 The regression suite covering these rules is `test/unit/github-web.test.js` and
 `test/features/github-web.test.js`.

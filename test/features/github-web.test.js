@@ -53,7 +53,9 @@ describe('GitHub read-only Web integration', () => {
     expect(body).not.toContain('href="/DXShelley/hermes/fork"');
     expect(body).toContain('https://github.com/DXShelley/hermes/fork');
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/DXShelley/hermes');
-    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBe(
+      'must-not-forward=true'
+    );
   });
 
   it('keeps HTML and JSON repository responses in separate edge-cache variants', async () => {
@@ -116,32 +118,6 @@ describe('GitHub read-only Web integration', () => {
     expect(response.status).toBe(200);
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/go-gitea/gitea/latest-commit');
     expect(await response.text()).toContain('Fix repository metadata');
-  });
-
-  it('proxies repository REST data through the local API namespace', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify([{ sha: 'abc123', commit: { message: 'Fix branches' } }]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json; charset=utf-8' }
-      })
-    );
-
-    const response = await worker.fetch(
-      new Request(
-        'https://fast.example/_github/proxy/api.github.com/repos/go-gitea/gitea/branches',
-        { headers: { Accept: 'application/json' } }
-      ),
-      {},
-      executionContext
-    );
-
-    expect(response.status).toBe(200);
-    expect(fetchSpy.mock.calls[0][0]).toBe('https://api.github.com/repos/go-gitea/gitea/branches');
-    const upstreamHeaders = new Headers(fetchSpy.mock.calls[0][1]?.headers);
-    expect(upstreamHeaders.get('Accept')).toBe('application/vnd.github+json');
-    expect(upstreamHeaders.get('Authorization')).toBeNull();
-    expect(response.headers.get('Cache-Control')).toBe('public, max-age=60');
-    expect(await response.text()).toContain('Fix branches');
   });
 
   it('proxies same-origin GitHub Fetch paths used by repository navigation', async () => {

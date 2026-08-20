@@ -30,8 +30,6 @@ const GITHUB_BROWSER_STATS_HOST = 'api.github.com';
 const GITHUB_BROWSER_STATS_PATH = '/_private/browser/stats';
 const GITHUB_BROWSER_COLLECT_HOST = 'collector.github.com';
 const GITHUB_BROWSER_COLLECT_PATH = '/github/collect';
-const GITHUB_REPOSITORY_API_PATH_PATTERN =
-  /^\/repos\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/(?:commits|branches|tags)(?:\/[A-Za-z0-9_.-]+)?)?\/?$/i;
 
 /**
  * Checks for ASCII control characters without embedding control escapes in a regex.
@@ -136,15 +134,6 @@ export function isGithubProfilePath(pathname) {
 }
 
 /**
- * Checks whether an API path contains repository metadata used by the GitHub Web UI.
- * @param {string} pathname
- * @returns {boolean} True for repository metadata, commits, branches, or tags endpoints.
- */
-export function isGithubRepositoryApiPath(pathname) {
-  return GITHUB_REPOSITORY_API_PATH_PATTERN.test(pathname);
-}
-
-/**
  * Determines whether a request must be handed to the canonical GitHub host.
  * @param {string} pathname
  * @param {string} [method]
@@ -201,7 +190,7 @@ export function getGithubUpstreamUrl(pathname, search = '') {
  * @param {Request} request
  * @param {URL} url
  * @param {Record<string, unknown>} [env]
- * @returns {{ kind: 'proxy'; upstreamUrl: string; forwardBody?: boolean; api?: boolean } | { kind: 'redirect'; targetUrl: string } | { kind: 'reject' } | null} Route decision.
+ * @returns {{ kind: 'proxy'; upstreamUrl: string; forwardBody?: boolean } | { kind: 'redirect'; targetUrl: string } | { kind: 'reject' } | null} Route decision.
  */
 export function classifyGithubWebRequest(request, url, env = {}) {
   const { pathname, search } = url;
@@ -258,8 +247,6 @@ export function classifyGithubWebRequest(request, url, env = {}) {
       host?.toLowerCase() === GITHUB_BROWSER_COLLECT_HOST &&
       proxyPath === GITHUB_BROWSER_COLLECT_PATH &&
       request.method.toUpperCase() === 'POST';
-    const isRepositoryApiRequest =
-      host?.toLowerCase() === 'api.github.com' && isGithubRepositoryApiPath(proxyPath);
     const shouldForwardBody = isBrowserStatsRequest || isBrowserCollectRequest;
 
     if (!GITHUB_READ_METHODS.has(request.method.toUpperCase()) && !shouldForwardBody) {
@@ -274,8 +261,7 @@ export function classifyGithubWebRequest(request, url, env = {}) {
     return {
       kind: 'proxy',
       upstreamUrl: `${upstreamUrl}${search}`,
-      ...(shouldForwardBody ? { forwardBody: true } : {}),
-      ...(isRepositoryApiRequest ? { api: true } : {})
+      ...(shouldForwardBody ? { forwardBody: true } : {})
     };
   }
 

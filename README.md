@@ -338,32 +338,6 @@ https://github.com/microsoft/vscode/archive/refs/heads/main.zip
 https://xget.xi-xu.me/gh/microsoft/vscode/archive/refs/heads/main.zip
 ```
 
-#### GitHub Web dynamic repository data
-
-GitHub repository metadata, commits, branches, and tags are loaded by the
-browser through the local `/_github/proxy/api.github.com/repos/...` namespace.
-The Worker uses the GitHub REST API for these read-only endpoints and caches
-successful JSON responses for 60 seconds by default. Error and rate-limit
-responses are never cached.
-
-For a higher GitHub API quota, configure a GitHub App with `Metadata: Read-only`
-and `Contents: Read-only`, install it with access to the repositories it should
-serve, and store these values as Cloudflare Worker secrets:
-
-```bash
-wrangler secret put GITHUB_APP_ID
-wrangler secret put GITHUB_APP_INSTALLATION_ID
-wrangler secret put GITHUB_APP_PRIVATE_KEY
-```
-
-The private key accepts the PEM downloaded from GitHub (`RSA PRIVATE KEY`) or a
-PKCS#8 PEM private key. The App token stays server-side and is never returned to
-the browser or used in a cache key. If the secrets are absent, or an
-installation cannot access a public repository, the Worker falls back to the
-anonymous GitHub API so existing public browsing still works. Set
-`GITHUB_API_CACHE_DURATION` to change the successful API JSON cache TTL, from 0
-to 3600 seconds.
-
 #### GitHub Gist
 
 ```url
