@@ -698,11 +698,36 @@ describe('GitHub Web routing', () => {
     `;
 
     const rewritten = rewriteGithubHtml(html, 'https://fast.example');
+    const embeddedData = rewritten.match(/<script[^>]*>([\s\S]*?)<\/script>/)?.[1] || '';
 
-    expect(rewritten).toContain('"url": "https://fast.example/gh/go-gitea/gitea/commits/main"');
-    expect(rewritten).toContain('"api": "https://fast.example/gh/go-gitea/gitea/branches"');
-    expect(rewritten).toContain('"href": "https://fast.example/gh/go-gitea/gitea/tags"');
+    expect(JSON.parse(embeddedData)).toEqual({
+      url: 'https://fast.example/gh/go-gitea/gitea/commits/main',
+      api: 'https://fast.example/gh/go-gitea/gitea/branches',
+      href: 'https://fast.example/gh/go-gitea/gitea/tags'
+    });
     expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget/issues/new"');
+  });
+
+  it('rewrites GitHub React component URL data without changing route state paths', () => {
+    const html = `
+      <script type="application/json" data-target="react-app.embeddedData">
+        {"payload":{"codeButton":{"zipballUrl":"/Homebrew/brew/archive/refs/heads/main.zip","setProtocolPath":"/users/set_protocol?protocol_type=clone","newCodespacePath":"/codespaces/new?repo=1","path":"/"}}}
+      </script>
+    `;
+
+    const rewritten = rewriteGithubHtml(html, 'https://fast.example');
+    const embeddedData = rewritten.match(/<script[^>]*>([\s\S]*?)<\/script>/)?.[1] || '';
+
+    expect(JSON.parse(embeddedData)).toEqual({
+      payload: {
+        codeButton: {
+          zipballUrl: 'https://fast.example/gh/Homebrew/brew/archive/refs/heads/main.zip',
+          setProtocolPath: 'https://fast.example/gh/users/set_protocol?protocol_type=clone',
+          newCodespacePath: 'https://fast.example/gh/codespaces/new?repo=1',
+          path: '/'
+        }
+      }
+    });
   });
 
   it('rewrites static JavaScript URL prefixes without consuming template expressions', () => {
