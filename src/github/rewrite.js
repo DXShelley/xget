@@ -1,5 +1,4 @@
 import { GITHUB_PROXY_HOSTS, GITHUB_WEB_PREFIX, GITHUB_WEB_UPSTREAM } from './config.js';
-import { getGithubCanonicalUrl, isGithubWritePath } from './routing.js';
 
 const GITHUB_HOSTS = ['github.com', ...Object.keys(GITHUB_PROXY_HOSTS)];
 const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
@@ -65,10 +64,6 @@ export function rewriteGithubUrl(value, origin) {
 
   const host = parsed.hostname.toLowerCase();
   if (host === 'github.com') {
-    if (isGithubWritePath(parsed.pathname, 'GET')) {
-      return getGithubCanonicalUrl(parsed.pathname, parsed.search);
-    }
-
     return `${origin}${GITHUB_WEB_PREFIX}${parsed.pathname}${parsed.search}${parsed.hash}`;
   }
 

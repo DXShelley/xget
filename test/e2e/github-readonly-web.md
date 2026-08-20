@@ -1,12 +1,12 @@
-# GitHub Read-only Web E2E Record
+# GitHub Web E2E Record
 
 Date: 2026-08-19
 
 ## Scope
 
 - Local Worker: `http://127.0.0.1:8787`
-- Target behavior: public GitHub repository browsing remains on the proxy
-  domain; write and account actions go to `https://github.com`.
+- Target behavior: GitHub Web navigation, dynamic metadata, and write/account
+  actions remain on the proxy domain and are forwarded to GitHub.
 - Browser tool: Chrome CDP (native protocol fallback)
 
 ## Round 3 (CSP/style regression)
@@ -76,6 +76,18 @@ This round cannot establish that full Cookie forwarding removes the GitHub Web
 rate limit until the new Worker version is deployed. It does establish that the
 implementation does not put account-specific responses into a shared edge cache.
 
+## Round 10 (full Web mutation proxy)
+
+| Check                                              | Result                  | Observation                                                                                                    |
+| -------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `POST/PUT/PATCH/DELETE` under `/gh/...`            | Pass (unit/integration) | Requests are proxied to GitHub and request bodies are forwarded.                                               |
+| `deferred_metadata` POST                           | Pass (routing)          | The React metadata request remains same-origin instead of causing a cross-origin `TypeError: Failed to fetch`. |
+| Write links (`fork`, edit, new issue/PR, settings) | Pass (rewrite tests)    | Links remain under `/gh/...` and use the full Web proxy.                                                       |
+| Production browser interaction                     | Pending                 | Re-run after deployment with a fresh profile and capture console/network events.                               |
+
+The earlier read-only/write-redirect observations in this document are
+historical.
+
 ## Round 6 (HTML/JSON cache isolation)
 
 | Check                                  | Result                  | Observation                                                                                                                                                       |
@@ -135,13 +147,13 @@ can reach GitHub reliably.
 
 The current implementation supersedes the historical shortcut observation above:
 
-| Request                                          | Expected behavior                                            |
-| ------------------------------------------------ | ------------------------------------------------------------ |
-| `/search?q=hermes`                               | Redirects to `/gh/search?q=hermes&type=repositories`         |
-| `/gh/Homebrew`                                   | Proxies the public GitHub organization page                  |
-| `/gh/Homebrew/brew`                              | Proxies the public repository page                           |
-| Browser fetches under `/gh/...`                  | Stay on the GitHub Web proxy and receive rewritten responses |
-| GitHub CSS, JavaScript, images and API resources | Use `/_github/proxy/{allowlisted-host}/...`                  |
+| Request                                          | Expected behavior                                          |
+| ------------------------------------------------ | ---------------------------------------------------------- |
+| `/search?q=hermes`                               | Redirects to `/gh/search?q=hermes&type=repositories`       |
+| `/gh/Homebrew`                                   | Proxies the public GitHub organization page                |
+| `/gh/Homebrew/brew`                              | Proxies the public repository page                         |
+| Browser fetches and mutations under `/gh/...`    | Stay on the GitHub Web proxy; non-GET bodies are forwarded |
+| GitHub CSS, JavaScript, images and API resources | Use `/_github/proxy/{allowlisted-host}/...`                |
 
 The regression suite covering these rules is `test/unit/github-web.test.js` and
 `test/features/github-web.test.js`.

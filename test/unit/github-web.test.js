@@ -24,7 +24,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('GitHub read-only Web routing', () => {
+describe('GitHub Web routing', () => {
   it('maps hermes to repository search', () => {
     expect(getGithubWebShortcuts()).toMatchObject({ hermes: '/search' });
 
@@ -186,7 +186,7 @@ describe('GitHub read-only Web routing', () => {
     });
   });
 
-  it('keeps the repository security page read-only while redirecting security writes', () => {
+  it('keeps repository security pages and write entry points on the proxy', () => {
     expect(isGithubWritePath('/go-gitea/gitea/security', 'GET')).toBe(false);
     expect(isGithubWritePath('/go-gitea/gitea/security/', 'GET')).toBe(false);
     expect(isGithubWritePath('/go-gitea/gitea/security/advisories/new', 'GET')).toBe(true);
@@ -558,7 +558,7 @@ describe('GitHub read-only Web routing', () => {
     expect(nonGetOptions.cf?.cacheKey).toBeUndefined();
   });
 
-  it('keeps read-only GitHub links local and sends write links to GitHub', () => {
+  it('keeps GitHub read and write links local to the proxy', () => {
     const origin = 'https://fast.example';
 
     expect(rewriteGithubUrl('https://github.com/xixu-me/Xget/blob/main/README.md', origin)).toBe(
@@ -571,12 +571,10 @@ describe('GitHub read-only Web routing', () => {
       `${origin}/gh/go-gitea/gitea/security`
     );
     expect(rewriteGithubUrl('/go-gitea/gitea/security/advisories/new', origin)).toBe(
-      'https://github.com/go-gitea/gitea/security/advisories/new'
+      `${origin}/gh/go-gitea/gitea/security/advisories/new`
     );
     expect(rewriteGithubUrl('/Homebrew/brew', origin)).toBe(`${origin}/gh/Homebrew/brew`);
-    expect(rewriteGithubUrl('/xixu-me/Xget/fork', origin)).toBe(
-      'https://github.com/xixu-me/Xget/fork'
-    );
+    expect(rewriteGithubUrl('/xixu-me/Xget/fork', origin)).toBe(`${origin}/gh/xixu-me/Xget/fork`);
     expect(
       rewriteGithubUrl('https://raw.githubusercontent.com/xixu-me/Xget/main/README.md', origin)
     ).toBe(`${origin}/_github/proxy/raw.githubusercontent.com/xixu-me/Xget/main/README.md`);
@@ -624,7 +622,7 @@ describe('GitHub read-only Web routing', () => {
 
     expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget"');
     expect(rewritten).toContain('href="https://fast.example/gh/Homebrew/brew"');
-    expect(rewritten).toContain('href="https://github.com/xixu-me/Xget/issues/new"');
+    expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget/issues/new"');
     expect(rewritten).toContain('data-turbo-frame="repo-content-turbo-frame"');
     expect(rewritten).not.toContain(
       'data-turbo-frame="https://fast.example/gh/repo-content-turbo-frame"'
@@ -656,7 +654,7 @@ describe('GitHub read-only Web routing', () => {
     expect(rewritten).toContain('"url": "https://fast.example/gh/go-gitea/gitea/commits/main"');
     expect(rewritten).toContain('"api": "https://fast.example/gh/go-gitea/gitea/branches"');
     expect(rewritten).toContain('"href": "https://fast.example/gh/go-gitea/gitea/tags"');
-    expect(rewritten).toContain('href="https://github.com/xixu-me/Xget/issues/new"');
+    expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget/issues/new"');
   });
 
   it('rewrites static JavaScript URL prefixes without consuming template expressions', () => {
@@ -672,7 +670,7 @@ describe('GitHub read-only Web routing', () => {
       'https://fast.example/gh/xixu-me/Xget/blob/main/README.md'
     );
     expect(rewriteGithubLocation('https://github.com/login', 'https://fast.example')).toBe(
-      'https://github.com/login'
+      'https://fast.example/gh/login'
     );
     expect(
       rewriteGithubText('"url":"https://api.github.com/repos/xixu-me/Xget"', 'https://fast.example')

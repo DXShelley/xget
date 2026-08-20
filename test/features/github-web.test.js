@@ -8,7 +8,7 @@ const executionContext = {
   passThroughOnException() {}
 };
 
-describe('GitHub read-only Web integration', () => {
+describe('GitHub Web integration', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -51,7 +51,7 @@ describe('GitHub read-only Web integration', () => {
     const body = await response.text();
     expect(body).toContain('https://fast.example/gh/DXShelley/hermes');
     expect(body).not.toContain('href="/DXShelley/hermes/fork"');
-    expect(body).toContain('https://github.com/DXShelley/hermes/fork');
+    expect(body).toContain('https://fast.example/gh/DXShelley/hermes/fork');
     expect(body).toContain(
       'data-turbo-frame-src="https://fast.example/gh/go-gitea/gitea/branches"'
     );

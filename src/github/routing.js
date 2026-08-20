@@ -134,10 +134,10 @@ export function isGithubProfilePath(pathname) {
 }
 
 /**
- * Determines whether a request must be handed to the canonical GitHub host.
+ * Determines whether a path represents a GitHub mutation or account flow.
  * @param {string} pathname
  * @param {string} [method]
- * @returns {boolean} True when the request must leave the read-only proxy.
+ * @returns {boolean} True when the path or method is a mutation/account flow.
  */
 export function isGithubWritePath(pathname, method = 'GET') {
   if (GITHUB_MUTATION_METHODS.has(method.toUpperCase())) {

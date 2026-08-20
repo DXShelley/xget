@@ -34,7 +34,7 @@ export async function handleGithubWebRequest({ request, url, env, config }) {
 
   if (route.kind === 'reject') {
     return {
-      response: new Response('GitHub Web proxy is read-only', { status: 405 }),
+      response: new Response('GitHub Web request is not allowed', { status: 405 }),
       isProxiedResponse: false
     };
   }

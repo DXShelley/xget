@@ -134,7 +134,7 @@ function getGithubCacheKey(targetUrl, request) {
 }
 
 /**
- * Fetches a GitHub Web resource. Bodies are only forwarded for an explicitly allowlisted endpoint.
+ * Fetches a GitHub Web resource and forwards bodies for non-GET browser requests.
  * @param {{ request: Request, targetUrl: string, config: { MAX_RETRIES: number, RETRY_DELAY_MS: number, TIMEOUT_SECONDS: number, CACHE_DURATION?: number }, forwardBody?: boolean }} options
  * @returns {Promise<{ response: Response, responseGeneratedLocally: boolean }>} Upstream result.
  */
