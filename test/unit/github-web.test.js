@@ -612,6 +612,7 @@ describe('GitHub read-only Web routing', () => {
       <a href="https://github.com/xixu-me/Xget">repo</a>
       <a href="/Homebrew/brew">relative repo</a>
       <a href="/xixu-me/Xget/issues/new">new issue</a>
+      <a data-turbo-frame="repo-content-turbo-frame" href="/Homebrew/brew">frame target</a>
       <turbo-frame id="repo-content-turbo-frame" data-turbo-frame-src="/go-gitea/gitea/branches">
         branches
       </turbo-frame>
@@ -625,6 +626,10 @@ describe('GitHub read-only Web routing', () => {
     expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget"');
     expect(rewritten).toContain('href="https://fast.example/gh/Homebrew/brew"');
     expect(rewritten).toContain('href="https://github.com/xixu-me/Xget/issues/new"');
+    expect(rewritten).toContain('data-turbo-frame="repo-content-turbo-frame"');
+    expect(rewritten).not.toContain(
+      'data-turbo-frame="https://fast.example/gh/repo-content-turbo-frame"'
+    );
     expect(rewritten).toContain(
       'data-turbo-frame-src="https://fast.example/gh/go-gitea/gitea/branches"'
     );

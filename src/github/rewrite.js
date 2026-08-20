@@ -7,7 +7,7 @@ const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
   'gi'
 );
 const HTML_ATTRIBUTE_PATTERN =
-  /(^|[\s<])((?:href|src|srcset|action|formaction|poster|cite|data-hovercard-url|data-turbo-frame|data-turbo-frame-src|data-url)\s*=\s*)(["'])(.*?)\3/gim;
+  /(^|[\s<])((?:href|src|srcset|action|formaction|poster|cite|data-hovercard-url|data-turbo-frame-src|data-url)\s*=\s*)(["'])(.*?)\3/gim;
 const EMBEDDED_RELATIVE_URL_PATTERN = /(["'](?:url|api|href)["']\s*:\s*)(["'])(\/(?!\/)[^"']*)\2/gi;
 const CSP_HOST_PATTERN = new RegExp(
   `(^|[\\s;,])(?:https?:\\/\\/)?(${GITHUB_HOSTS.map(escapeRegex).join('|')})(?::\\d+)?(?=([/\\s;,]|$))`,

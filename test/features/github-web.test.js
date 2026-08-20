@@ -134,6 +134,10 @@ describe('GitHub read-only Web integration', () => {
     expect(upstreamHeaders.get('GitHub-Is-React')).toBe('true');
     expect(upstreamHeaders.get('GitHub-Verified-Fetch')).toBe('true');
     expect(upstreamHeaders.get('X-Fetch-Nonce')).toBe('v2:nonce');
+    expect(upstreamHeaders.get('X-GitHub-Client-Version')).toBe(
+      'e85d7dcc80e884128537c9f6334006eb46b2d2c3'
+    );
+    expect(upstreamHeaders.get('X-Requested-With')).toBe('XMLHttpRequest');
     expect(upstreamHeaders.get('Referer')).toBe('https://github.com/go-gitea/gitea');
   });
 
@@ -160,6 +164,29 @@ describe('GitHub read-only Web integration', () => {
     expect(response.status).toBe(200);
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/go-gitea/gitea/latest-commit');
     expect(await response.text()).toContain('Latest commit');
+  });
+
+  it('restores GitHub JSON fetch marker when the browser omits it', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ oid: 'abc123' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      })
+    );
+
+    await worker.fetch(
+      new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3'
+        }
+      }),
+      {},
+      executionContext
+    );
+
+    const upstreamHeaders = new Headers(fetchSpy.mock.calls[0][1]?.headers);
+    expect(upstreamHeaders.get('X-Requested-With')).toBe('XMLHttpRequest');
   });
 
   it.each(['/go-gitea/gitea/branches', '/go-gitea/gitea/tags', '/go-gitea/gitea/commits/main/'])(

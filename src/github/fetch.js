@@ -67,6 +67,17 @@ export function getGithubRequestHeaders(request) {
     headers.set('Accept', 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8');
   }
 
+  // GitHub's repository metadata endpoints reject browser JSON fetches without
+  // this marker (406). Some browsers/extensions omit it, so restore the
+  // semantic marker from the representation requested by the client.
+  if (
+    !headers.has('X-Requested-With') &&
+    headers.get('Accept')?.toLowerCase().includes('application/json') &&
+    !headers.get('Accept')?.toLowerCase().includes('text/html')
+  ) {
+    headers.set('X-Requested-With', 'XMLHttpRequest');
+  }
+
   headers.set('Accept-Encoding', 'gzip, deflate, br');
   return headers;
 }
