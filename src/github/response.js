@@ -2,6 +2,7 @@ import { addSecurityHeaders } from '../utils/security.js';
 import {
   rewriteGithubCsp,
   rewriteGithubHtml,
+  rewriteGithubJson,
   rewriteGithubLocation,
   rewriteGithubText
 } from './rewrite.js';
@@ -42,7 +43,9 @@ export async function finalizeGithubWebResponse({ response, origin }) {
     const originalText = await response.text();
     body = isHtml
       ? rewriteGithubHtml(originalText, origin)
-      : rewriteGithubText(originalText, origin);
+      : contentType.includes('application/json')
+        ? rewriteGithubJson(originalText, origin)
+        : rewriteGithubText(originalText, origin);
     headers.delete('Content-Encoding');
     headers.delete('Content-Length');
     headers.delete('Content-MD5');

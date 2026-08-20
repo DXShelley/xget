@@ -4,6 +4,9 @@ const SAFE_REQUEST_HEADERS = new Set([
   'accept',
   'accept-language',
   'content-type',
+  'github-is-react',
+  'github-verified-fetch',
+  'referer',
   'sec-fetch-dest',
   'sec-fetch-mode',
   'sec-fetch-site',
@@ -12,30 +15,56 @@ const SAFE_REQUEST_HEADERS = new Set([
   'x-pjax',
   'x-pjax-container',
   'x-requested-with',
+  'x-fetch-nonce',
   'x-turbo-frame'
 ]);
 
 /**
- * Copies navigation headers and forwards the incoming Cookie header verbatim.
+ * Converts a same-origin proxy referrer to its GitHub Web equivalent.
+ * @param {string} value
+ * @param {string} requestUrl
+ * @returns {string | null} Normalized GitHub referrer, or null when unsafe.
+ */
+function normalizeGithubReferer(value, requestUrl) {
+  try {
+    const referer = new URL(value);
+    const requestOrigin = new URL(requestUrl).origin;
+    if (referer.origin !== requestOrigin || referer.pathname.startsWith('/_github/')) {
+      return null;
+    }
+
+    const pathname = referer.pathname.startsWith('/gh/')
+      ? referer.pathname.slice('/gh'.length)
+      : referer.pathname;
+    return `https://github.com${pathname}${referer.search}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Copies GitHub Web navigation and React metadata headers without forwarding credentials.
  * @param {Request} request
- * @returns {Headers} Sanitized navigation headers with the request Cookie header.
+ * @returns {Headers} Sanitized navigation headers.
  */
 export function getGithubRequestHeaders(request) {
   const headers = new Headers();
 
   for (const [key, value] of request.headers.entries()) {
     if (SAFE_REQUEST_HEADERS.has(key.toLowerCase())) {
-      headers.set(key, value);
+      if (key.toLowerCase() === 'referer') {
+        const normalizedReferer = normalizeGithubReferer(value, request.url);
+        if (normalizedReferer) {
+          headers.set(key, normalizedReferer);
+        }
+      } else {
+        headers.set(key, value);
+      }
     }
   }
 
   if (!headers.has('Accept')) {
     headers.set('Accept', 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8');
-  }
-
-  const cookieHeader = request.headers.get('Cookie');
-  if (cookieHeader !== null) {
-    headers.set('Cookie', cookieHeader);
   }
 
   headers.set('Accept-Encoding', 'gzip, deflate, br');
@@ -100,8 +129,7 @@ function getGithubCacheKey(targetUrl, request) {
  */
 export async function fetchGithubWeb({ request, targetUrl, config, forwardBody = false }) {
   const headers = getGithubRequestHeaders(request);
-  const hasCookieHeader = request.headers.has('Cookie');
-  const canUseSharedCache = request.method === 'GET' && !hasCookieHeader;
+  const canUseSharedCache = request.method === 'GET' && !request.headers.has('X-Fetch-Nonce');
   const shouldForwardBody =
     forwardBody && request.method !== 'GET' && request.method !== 'HEAD' && request.body !== null;
   const maxRetries = shouldForwardBody ? 1 : Math.max(1, Number(config.MAX_RETRIES) || 1);

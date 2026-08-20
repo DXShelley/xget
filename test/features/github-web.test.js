@@ -58,9 +58,7 @@ describe('GitHub read-only Web integration', () => {
     expect(body).toContain('"url":"https://fast.example/gh/go-gitea/gitea/commits/main"');
     expect(body).toContain('"api":"https://fast.example/gh/go-gitea/gitea/tags"');
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/DXShelley/hermes');
-    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBe(
-      'must-not-forward=true'
-    );
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
   });
 
   it('keeps HTML and JSON repository responses in separate edge-cache variants', async () => {
@@ -98,8 +96,9 @@ describe('GitHub read-only Web integration', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
+          url: '/go-gitea/gitea/commit/abc123',
           shortMessageHtmlLink:
-            '<a href="/go-gitea/gitea/commit/abc123">Fix repository metadata</a>'
+            '<a href="/go-gitea/gitea/commit/abc123" data-hovercard-url="/go-gitea/gitea/pull/1/hovercard">Fix repository metadata</a>'
         }),
         {
           status: 200,
@@ -112,6 +111,10 @@ describe('GitHub read-only Web integration', () => {
       new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
         headers: {
           Accept: 'application/json',
+          'GitHub-Is-React': 'true',
+          'GitHub-Verified-Fetch': 'true',
+          Referer: 'https://fast.example/gh/go-gitea/gitea',
+          'X-Fetch-Nonce': 'v2:nonce',
           'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3',
           'X-Requested-With': 'XMLHttpRequest'
         }
@@ -122,7 +125,16 @@ describe('GitHub read-only Web integration', () => {
 
     expect(response.status).toBe(200);
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/go-gitea/gitea/latest-commit');
-    expect(await response.text()).toContain('Fix repository metadata');
+    const body = await response.json();
+    expect(body.url).toBe('https://fast.example/gh/go-gitea/gitea/commit/abc123');
+    expect(body.shortMessageHtmlLink).toBe(
+      '<a href="https://fast.example/gh/go-gitea/gitea/commit/abc123" data-hovercard-url="https://fast.example/gh/go-gitea/gitea/pull/1/hovercard">Fix repository metadata</a>'
+    );
+    const upstreamHeaders = new Headers(fetchSpy.mock.calls[0][1]?.headers);
+    expect(upstreamHeaders.get('GitHub-Is-React')).toBe('true');
+    expect(upstreamHeaders.get('GitHub-Verified-Fetch')).toBe('true');
+    expect(upstreamHeaders.get('X-Fetch-Nonce')).toBe('v2:nonce');
+    expect(upstreamHeaders.get('Referer')).toBe('https://github.com/go-gitea/gitea');
   });
 
   it('proxies same-origin GitHub Fetch paths used by repository navigation', async () => {

@@ -7,7 +7,7 @@ const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
   'gi'
 );
 const HTML_ATTRIBUTE_PATTERN =
-  /(^|[\s<])((?:href|src|srcset|action|formaction|poster|cite|data-turbo-frame|data-turbo-frame-src|data-url)\s*=\s*)(["'])(.*?)\3/gim;
+  /(^|[\s<])((?:href|src|srcset|action|formaction|poster|cite|data-hovercard-url|data-turbo-frame|data-turbo-frame-src|data-url)\s*=\s*)(["'])(.*?)\3/gim;
 const EMBEDDED_RELATIVE_URL_PATTERN = /(["'](?:url|api|href)["']\s*:\s*)(["'])(\/(?!\/)[^"']*)\2/gi;
 const CSP_HOST_PATTERN = new RegExp(
   `(^|[\\s;,])(?:https?:\\/\\/)?(${GITHUB_HOSTS.map(escapeRegex).join('|')})(?::\\d+)?(?=([/\\s;,]|$))`,
@@ -139,6 +139,52 @@ export function rewriteGithubHtml(html, origin) {
  */
 export function rewriteGithubText(text, origin) {
   return text.replace(ABSOLUTE_GITHUB_URL_PATTERN, value => rewriteGithubUrl(value, origin));
+}
+
+/**
+ * Recursively rewrites GitHub URLs in a decoded JSON value.
+ * @param {unknown} value
+ * @param {string} origin
+ * @returns {unknown} Rewritten JSON value.
+ */
+function rewriteGithubJsonValue(value, origin) {
+  if (typeof value === 'string') {
+    if (value.startsWith('/')) {
+      return rewriteGithubUrl(value, origin);
+    }
+
+    if (value.includes('<')) {
+      return rewriteGithubHtml(value, origin);
+    }
+
+    return rewriteGithubText(value, origin);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => rewriteGithubJsonValue(item, origin));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, rewriteGithubJsonValue(item, origin)])
+    );
+  }
+
+  return value;
+}
+
+/**
+ * Rewrites relative and absolute GitHub URLs in JSON payloads used by repository metadata.
+ * @param {string} text
+ * @param {string} origin
+ * @returns {string} Rewritten JSON, or the safely rewritten text when invalid JSON is received.
+ */
+export function rewriteGithubJson(text, origin) {
+  try {
+    return JSON.stringify(rewriteGithubJsonValue(JSON.parse(text), origin));
+  } catch {
+    return rewriteGithubText(text, origin);
+  }
 }
 
 /**

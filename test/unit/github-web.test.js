@@ -13,6 +13,7 @@ import { fetchGithubWeb, getGithubRequestHeaders } from '../../src/github/fetch.
 import {
   rewriteGithubHtml,
   rewriteGithubCsp,
+  rewriteGithubJson,
   rewriteGithubLocation,
   rewriteGithubText,
   rewriteGithubUrl
@@ -372,72 +373,90 @@ describe('GitHub read-only Web routing', () => {
     expect(getGithubProxyTarget(undefined, '/anything')).toBeNull();
   });
 
-  it('forwards all request cookies while still filtering authorization', () => {
+  it('forwards GitHub React metadata context without credentials', () => {
     const request = new Request('https://fast.example/xixu-me/Xget', {
       method: 'GET',
       headers: {
-        Accept: 'text/html',
+        Accept: 'application/json',
         'Accept-Language': 'zh-CN',
         Authorization: 'Bearer secret',
-        Cookie:
-          'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai; _gh_sess=secret; _octo=tracking; logged_in=yes; unknown=drop',
-        'X-PJAX': 'true'
+        Cookie: '_gh_sess=secret',
+        'GitHub-Is-React': 'true',
+        'GitHub-Verified-Fetch': 'true',
+        'If-None-Match': 'W/"browser-cache-entry"',
+        Referer: 'https://fast.example/gh/Homebrew/brew',
+        'X-Fetch-Nonce': 'v2:nonce',
+        'X-PJAX': 'true',
+        'X-GitHub-Client-Version': 'version'
       }
     });
     const headers = getGithubRequestHeaders(request);
 
-    expect(headers.get('Accept')).toBe('text/html');
+    expect(headers.get('Accept')).toBe('application/json');
     expect(headers.get('Accept-Language')).toBe('zh-CN');
     expect(headers.get('X-PJAX')).toBe('true');
+    expect(headers.get('GitHub-Is-React')).toBe('true');
+    expect(headers.get('GitHub-Verified-Fetch')).toBe('true');
+    expect(headers.get('X-Fetch-Nonce')).toBe('v2:nonce');
+    expect(headers.get('Referer')).toBe('https://github.com/Homebrew/brew');
     expect(headers.get('Authorization')).toBeNull();
-    expect(headers.get('Cookie')).toBe(
-      'cpu_bucket=xlg; preferred_color_mode=light; tz=Asia%2FShanghai; _gh_sess=secret; _octo=tracking; logged_in=yes; unknown=drop'
-    );
+    expect(headers.get('Cookie')).toBeNull();
+    expect(headers.get('If-None-Match')).toBeNull();
   });
 
-  it('forwards account cookies without enabling shared GitHub Web caching', async () => {
+  it.each(['latest-commit', 'recently-touched-branches', 'branch-and-tag-count'])(
+    'proxies GitHub repository metadata endpoint %s with HAR request context',
+    endpoint => {
+      const url = new URL(`https://fast.example/Homebrew/brew/${endpoint}`);
+      const request = new Request(url, {
+        headers: {
+          Accept: 'application/json',
+          'GitHub-Is-React': 'true',
+          'GitHub-Verified-Fetch': 'true',
+          'Sec-Fetch-Mode': 'cors',
+          'X-Fetch-Nonce': 'v2:nonce',
+          'X-GitHub-Client-Version': 'version',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      expect(classifyGithubWebRequest(request, url)).toEqual({
+        kind: 'proxy',
+        upstreamUrl: `https://github.com/Homebrew/brew/${endpoint}`
+      });
+    }
+  );
+
+  it('bypasses shared cache for GitHub React metadata requests', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
     const config = { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5, CACHE_DURATION: 1800 };
 
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea/commits/main/', {
+      request: new Request('https://fast.example/gh/Homebrew/brew/latest-commit', {
         headers: {
-          Accept: 'text/html',
-          Cookie: 'preferred_color_mode=light; _gh_sess=must-forward'
+          Accept: 'application/json',
+          'GitHub-Is-React': 'true',
+          'GitHub-Verified-Fetch': 'true',
+          Referer: 'https://fast.example/gh/Homebrew/brew',
+          'X-Fetch-Nonce': 'v2:nonce',
+          'X-GitHub-Client-Version': 'version',
+          'X-Requested-With': 'XMLHttpRequest'
         }
       }),
-      targetUrl: 'https://github.com/go-gitea/gitea/commits/main/',
-      config
-    });
-    await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea/commits/main/', {
-        headers: { Accept: 'text/html', Cookie: 'preferred_color_mode=dark' }
-      }),
-      targetUrl: 'https://github.com/go-gitea/gitea/commits/main/',
+      targetUrl: 'https://github.com/Homebrew/brew/latest-commit',
       config
     });
 
-    const githubFetchCalls = fetchSpy.mock.calls.filter(
-      call => call[0] === 'https://github.com/go-gitea/gitea/commits/main/'
-    );
-    const [[, firstGithubFetchOptions], [, secondGithubFetchOptions]] = githubFetchCalls;
+    const [[, firstGithubFetchOptions]] = fetchSpy.mock.calls;
     const firstOptions = /** @type {RequestInit & { cf?: Record<string, unknown> }} */ (
       firstGithubFetchOptions
     );
-    const secondOptions = /** @type {RequestInit & { cf?: Record<string, unknown> }} */ (
-      secondGithubFetchOptions
-    );
 
-    expect(new Headers(firstOptions.headers).get('Cookie')).toBe(
-      'preferred_color_mode=light; _gh_sess=must-forward'
-    );
-    expect(new Headers(secondOptions.headers).get('Cookie')).toBe('preferred_color_mode=dark');
+    expect(new Headers(firstOptions.headers).get('Cookie')).toBeNull();
+    expect(new Headers(firstOptions.headers).get('X-Fetch-Nonce')).toBe('v2:nonce');
     expect(firstOptions.cf?.cacheEverything).toBe(false);
     expect(firstOptions.cf?.cacheTtl).toBe(0);
     expect(firstOptions.cf?.cacheKey).toBeUndefined();
-    expect(secondOptions.cf?.cacheEverything).toBe(false);
-    expect(secondOptions.cf?.cacheTtl).toBe(0);
-    expect(secondOptions.cf?.cacheKey).toBeUndefined();
   });
 
   it('uses manual redirects and retries transient GitHub failures', async () => {
@@ -462,7 +481,7 @@ describe('GitHub read-only Web routing', () => {
     expect(result.response.status).toBe(302);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(fetchSpy.mock.calls[0][1]?.redirect).toBe('manual');
-    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBe('secret=1');
+    expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
     expect(fetchSpy.mock.calls[0][1]?.body).toBeUndefined();
   });
 
@@ -563,6 +582,29 @@ describe('GitHub read-only Web routing', () => {
       rewriteGithubUrl('https://raw.githubusercontent.com/xixu-me/Xget/main/README.md', origin)
     ).toBe(`${origin}/_github/proxy/raw.githubusercontent.com/xixu-me/Xget/main/README.md`);
     expect(rewriteGithubUrl('https://example.com/docs', origin)).toBe('https://example.com/docs');
+  });
+
+  it('rewrites relative metadata paths and embedded HTML links in JSON', () => {
+    const rewritten = rewriteGithubJson(
+      JSON.stringify({
+        url: '/Homebrew/brew/commit/abc',
+        tagsPath: '/Homebrew/brew/tags',
+        shortMessageHtmlLink:
+          '<a href="/Homebrew/brew/commit/abc" data-hovercard-url="/Homebrew/brew/pull/1/hovercard">commit</a>',
+        avatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4',
+        externalUrl: 'https://example.com/repository'
+      }),
+      'https://fast.example'
+    );
+
+    expect(JSON.parse(rewritten)).toEqual({
+      url: 'https://fast.example/gh/Homebrew/brew/commit/abc',
+      tagsPath: 'https://fast.example/gh/Homebrew/brew/tags',
+      shortMessageHtmlLink:
+        '<a href="https://fast.example/gh/Homebrew/brew/commit/abc" data-hovercard-url="https://fast.example/gh/Homebrew/brew/pull/1/hovercard">commit</a>',
+      avatarUrl: 'https://fast.example/_github/proxy/avatars.githubusercontent.com/u/1?v=4',
+      externalUrl: 'https://example.com/repository'
+    });
   });
 
   it('rewrites HTML attributes and absolute URLs while preserving unrelated links', () => {
