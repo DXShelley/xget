@@ -16,10 +16,13 @@ export const GITHUB_PROXY_HOSTS = Object.freeze({
   'avatars.githubusercontent.com': 'https://avatars.githubusercontent.com',
   'camo.githubusercontent.com': 'https://camo.githubusercontent.com',
   'codeload.github.com': 'https://codeload.github.com',
+  'cloud.githubusercontent.com': 'https://cloud.githubusercontent.com',
   'collector.github.com': 'https://collector.github.com',
+  'gist.github.com': 'https://gist.github.com',
   'github-cloud.s3.amazonaws.com': 'https://github-cloud.s3.amazonaws.com',
   'github.githubassets.com': 'https://github.githubassets.com',
   'identicons.github.com': 'https://identicons.github.com',
+  'live.github.com': 'https://live.github.com',
   'marketplace-screenshots.githubusercontent.com':
     'https://marketplace-screenshots.githubusercontent.com',
   'media.githubusercontent.com': 'https://media.githubusercontent.com',
@@ -33,7 +36,8 @@ export const GITHUB_PROXY_HOSTS = Object.freeze({
   'repository-images.githubusercontent.com': 'https://repository-images.githubusercontent.com',
   'secured-user-images.githubusercontent.com': 'https://secured-user-images.githubusercontent.com',
   'spotlights-feed.github.com': 'https://spotlights-feed.github.com',
-  'user-images.githubusercontent.com': 'https://user-images.githubusercontent.com'
+  'user-images.githubusercontent.com': 'https://user-images.githubusercontent.com',
+  'uploads.github.com': 'https://uploads.github.com'
 });
 
 const SHORTCUT_KEY_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
@@ -130,4 +134,14 @@ export function getGithubProxyTarget(host, path) {
   }
 
   return `${upstream}${path}`;
+}
+
+/**
+ * Checks whether a hostname is an explicit trusted GitHub mirror target.
+ * @param {unknown} host
+ * @returns {boolean} True when credentials may be sent to the host.
+ */
+export function isTrustedGithubHost(host) {
+  const normalizedHost = typeof host === 'string' ? host.toLowerCase() : '';
+  return normalizedHost === 'github.com' || Object.hasOwn(GITHUB_PROXY_HOSTS, normalizedHost);
 }

@@ -3,7 +3,8 @@ import {
   GITHUB_WEB_PREFIX,
   GITHUB_WEB_UPSTREAM,
   getGithubProxyTarget,
-  getGithubWebShortcuts
+  getGithubWebShortcuts,
+  isTrustedGithubHost
 } from './config.js';
 
 const GITHUB_TOP_LEVEL_READ_PATHS = new Set([
@@ -25,11 +26,6 @@ const GITHUB_PROFILE_PATH_PATTERN = /^\/[A-Za-z0-9_.-]+$/;
 const GITHUB_REPOSITORY_WRITE_PATH_PATTERN =
   /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(?:compare(?:\/|$)|discussions\/new(?:\/|$)|edit(?:\/|$)|fork(?:\/|$)|issues\/new(?:\/|$)|milestones\/new(?:\/|$)|pulls?\/new(?:\/|$)|security\/(?:advisories\/new|analysis|settings)(?:\/|$)|settings(?:\/|$))/i;
 const GITHUB_MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const GITHUB_READ_METHODS = new Set(['GET', 'HEAD']);
-const GITHUB_BROWSER_STATS_HOST = 'api.github.com';
-const GITHUB_BROWSER_STATS_PATH = '/_private/browser/stats';
-const GITHUB_BROWSER_COLLECT_HOST = 'collector.github.com';
-const GITHUB_BROWSER_COLLECT_PATH = '/github/collect';
 
 /**
  * Checks for ASCII control characters without embedding control escapes in a regex.
@@ -200,21 +196,17 @@ export function classifyGithubWebRequest(request, url, env = {}) {
     : null;
 
   if (githubWebPath && !isLegacyGitProtocolRequest(request, githubWebPath)) {
-    const isBrowserRequest = isBrowserNavigationRequest(request) || isBrowserFetchRequest(request);
-
-    if (isBrowserRequest) {
-      const upstreamUrl = getGithubUpstreamUrl(githubWebPath, search);
-      if (!upstreamUrl) {
-        return null;
-      }
-
-      const method = request.method.toUpperCase();
-      return {
-        kind: 'proxy',
-        upstreamUrl,
-        ...(method !== 'GET' && method !== 'HEAD' ? { forwardBody: true } : {})
-      };
+    const upstreamUrl = getGithubUpstreamUrl(githubWebPath, search);
+    if (!upstreamUrl) {
+      return null;
     }
+
+    const method = request.method.toUpperCase();
+    return {
+      kind: 'proxy',
+      upstreamUrl,
+      ...(method !== 'GET' && method !== 'HEAD' ? { forwardBody: true } : {})
+    };
   }
 
   if (
@@ -229,29 +221,17 @@ export function classifyGithubWebRequest(request, url, env = {}) {
   if (pathname.startsWith('/_github/proxy/')) {
     const [, , , host, ...pathParts] = pathname.split('/');
     const proxyPath = `/${pathParts.join('/')}`;
-    const isBrowserStatsRequest =
-      host?.toLowerCase() === GITHUB_BROWSER_STATS_HOST &&
-      proxyPath === GITHUB_BROWSER_STATS_PATH &&
-      request.method.toUpperCase() === 'POST';
-    const isBrowserCollectRequest =
-      host?.toLowerCase() === GITHUB_BROWSER_COLLECT_HOST &&
-      proxyPath === GITHUB_BROWSER_COLLECT_PATH &&
-      request.method.toUpperCase() === 'POST';
-    const shouldForwardBody = isBrowserStatsRequest || isBrowserCollectRequest;
-
-    if (!GITHUB_READ_METHODS.has(request.method.toUpperCase()) && !shouldForwardBody) {
-      return { kind: 'reject' };
-    }
-
     const upstreamUrl = getGithubProxyTarget(host, proxyPath);
-    if (!upstreamUrl) {
+    if (!upstreamUrl || !isTrustedGithubHost(host)) {
       return null;
     }
 
     return {
       kind: 'proxy',
       upstreamUrl: `${upstreamUrl}${search}`,
-      ...(shouldForwardBody ? { forwardBody: true } : {})
+      ...(request.method.toUpperCase() !== 'GET' && request.method.toUpperCase() !== 'HEAD'
+        ? { forwardBody: true }
+        : {})
     };
   }
 

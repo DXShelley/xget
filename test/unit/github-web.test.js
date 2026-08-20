@@ -25,6 +25,41 @@ afterEach(() => {
 });
 
 describe('GitHub Web routing', () => {
+  it('routes all methods for trusted GitHub hosts', () => {
+    const loginUrl = new URL('https://fast.example/gh/session');
+    const uploadUrl = new URL(
+      'https://fast.example/_github/proxy/uploads.github.com/user/repository/assets'
+    );
+    const cloudUrl = new URL(
+      'https://fast.example/_github/proxy/cloud.githubusercontent.com/attachment'
+    );
+
+    expect(
+      classifyGithubWebRequest(
+        new Request(loginUrl, { method: 'POST', headers: { Accept: 'text/html' } }),
+        loginUrl
+      )
+    ).toMatchObject({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/session',
+      forwardBody: true
+    });
+    expect(
+      classifyGithubWebRequest(new Request(uploadUrl, { method: 'PUT' }), uploadUrl)
+    ).toMatchObject({
+      kind: 'proxy',
+      upstreamUrl: 'https://uploads.github.com/user/repository/assets',
+      forwardBody: true
+    });
+    expect(
+      classifyGithubWebRequest(new Request(cloudUrl, { method: 'DELETE' }), cloudUrl)
+    ).toMatchObject({
+      kind: 'proxy',
+      upstreamUrl: 'https://cloud.githubusercontent.com/attachment',
+      forwardBody: true
+    });
+  });
+
   it('maps hermes to repository search', () => {
     expect(getGithubWebShortcuts()).toMatchObject({ hermes: '/search' });
 
@@ -72,7 +107,10 @@ describe('GitHub Web routing', () => {
       kind: 'proxy',
       upstreamUrl: 'https://github.com/search?q=cloudflare&type=repositories'
     });
-    expect(repository).toBeNull();
+    expect(repository).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/xixu-me/Xget/blob/main/README.md'
+    });
     expect(browserRepository).toEqual({
       kind: 'proxy',
       upstreamUrl: 'https://github.com/xixu-me/Xget/blob/main/README.md'
@@ -215,13 +253,13 @@ describe('GitHub Web routing', () => {
     });
   });
 
-  it('leaves existing Xget platform routes to the legacy router', () => {
+  it('keeps non-GitHub platform routes on the legacy router', () => {
     expect(
       classifyGithubWebRequest(
         new Request('https://fast.example/gh/xixu-me/Xget'),
         new URL('https://fast.example/gh/xixu-me/Xget')
       )
-    ).toBeNull();
+    ).toEqual({ kind: 'proxy', upstreamUrl: 'https://github.com/xixu-me/Xget' });
     expect(
       classifyGithubWebRequest(
         new Request('https://fast.example/npm/react'),
@@ -301,7 +339,7 @@ describe('GitHub Web routing', () => {
     expect(gitWrite).toBeNull();
   });
 
-  it('rejects non-read methods for allowlisted GitHub assets', () => {
+  it('proxies non-read methods for trusted GitHub assets', () => {
     expect(
       classifyGithubWebRequest(
         new Request('https://fast.example/_github/proxy/api.github.com/_private/browser/stats', {
@@ -324,7 +362,11 @@ describe('GitHub Web routing', () => {
         }),
         new URL('https://fast.example/_github/proxy/api.github.com/repos/DXShelley/xget')
       )
-    ).toEqual({ kind: 'reject' });
+    ).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://api.github.com/repos/DXShelley/xget',
+      forwardBody: true
+    });
 
     expect(
       classifyGithubWebRequest(
@@ -349,7 +391,11 @@ describe('GitHub Web routing', () => {
         }),
         new URL('https://fast.example/_github/proxy/collector.github.com/github/other')
       )
-    ).toEqual({ kind: 'reject' });
+    ).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://collector.github.com/github/other',
+      forwardBody: true
+    });
   });
 
   it('builds GitHub upstream URLs without allowing an arbitrary host', () => {
@@ -372,24 +418,25 @@ describe('GitHub Web routing', () => {
     expect(getGithubProxyTarget(undefined, '/anything')).toBeNull();
   });
 
-  it('forwards GitHub React metadata context without credentials', () => {
+  it('forwards scoped credentials, CSRF context, and React metadata', () => {
     const request = new Request('https://fast.example/xixu-me/Xget', {
       method: 'GET',
       headers: {
         Accept: 'application/json',
         'Accept-Language': 'zh-CN',
         Authorization: 'Bearer secret',
-        Cookie: '_gh_sess=secret',
+        Cookie: '__xget_gh_github_com___gh_sess=secret; __xget_gh_api_github_com_token=api-secret',
         'GitHub-Is-React': 'true',
         'GitHub-Verified-Fetch': 'true',
         'If-None-Match': 'W/"browser-cache-entry"',
+        Origin: 'https://fast.example',
         Referer: 'https://fast.example/gh/Homebrew/brew',
         'X-Fetch-Nonce': 'v2:nonce',
         'X-PJAX': 'true',
         'X-GitHub-Client-Version': 'version'
       }
     });
-    const headers = getGithubRequestHeaders(request);
+    const headers = getGithubRequestHeaders(request, 'github.com');
 
     expect(headers.get('Accept')).toBe('application/json');
     expect(headers.get('Accept-Language')).toBe('zh-CN');
@@ -398,9 +445,10 @@ describe('GitHub Web routing', () => {
     expect(headers.get('GitHub-Verified-Fetch')).toBe('true');
     expect(headers.get('X-Fetch-Nonce')).toBe('v2:nonce');
     expect(headers.get('Referer')).toBe('https://github.com/Homebrew/brew');
-    expect(headers.get('Authorization')).toBeNull();
-    expect(headers.get('Cookie')).toBeNull();
-    expect(headers.get('If-None-Match')).toBeNull();
+    expect(headers.get('Authorization')).toBe('Bearer secret');
+    expect(headers.get('Cookie')).toBe('_gh_sess=secret');
+    expect(headers.get('Origin')).toBe('https://github.com');
+    expect(headers.get('If-None-Match')).toBe('W/"browser-cache-entry"');
   });
 
   it.each(['latest-commit', 'recently-touched-branches', 'branch-and-tag-count'])(
@@ -690,11 +738,11 @@ describe('GitHub Web routing', () => {
         'https://fast.example'
       )
     ).toBe(
-      'style-src https://fast.example/_github/proxy/github.githubassets.com/; connect-src uploads.github.com gist.github.com https://fast.example https://fast.example/_github/proxy/raw.githubusercontent.com/ https://fast.example/_github/proxy/collector.github.com/'
+      'style-src https://fast.example/_github/proxy/github.githubassets.com/; connect-src https://fast.example/_github/proxy/uploads.github.com/ https://fast.example/_github/proxy/gist.github.com/ https://fast.example https://fast.example/_github/proxy/raw.githubusercontent.com/ https://fast.example/_github/proxy/collector.github.com/'
     );
   });
 
-  it('finalizes text responses without leaking cookies or stale encoded-body headers', async () => {
+  it('finalizes text responses with host-scoped mirror cookies and no stale encoded-body headers', async () => {
     const response = await finalizeGithubWebResponse({
       response: new Response('<a href="https://github.com/xixu-me/Xget">repo</a>', {
         status: 200,
@@ -710,13 +758,20 @@ describe('GitHub Web routing', () => {
     });
 
     expect(await response.text()).toContain('https://fast.example/gh/xixu-me/Xget');
-    expect(response.headers.get('Set-Cookie')).toBeNull();
+    expect(response.headers.get('Set-Cookie')).toContain('__xget_gh_github_com__logged_in=true');
+    expect(response.headers.get('Set-Cookie')).not.toContain('Domain=github.com');
     expect(response.headers.get('Content-Encoding')).toBeNull();
     expect(response.headers.get('Content-Length')).toBeNull();
     expect(response.headers.get('Content-Security-Policy')).toContain(
       'https://fast.example/_github/proxy/github.githubassets.com'
     );
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('rewrites GitHub WebSocket URLs through the mirror', () => {
+    expect(rewriteGithubLocation('wss://live.github.com/socket', 'https://fast.example')).toBe(
+      'wss://fast.example/_github/proxy/live.github.com/socket'
+    );
   });
 
   it('rewrites GitHub manifest icon URLs through the local asset proxy', async () => {

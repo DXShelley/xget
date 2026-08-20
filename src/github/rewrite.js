@@ -57,7 +57,7 @@ export function rewriteGithubUrl(value, origin) {
     return value;
   }
 
-  const isExplicitAbsolute = /^https?:\/\//i.test(value) || value.startsWith('//');
+  const isExplicitAbsolute = /^(?:https?|wss?):\/\//i.test(value) || value.startsWith('//');
   if (isExplicitAbsolute && !GITHUB_HOSTS.includes(parsed.hostname.toLowerCase())) {
     return value;
   }
@@ -68,7 +68,10 @@ export function rewriteGithubUrl(value, origin) {
   }
 
   if (GITHUB_PROXY_HOSTS[host]) {
-    return rewriteProxyHost(host, parsed.pathname, parsed.search, parsed.hash, origin);
+    const rewritten = rewriteProxyHost(host, parsed.pathname, parsed.search, parsed.hash, origin);
+    return parsed.protocol === 'wss:'
+      ? rewritten.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:')
+      : rewritten;
   }
 
   return value;

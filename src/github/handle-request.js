@@ -57,7 +57,11 @@ export async function handleGithubWebRequest({ request, url, env, config }) {
   });
 
   return {
-    response: await finalizeGithubWebResponse({ response, origin: url.origin }),
+    response: await finalizeGithubWebResponse({
+      response,
+      origin: url.origin,
+      upstreamHost: new URL(route.upstreamUrl).hostname
+    }),
     isProxiedResponse: true
   };
 }
