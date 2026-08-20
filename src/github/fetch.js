@@ -1,31 +1,39 @@
 import { createErrorResponse } from '../utils/security.js';
 
-const SAFE_REQUEST_HEADERS = new Set([
-  'accept',
-  'accept-language',
-  'content-type',
-  'github-is-react',
-  'github-verified-fetch',
-  'referer',
-  'sec-fetch-dest',
-  'sec-fetch-mode',
-  'sec-fetch-site',
-  'user-agent',
-  'x-github-client-version',
-  'x-pjax',
-  'x-pjax-container',
-  'x-requested-with',
-  'x-fetch-nonce',
-  'x-turbo-frame'
-]);
+const HOP_BY_HOP_HEADERS = new Set(['connection', 'content-length', 'host', 'proxy-connection']);
+
+/**
+ * Builds the mirror cookie prefix for one upstream host.
+ * @param {string} host
+ * @returns {string} Cookie prefix.
+ */
+function getCookiePrefix(host) {
+  return `__xget_gh_${host.replace(/[^a-z0-9]/gi, '_')}__`;
+}
+
+/**
+ * Selects cookies owned by the target upstream host.
+ * @param {string | null} value
+ * @param {string} upstreamHost
+ * @returns {string} Upstream Cookie header value.
+ */
+function getGithubCookieHeader(value, upstreamHost) {
+  const prefix = getCookiePrefix(upstreamHost);
+  return (value || '')
+    .split(/;\s*/)
+    .filter(/** @param {string} cookie */ cookie => cookie.startsWith(prefix))
+    .map(/** @param {string} cookie */ cookie => cookie.slice(prefix.length))
+    .join('; ');
+}
 
 /**
  * Converts a same-origin proxy referrer to its GitHub Web equivalent.
  * @param {string} value
  * @param {string} requestUrl
+ * @param {string} upstreamHost
  * @returns {string | null} Normalized GitHub referrer, or null when unsafe.
  */
-function normalizeGithubReferer(value, requestUrl) {
+function normalizeGithubReferer(value, requestUrl, upstreamHost) {
   try {
     const referer = new URL(value);
     const requestOrigin = new URL(requestUrl).origin;
@@ -36,24 +44,30 @@ function normalizeGithubReferer(value, requestUrl) {
     const pathname = referer.pathname.startsWith('/gh/')
       ? referer.pathname.slice('/gh'.length)
       : referer.pathname;
-    return `https://github.com${pathname}${referer.search}`;
+    return `https://${upstreamHost}${pathname}${referer.search}`;
   } catch {
     return null;
   }
 }
 
 /**
- * Copies GitHub Web navigation and React metadata headers without forwarding credentials.
+ * Copies GitHub Web request headers and target-host-scoped credentials.
  * @param {Request} request
+ * @param {string} [upstreamHost]
  * @returns {Headers} Sanitized navigation headers.
  */
-export function getGithubRequestHeaders(request) {
+export function getGithubRequestHeaders(request, upstreamHost = 'github.com') {
   const headers = new Headers();
 
   for (const [key, value] of request.headers.entries()) {
-    if (SAFE_REQUEST_HEADERS.has(key.toLowerCase())) {
-      if (key.toLowerCase() === 'referer') {
-        const normalizedReferer = normalizeGithubReferer(value, request.url);
+    const lowerKey = key.toLowerCase();
+    if (
+      !HOP_BY_HOP_HEADERS.has(lowerKey) &&
+      lowerKey !== 'cookie' &&
+      lowerKey !== 'authorization'
+    ) {
+      if (lowerKey === 'referer') {
+        const normalizedReferer = normalizeGithubReferer(value, request.url, upstreamHost);
         if (normalizedReferer) {
           headers.set(key, normalizedReferer);
         }
@@ -63,8 +77,26 @@ export function getGithubRequestHeaders(request) {
     }
   }
 
+  const cookie = getGithubCookieHeader(request.headers.get('Cookie'), upstreamHost);
+  if (cookie) headers.set('Cookie', cookie);
+  const authorization = request.headers.get('Authorization');
+  if (authorization) headers.set('Authorization', authorization);
+  const origin = request.headers.get('Origin');
+  if (origin) headers.set('Origin', `https://${upstreamHost}`);
+
   if (!headers.has('Accept')) {
     headers.set('Accept', 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8');
+  }
+
+  // GitHub's repository metadata endpoints reject browser JSON fetches without
+  // this marker (406). Some browsers/extensions omit it, so restore the
+  // semantic marker from the representation requested by the client.
+  if (
+    !headers.has('X-Requested-With') &&
+    headers.get('Accept')?.toLowerCase().includes('application/json') &&
+    !headers.get('Accept')?.toLowerCase().includes('text/html')
+  ) {
+    headers.set('X-Requested-With', 'XMLHttpRequest');
   }
 
   headers.set('Accept-Encoding', 'gzip, deflate, br');
@@ -123,13 +155,18 @@ function getGithubCacheKey(targetUrl, request) {
 }
 
 /**
- * Fetches a GitHub Web resource. Bodies are only forwarded for an explicitly allowlisted endpoint.
+ * Fetches a GitHub Web resource and forwards bodies for non-GET browser requests.
  * @param {{ request: Request, targetUrl: string, config: { MAX_RETRIES: number, RETRY_DELAY_MS: number, TIMEOUT_SECONDS: number, CACHE_DURATION?: number }, forwardBody?: boolean }} options
  * @returns {Promise<{ response: Response, responseGeneratedLocally: boolean }>} Upstream result.
  */
 export async function fetchGithubWeb({ request, targetUrl, config, forwardBody = false }) {
-  const headers = getGithubRequestHeaders(request);
-  const canUseSharedCache = request.method === 'GET' && !request.headers.has('X-Fetch-Nonce');
+  const upstreamHost = new URL(targetUrl).hostname;
+  const headers = getGithubRequestHeaders(request, upstreamHost);
+  const canUseSharedCache =
+    request.method === 'GET' &&
+    !request.headers.has('X-Fetch-Nonce') &&
+    !request.headers.has('Authorization') &&
+    !request.headers.has('Cookie');
   const shouldForwardBody =
     forwardBody && request.method !== 'GET' && request.method !== 'HEAD' && request.body !== null;
   const maxRetries = shouldForwardBody ? 1 : Math.max(1, Number(config.MAX_RETRIES) || 1);

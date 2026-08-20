@@ -8,7 +8,7 @@ const executionContext = {
   passThroughOnException() {}
 };
 
-describe('GitHub read-only Web integration', () => {
+describe('GitHub Web integration', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -51,7 +51,7 @@ describe('GitHub read-only Web integration', () => {
     const body = await response.text();
     expect(body).toContain('https://fast.example/gh/DXShelley/hermes');
     expect(body).not.toContain('href="/DXShelley/hermes/fork"');
-    expect(body).toContain('https://github.com/DXShelley/hermes/fork');
+    expect(body).toContain('https://fast.example/gh/DXShelley/hermes/fork');
     expect(body).toContain(
       'data-turbo-frame-src="https://fast.example/gh/go-gitea/gitea/branches"'
     );
@@ -134,6 +134,10 @@ describe('GitHub read-only Web integration', () => {
     expect(upstreamHeaders.get('GitHub-Is-React')).toBe('true');
     expect(upstreamHeaders.get('GitHub-Verified-Fetch')).toBe('true');
     expect(upstreamHeaders.get('X-Fetch-Nonce')).toBe('v2:nonce');
+    expect(upstreamHeaders.get('X-GitHub-Client-Version')).toBe(
+      'e85d7dcc80e884128537c9f6334006eb46b2d2c3'
+    );
+    expect(upstreamHeaders.get('X-Requested-With')).toBe('XMLHttpRequest');
     expect(upstreamHeaders.get('Referer')).toBe('https://github.com/go-gitea/gitea');
   });
 
@@ -160,6 +164,29 @@ describe('GitHub read-only Web integration', () => {
     expect(response.status).toBe(200);
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/go-gitea/gitea/latest-commit');
     expect(await response.text()).toContain('Latest commit');
+  });
+
+  it('restores GitHub JSON fetch marker when the browser omits it', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ oid: 'abc123' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' }
+      })
+    );
+
+    await worker.fetch(
+      new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
+        headers: {
+          Accept: 'application/json',
+          'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3'
+        }
+      }),
+      {},
+      executionContext
+    );
+
+    const upstreamHeaders = new Headers(fetchSpy.mock.calls[0][1]?.headers);
+    expect(upstreamHeaders.get('X-Requested-With')).toBe('XMLHttpRequest');
   });
 
   it.each(['/go-gitea/gitea/branches', '/go-gitea/gitea/tags', '/go-gitea/gitea/commits/main/'])(
@@ -239,8 +266,12 @@ describe('GitHub read-only Web integration', () => {
     ]);
   });
 
-  it('sends mutation requests to the canonical GitHub URL without proxying them', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  it('proxies mutation requests to the canonical GitHub URL with their body', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response('upstream', { status: 200, headers: { 'Content-Type': 'text/plain' } })
+      );
     const response = await worker.fetch(
       new Request('https://fast.example/gh/DXShelley/hermes/issues', {
         method: 'POST',
@@ -254,9 +285,11 @@ describe('GitHub read-only Web integration', () => {
       executionContext
     );
 
-    expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('https://github.com/DXShelley/hermes/issues');
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://github.com/DXShelley/hermes/issues',
+      expect.objectContaining({ method: 'POST', body: expect.any(ReadableStream) })
+    );
   });
 
   it('proxies allowlisted GitHub resources through the local namespace', async () => {
