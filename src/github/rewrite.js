@@ -8,6 +8,8 @@ const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
 const HTML_ATTRIBUTE_PATTERN =
   /(^|[\s<])((?:href|src|srcset|action|formaction|poster|cite|data-hovercard-url|data-turbo-frame-src|data-url)\s*=\s*)(["'])(.*?)\3/gim;
 const EMBEDDED_RELATIVE_URL_PATTERN = /(["'](?:url|api|href)["']\s*:\s*)(["'])(\/(?!\/)[^"']*)\2/gi;
+const EMBEDDED_JSON_SCRIPT_PATTERN =
+  /(<script\b(?=[^>]*\btype\s*=\s*(["'])application\/json\2)[^>]*>)([\s\S]*?)(<\/script>)/gi;
 const CSP_HOST_PATTERN = new RegExp(
   `(^|[\\s;,])(?:https?:\\/\\/)?(${GITHUB_HOSTS.map(escapeRegex).join('|')})(?::\\d+)?(?=([/\\s;,]|$))`,
   'gi'
@@ -110,6 +112,18 @@ function rewriteEmbeddedGithubPaths(text, origin) {
 }
 
 /**
+ * Rewrites URL-bearing values in GitHub React component data scripts.
+ * @param {string} html
+ * @param {string} origin
+ * @returns {string} HTML with rewritten JSON script payloads.
+ */
+function rewriteEmbeddedGithubJsonScripts(html, origin) {
+  return html.replace(EMBEDDED_JSON_SCRIPT_PATTERN, (full, openTag, _quote, content, closeTag) => {
+    return `${openTag}${rewriteGithubJson(content, origin)}${closeTag}`;
+  });
+}
+
+/**
  * Rewrites common navigation/resource attributes in HTML.
  * @param {string} html
  * @param {string} origin
@@ -126,7 +140,13 @@ export function rewriteGithubHtml(html, origin) {
     }
   );
 
-  return rewriteGithubText(rewriteEmbeddedGithubPaths(attributesRewritten, origin), origin);
+  return rewriteGithubText(
+    rewriteEmbeddedGithubJsonScripts(
+      rewriteEmbeddedGithubPaths(attributesRewritten, origin),
+      origin
+    ),
+    origin
+  );
 }
 
 /**
@@ -143,11 +163,15 @@ export function rewriteGithubText(text, origin) {
  * Recursively rewrites GitHub URLs in a decoded JSON value.
  * @param {unknown} value
  * @param {string} origin
+ * @param {string} [key]
  * @returns {unknown} Rewritten JSON value.
  */
-function rewriteGithubJsonValue(value, origin) {
+function rewriteGithubJsonValue(value, origin, key = '') {
   if (typeof value === 'string') {
-    if (value.startsWith('/')) {
+    if (
+      value.startsWith('/') &&
+      (/(?:url|uri|href|src|action)$/i.test(key) || (key !== 'path' && /path$/i.test(key)))
+    ) {
       return rewriteGithubUrl(value, origin);
     }
 
@@ -159,12 +183,15 @@ function rewriteGithubJsonValue(value, origin) {
   }
 
   if (Array.isArray(value)) {
-    return value.map(item => rewriteGithubJsonValue(item, origin));
+    return value.map(item => rewriteGithubJsonValue(item, origin, key));
   }
 
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, rewriteGithubJsonValue(item, origin)])
+      Object.entries(value).map(([childKey, item]) => [
+        childKey,
+        rewriteGithubJsonValue(item, origin, childKey)
+      ])
     );
   }
 
