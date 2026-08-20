@@ -570,6 +570,10 @@ describe('GitHub read-only Web routing', () => {
       <a href="https://github.com/xixu-me/Xget">repo</a>
       <a href="/Homebrew/brew">relative repo</a>
       <a href="/xixu-me/Xget/issues/new">new issue</a>
+      <turbo-frame id="repo-content-turbo-frame" data-turbo-frame-src="/go-gitea/gitea/branches">
+        branches
+      </turbo-frame>
+      <div data-custom-src="/go-gitea/gitea/branches">unrelated</div>
       <img src="https://github.githubassets.com/assets/app.js">
       <a href="https://docs.example.com">external</a>
     `;
@@ -580,9 +584,33 @@ describe('GitHub read-only Web routing', () => {
     expect(rewritten).toContain('href="https://fast.example/gh/Homebrew/brew"');
     expect(rewritten).toContain('href="https://github.com/xixu-me/Xget/issues/new"');
     expect(rewritten).toContain(
+      'data-turbo-frame-src="https://fast.example/gh/go-gitea/gitea/branches"'
+    );
+    expect(rewritten).toContain('data-custom-src="/go-gitea/gitea/branches"');
+    expect(rewritten).toContain(
       'src="https://fast.example/_github/proxy/github.githubassets.com/assets/app.js"'
     );
     expect(rewritten).toContain('href="https://docs.example.com"');
+  });
+
+  it('rewrites relative GitHub paths in embedded navigation data', () => {
+    const html = `
+      <script type="application/json">
+        {
+          "url": "/go-gitea/gitea/commits/main",
+          "api": "/go-gitea/gitea/branches",
+          "href": "/go-gitea/gitea/tags"
+        }
+      </script>
+      <a href="/xixu-me/Xget/issues/new">write</a>
+    `;
+
+    const rewritten = rewriteGithubHtml(html, 'https://fast.example');
+
+    expect(rewritten).toContain('"url": "https://fast.example/gh/go-gitea/gitea/commits/main"');
+    expect(rewritten).toContain('"api": "https://fast.example/gh/go-gitea/gitea/branches"');
+    expect(rewritten).toContain('"href": "https://fast.example/gh/go-gitea/gitea/tags"');
+    expect(rewritten).toContain('href="https://github.com/xixu-me/Xget/issues/new"');
   });
 
   it('rewrites static JavaScript URL prefixes without consuming template expressions', () => {

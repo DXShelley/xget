@@ -31,7 +31,7 @@ describe('GitHub read-only Web integration', () => {
   it('proxies a public repository page and rewrites internal links', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
-        '<html><a href="https://github.com/DXShelley/hermes">repo</a><a href="/DXShelley/hermes/fork">fork</a></html>',
+        '<html><a href="https://github.com/DXShelley/hermes">repo</a><a href="/DXShelley/hermes/fork">fork</a><turbo-frame data-turbo-frame-src="/go-gitea/gitea/branches"></turbo-frame><script type="application/json">{"url":"/go-gitea/gitea/commits/main","api":"/go-gitea/gitea/tags"}</script></html>',
         {
           status: 200,
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -52,6 +52,11 @@ describe('GitHub read-only Web integration', () => {
     expect(body).toContain('https://fast.example/gh/DXShelley/hermes');
     expect(body).not.toContain('href="/DXShelley/hermes/fork"');
     expect(body).toContain('https://github.com/DXShelley/hermes/fork');
+    expect(body).toContain(
+      'data-turbo-frame-src="https://fast.example/gh/go-gitea/gitea/branches"'
+    );
+    expect(body).toContain('"url":"https://fast.example/gh/go-gitea/gitea/commits/main"');
+    expect(body).toContain('"api":"https://fast.example/gh/go-gitea/gitea/tags"');
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/DXShelley/hermes');
     expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBe(
       'must-not-forward=true'
@@ -145,7 +150,7 @@ describe('GitHub read-only Web integration', () => {
     expect(await response.text()).toContain('Latest commit');
   });
 
-  it.each(['/go-gitea/gitea/branches', '/go-gitea/gitea/tags'])(
+  it.each(['/go-gitea/gitea/branches', '/go-gitea/gitea/tags', '/go-gitea/gitea/commits/main/'])(
     'proxies same-origin PJAX repository navigation for %s',
     async path => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(

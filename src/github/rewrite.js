@@ -7,7 +7,8 @@ const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
   'gi'
 );
 const HTML_ATTRIBUTE_PATTERN =
-  /((?:href|src|srcset|action|formaction|poster|cite|data-turbo-frame|data-url)\s*=\s*)(["'])(.*?)\2/gi;
+  /(^|[\s<])((?:href|src|srcset|action|formaction|poster|cite|data-turbo-frame|data-turbo-frame-src|data-url)\s*=\s*)(["'])(.*?)\3/gim;
+const EMBEDDED_RELATIVE_URL_PATTERN = /(["'](?:url|api|href)["']\s*:\s*)(["'])(\/(?!\/)[^"']*)\2/gi;
 const CSP_HOST_PATTERN = new RegExp(
   `(^|[\\s;,])(?:https?:\\/\\/)?(${GITHUB_HOSTS.map(escapeRegex).join('|')})(?::\\d+)?(?=([/\\s;,]|$))`,
   'gi'
@@ -95,20 +96,39 @@ function rewriteSrcset(value, origin) {
 }
 
 /**
+ * Rewrites relative GitHub paths stored in embedded navigation data.
+ * @param {string} text
+ * @param {string} origin
+ * @returns {string} Text with local GitHub navigation URLs.
+ */
+function rewriteEmbeddedGithubPaths(text, origin) {
+  return text.replace(EMBEDDED_RELATIVE_URL_PATTERN, (full, prefix, quote, value) => {
+    if (value.startsWith(`${GITHUB_WEB_PREFIX}/`) || value.startsWith('/_github/')) {
+      return full;
+    }
+
+    return `${prefix}${quote}${rewriteGithubUrl(value, origin)}${quote}`;
+  });
+}
+
+/**
  * Rewrites common navigation/resource attributes in HTML.
  * @param {string} html
  * @param {string} origin
  * @returns {string} HTML with local GitHub navigation URLs.
  */
 export function rewriteGithubHtml(html, origin) {
-  const attributesRewritten = html.replace(HTML_ATTRIBUTE_PATTERN, (full, prefix, quote, value) => {
-    const rewrittenValue = prefix.toLowerCase().startsWith('srcset')
-      ? rewriteSrcset(value, origin)
-      : rewriteGithubUrl(value, origin);
-    return `${prefix}${quote}${rewrittenValue}${quote}`;
-  });
+  const attributesRewritten = html.replace(
+    HTML_ATTRIBUTE_PATTERN,
+    (full, boundary, prefix, quote, value) => {
+      const rewrittenValue = prefix.toLowerCase().startsWith('srcset')
+        ? rewriteSrcset(value, origin)
+        : rewriteGithubUrl(value, origin);
+      return `${boundary}${prefix}${quote}${rewrittenValue}${quote}`;
+    }
+  );
 
-  return rewriteGithubText(attributesRewritten, origin);
+  return rewriteGithubText(rewriteEmbeddedGithubPaths(attributesRewritten, origin), origin);
 }
 
 /**
