@@ -266,8 +266,12 @@ describe('GitHub read-only Web integration', () => {
     ]);
   });
 
-  it('sends mutation requests to the canonical GitHub URL without proxying them', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  it('proxies mutation requests to the canonical GitHub URL with their body', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response('upstream', { status: 200, headers: { 'Content-Type': 'text/plain' } })
+      );
     const response = await worker.fetch(
       new Request('https://fast.example/gh/DXShelley/hermes/issues', {
         method: 'POST',
@@ -281,9 +285,11 @@ describe('GitHub read-only Web integration', () => {
       executionContext
     );
 
-    expect(response.status).toBe(303);
-    expect(response.headers.get('Location')).toBe('https://github.com/DXShelley/hermes/issues');
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://github.com/DXShelley/hermes/issues',
+      expect.objectContaining({ method: 'POST', body: expect.any(ReadableStream) })
+    );
   });
 
   it('proxies allowlisted GitHub resources through the local namespace', async () => {

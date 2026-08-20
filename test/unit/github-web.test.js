@@ -230,7 +230,7 @@ describe('GitHub read-only Web routing', () => {
     ).toBeNull();
   });
 
-  it('redirects read-only UI entry points for write operations to GitHub', () => {
+  it('proxies GitHub Web UI entry points, including write operations', () => {
     for (const path of [
       '/DXShelley/hermes/fork',
       '/DXShelley/hermes/edit/main/README.md',
@@ -249,14 +249,11 @@ describe('GitHub read-only Web routing', () => {
           }),
           new URL(`https://fast.example${localPath}`)
         )
-      ).toEqual({
-        kind: 'redirect',
-        targetUrl: `https://github.com${path}`
-      });
+      ).toEqual({ kind: 'proxy', upstreamUrl: `https://github.com${path}` });
     }
   });
 
-  it('redirects all mutation methods without proxying them', () => {
+  it('proxies all mutation methods and forwards their bodies', () => {
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
       const path = '/DXShelley/hermes/issues';
       expect(isGithubWritePath(path, method)).toBe(true);
@@ -270,13 +267,14 @@ describe('GitHub read-only Web routing', () => {
           new URL(`https://fast.example/gh${path}`)
         )
       ).toEqual({
-        kind: 'redirect',
-        targetUrl: `https://github.com${path}`
+        kind: 'proxy',
+        upstreamUrl: `https://github.com${path}`,
+        forwardBody: method !== 'GET' && method !== 'HEAD'
       });
     }
   });
 
-  it('redirects JavaScript write requests without changing the legacy Git route', () => {
+  it('proxies JavaScript write requests without changing the legacy Git route', () => {
     const browserlessWrite = classifyGithubWebRequest(
       new Request('https://fast.example/gh/DXShelley/xget/issues', {
         method: 'POST',
@@ -296,8 +294,9 @@ describe('GitHub read-only Web routing', () => {
     );
 
     expect(browserlessWrite).toEqual({
-      kind: 'redirect',
-      targetUrl: 'https://github.com/DXShelley/xget/issues'
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/DXShelley/xget/issues',
+      forwardBody: true
     });
     expect(gitWrite).toBeNull();
   });

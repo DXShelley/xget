@@ -202,28 +202,18 @@ export function classifyGithubWebRequest(request, url, env = {}) {
   if (githubWebPath && !isLegacyGitProtocolRequest(request, githubWebPath)) {
     const isBrowserRequest = isBrowserNavigationRequest(request) || isBrowserFetchRequest(request);
 
-    if (isBrowserRequest && isGithubWritePath(githubWebPath, request.method)) {
-      return { kind: 'redirect', targetUrl: getGithubCanonicalUrl(githubWebPath, search) };
-    }
-
-    if (
-      isBrowserRequest &&
-      (githubWebPath === '/search' ||
-        GITHUB_TOP_LEVEL_READ_PATHS.has(githubWebPath) ||
-        isGithubProfilePath(githubWebPath) ||
-        isGithubRepositoryPath(githubWebPath))
-    ) {
+    if (isBrowserRequest) {
       const upstreamUrl = getGithubUpstreamUrl(githubWebPath, search);
       if (!upstreamUrl) {
         return null;
       }
 
-      return upstreamUrl
-        ? {
-            kind: 'proxy',
-            upstreamUrl
-          }
-        : null;
+      const method = request.method.toUpperCase();
+      return {
+        kind: 'proxy',
+        upstreamUrl,
+        ...(method !== 'GET' && method !== 'HEAD' ? { forwardBody: true } : {})
+      };
     }
   }
 
@@ -265,17 +255,32 @@ export function classifyGithubWebRequest(request, url, env = {}) {
     };
   }
 
-  if (isGithubWritePath(pathname, request.method)) {
-    return { kind: 'redirect', targetUrl: getGithubCanonicalUrl(pathname, search) };
+  if (isBrowserRepositoryFetchRequest(request) && isGithubRepositoryPath(pathname)) {
+    const upstreamUrl = getGithubUpstreamUrl(pathname, search);
+    if (!upstreamUrl) {
+      return null;
+    }
+
+    const method = request.method.toUpperCase();
+    return {
+      kind: 'proxy',
+      upstreamUrl,
+      ...(method !== 'GET' && method !== 'HEAD' ? { forwardBody: true } : {})
+    };
   }
 
-  if (
-    isBrowserRepositoryFetchRequest(request) &&
-    GITHUB_READ_METHODS.has(request.method.toUpperCase()) &&
-    isGithubRepositoryPath(pathname)
-  ) {
+  if (isBrowserNavigationRequest(request) && isGithubWritePath(pathname, request.method)) {
     const upstreamUrl = getGithubUpstreamUrl(pathname, search);
-    return upstreamUrl ? { kind: 'proxy', upstreamUrl } : null;
+    if (!upstreamUrl) {
+      return null;
+    }
+
+    const method = request.method.toUpperCase();
+    return {
+      kind: 'proxy',
+      upstreamUrl,
+      ...(method !== 'GET' && method !== 'HEAD' ? { forwardBody: true } : {})
+    };
   }
 
   if (
