@@ -3,7 +3,7 @@
  */
 
 export const GITHUB_WEB_UPSTREAM = 'https://github.com';
-export const GITHUB_WEB_PREFIX = '/gh';
+export const DEFAULT_GITHUB_WEB_HOST = 'git.dxshelley.fun';
 
 /** @type {Readonly<Record<string, string>>} */
 export const DEFAULT_GITHUB_WEB_SHORTCUTS = Object.freeze({
@@ -144,4 +144,18 @@ export function getGithubProxyTarget(host, path) {
 export function isTrustedGithubHost(host) {
   const normalizedHost = typeof host === 'string' ? host.toLowerCase() : '';
   return normalizedHost === 'github.com' || Object.hasOwn(GITHUB_PROXY_HOSTS, normalizedHost);
+}
+
+/**
+ * Checks whether a host is the dedicated GitHub Web mirror.
+ * @param {unknown} host
+ * @param {Record<string, unknown>} [env]
+ * @returns {boolean} True only for the configured GitHub mirror host.
+ */
+export function isGithubWebHost(host, env = {}) {
+  const configuredHost =
+    env && typeof env.GITHUB_WEB_HOST === 'string' && env.GITHUB_WEB_HOST.trim()
+      ? env.GITHUB_WEB_HOST.trim()
+      : DEFAULT_GITHUB_WEB_HOST;
+  return typeof host === 'string' && host.toLowerCase() === configuredHost.toLowerCase();
 }

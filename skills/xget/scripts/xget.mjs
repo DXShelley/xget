@@ -8,8 +8,8 @@ const DEFAULT_SOURCE_URL =
 const DEFAULT_README_URL = 'https://raw.githubusercontent.com/xixu-me/xget/main/README.md';
 
 const DEFAULT_BASE_PLACEHOLDER = 'https://xget.example.com';
-const DEFAULT_PUBLIC_BASE_URL = 'https://xget.xi-xu.me';
-const DEFAULT_PUBLIC_HOST = 'xget.xi-xu.me';
+const DEFAULT_PUBLIC_BASE_URL = 'https://fast.dxshelley.fun';
+const DEFAULT_PUBLIC_HOST = 'fast.dxshelley.fun';
 const README_USE_CASES_HEADING = '## 🎯 Use Cases';
 const MISSING_BASE_URL_HINT =
   `Missing --base-url and XGET_BASE_URL. Ask for the user's Xget base URL and whether ` +

@@ -1,6 +1,6 @@
 import { SELF } from 'cloudflare:test';
 import { bench, describe } from 'vitest';
-import { TEST_URLS } from '../helpers/test-utils.js';
+import { TEST_URLS } from '../helpers/generators.js';
 
 describe('Performance Benchmarks', () => {
   describe('Request Processing Speed', () => {

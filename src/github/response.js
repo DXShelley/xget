@@ -32,8 +32,16 @@ function rewriteGithubSetCookie(value, upstreamHost) {
  * @param {string} upstreamHost
  */
 function copyGithubSetCookies(headers, upstreamHeaders, upstreamHost) {
-  const { getSetCookie } = /** @type {{ getSetCookie?: () => string[] }} */ (upstreamHeaders);
-  const values = typeof getSetCookie === 'function' ? getSetCookie.call(upstreamHeaders) : [];
+  const headerApi =
+    /** @type {{ getAll?: (name: string) => string[], getSetCookie?: () => string[] }} */ (
+      upstreamHeaders
+    );
+  const setCookieValues =
+    typeof headerApi.getSetCookie === 'function' ? headerApi.getSetCookie() : [];
+  const values =
+    setCookieValues.length || typeof headerApi.getAll !== 'function'
+      ? setCookieValues
+      : headerApi.getAll('Set-Cookie');
   const fallbackValue = upstreamHeaders.get('Set-Cookie');
   for (const value of values.length ? values : fallbackValue ? [fallbackValue] : []) {
     headers.append('Set-Cookie', rewriteGithubSetCookie(value, upstreamHost));

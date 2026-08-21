@@ -32,23 +32,6 @@ export async function handleGithubWebRequest({ request, url, env, config }) {
     };
   }
 
-  if (route.kind === 'reject') {
-    return {
-      response: new Response('GitHub Web request is not allowed', { status: 405 }),
-      isProxiedResponse: false
-    };
-  }
-
-  if (route.kind === 'redirect') {
-    return {
-      response: Response.redirect(
-        route.targetUrl,
-        request.method === 'GET' || request.method === 'HEAD' ? 302 : 303
-      ),
-      isProxiedResponse: false
-    };
-  }
-
   const { response } = await fetchGithubWeb({
     request,
     targetUrl: route.upstreamUrl,

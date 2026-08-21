@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PerformanceMonitor, addPerformanceHeaders } from '../../src/utils/performance.js';
 import {
+  filterPlatformTextResponse as rewriteTextResponse,
   isFlatpakReferenceFilePath,
-  rewriteTextResponse,
-  shouldRewriteTextResponse
-} from '../../src/utils/rewrite.js';
+  shouldFilterPlatformTextResponse as shouldRewriteTextResponse
+} from '../../src/platforms/response-filters.js';
 
 afterEach(() => {
   vi.restoreAllMocks();

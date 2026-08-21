@@ -17,9 +17,9 @@
  */
 
 import { SORTED_PLATFORMS } from './platform-index.js';
-import { transformPath } from './platform-transformers.js';
+import { transformPlatformPath } from '../platforms/path-transformers.js';
+import { shouldVaryPlatformCacheByOrigin } from '../platforms/response-filters.js';
 import { normalizeRegistryApiPath } from '../protocols/docker.js';
-import { isFlatpakReferenceFilePath } from '../utils/rewrite.js';
 import { createErrorResponse } from '../utils/security.js';
 
 export const HOME_PAGE_URL = 'https://github.com/xixu-me/Xget';
@@ -93,13 +93,12 @@ export function resolveTarget(url, effectivePath, platforms) {
     return { response: createHomepageRedirect() };
   }
 
-  const transformedPath = transformPath(effectivePath, platform);
+  const transformedPath = transformPlatformPath(effectivePath, platform);
   const targetPath = platform.startsWith('cr-')
     ? normalizeRegistryApiPath(platform, transformedPath)
     : transformedPath;
   const targetUrl = `${platforms[platform]}${targetPath}${url.search}`;
-  const shouldVaryCacheByOrigin =
-    platform === 'flathub' && isFlatpakReferenceFilePath(effectivePath);
+  const shouldVaryCacheByOrigin = shouldVaryPlatformCacheByOrigin(platform, effectivePath);
   const cacheTargetUrl = shouldVaryCacheByOrigin
     ? `${targetUrl}${targetUrl.includes('?') ? '&' : '?'}__xget_origin=${encodeURIComponent(url.origin)}`
     : targetUrl;

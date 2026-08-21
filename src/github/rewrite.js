@@ -1,4 +1,4 @@
-import { GITHUB_PROXY_HOSTS, GITHUB_WEB_PREFIX, GITHUB_WEB_UPSTREAM } from './config.js';
+import { GITHUB_PROXY_HOSTS, GITHUB_WEB_UPSTREAM } from './config.js';
 
 const GITHUB_HOSTS = ['github.com', ...Object.keys(GITHUB_PROXY_HOSTS)];
 const ABSOLUTE_GITHUB_URL_PATTERN = new RegExp(
@@ -66,7 +66,7 @@ export function rewriteGithubUrl(value, origin) {
 
   const host = parsed.hostname.toLowerCase();
   if (host === 'github.com') {
-    return `${origin}${GITHUB_WEB_PREFIX}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return `${origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
   }
 
   if (GITHUB_PROXY_HOSTS[host]) {
@@ -103,7 +103,7 @@ function rewriteSrcset(value, origin) {
  */
 function rewriteEmbeddedGithubPaths(text, origin) {
   return text.replace(EMBEDDED_RELATIVE_URL_PATTERN, (full, prefix, quote, value) => {
-    if (value.startsWith(`${GITHUB_WEB_PREFIX}/`) || value.startsWith('/_github/')) {
+    if (value.startsWith('/_github/')) {
       return full;
     }
 

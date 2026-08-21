@@ -84,6 +84,9 @@ jobs:
         env:
           CI: true
 
+      - name: Verify deployment workflow policy
+        run: npm run test:workflows
+
       - name: Generate coverage report
         run: npm run test:coverage
         env:

@@ -1,0 +1,140 @@
+[
+  {
+    "id": "github",
+    "mirrorHost": "git.dxshelley.fun",
+    "upstreamOrigin": "https://github.com",
+    "adapter": "github"
+  },
+  {
+    "id": "claude-web",
+    "alias": "claude-web",
+    "mirrorHost": "claude.fast.dxshelley.fun",
+    "upstreamOrigin": "https://claude.com",
+    "adapter": "configured",
+    "allowedMethods": ["GET", "HEAD", "POST"],
+    "proxyPolicy": { "paths": "all", "timeoutSeconds": 20, "maxRetries": 1 },
+    "browserMode": "isolated-origin",
+    "browserCapabilities": {
+      "forwardCredentials": false,
+      "oauth": false,
+      "rewriteSameOriginRedirects": true,
+      "serviceWorker": false,
+      "webSocket": false
+    }
+  },
+  {
+    "id": "claude-code",
+    "alias": "claude-code",
+    "mirrorHost": "code.claude.fast.dxshelley.fun",
+    "upstreamOrigin": "https://code.claude.com",
+    "adapter": "configured",
+    "allowedMethods": ["GET", "HEAD", "POST"],
+    "proxyPolicy": { "paths": "all", "timeoutSeconds": 20, "maxRetries": 1 },
+    "browserMode": "isolated-origin",
+    "browserCapabilities": {
+      "forwardCredentials": false,
+      "oauth": false,
+      "rewriteSameOriginRedirects": true,
+      "serviceWorker": false,
+      "webSocket": false
+    }
+  },
+  {
+    "id": "claude-ai-web",
+    "alias": "claude-ai-web",
+    "mirrorHost": "claude-ai.fast.dxshelley.fun",
+    "upstreamOrigin": "https://claude.ai",
+    "adapter": "web-adapter",
+    "resourceOrigins": ["https://assets.claude.ai"]
+  },
+  {
+    "id": "google-dev-docs",
+    "alias": "google-dev-docs",
+    "mirrorHost": "google-dev-docs.fast.dxshelley.fun",
+    "upstreamOrigin": "https://developers.google.com",
+    "adapter": "configured",
+    "allowedMethods": ["GET", "HEAD"],
+    "proxyPolicy": { "paths": "all", "timeoutSeconds": 20, "maxRetries": 1 },
+    "browserMode": "isolated-origin",
+    "browserCapabilities": {
+      "forwardCredentials": false,
+      "oauth": false,
+      "rewriteSameOriginRedirects": true,
+      "serviceWorker": false,
+      "webSocket": false
+    }
+  },
+  {
+    "id": "ai-google-dev-docs",
+    "alias": "ai-google-dev-docs",
+    "mirrorHost": "ai-google-dev-docs.fast.dxshelley.fun",
+    "upstreamOrigin": "https://ai.google.dev",
+    "adapter": "web-adapter",
+    "resourceOrigins": [
+      "https://gstatic.com",
+      "https://www.gstatic.com",
+      "https://ssl.gstatic.com",
+      "https://googleusercontent.com",
+      "https://lh3.googleusercontent.com"
+    ]
+  },
+  {
+    "id": "google-public",
+    "alias": "google-public",
+    "mirrorHost": "google-public.fast.dxshelley.fun",
+    "upstreamOrigin": "https://www.google.com",
+    "adapter": "configured",
+    "allowedMethods": ["GET", "HEAD"],
+    "proxyPolicy": { "paths": "all", "timeoutSeconds": 20, "maxRetries": 1 },
+    "browserMode": "isolated-origin",
+    "browserCapabilities": {
+      "forwardCredentials": false,
+      "oauth": false,
+      "rewriteSameOriginRedirects": true,
+      "serviceWorker": false,
+      "webSocket": false
+    }
+  },
+  {
+    "id": "gemini-web",
+    "alias": "gemini-web",
+    "mirrorHost": "gemini.fast.dxshelley.fun",
+    "upstreamOrigin": "https://gemini.google.com",
+    "adapter": "web-adapter",
+    "resourceOrigins": [
+      "https://gstatic.com",
+      "https://www.gstatic.com",
+      "https://ssl.gstatic.com",
+      "https://googleusercontent.com",
+      "https://lh3.googleusercontent.com"
+    ]
+  },
+  {
+    "id": "ai-studio",
+    "alias": "ai-studio",
+    "mirrorHost": "ai-studio.fast.dxshelley.fun",
+    "upstreamOrigin": "https://aistudio.google.com",
+    "adapter": "web-adapter",
+    "resourceOrigins": [
+      "https://gstatic.com",
+      "https://www.gstatic.com",
+      "https://ssl.gstatic.com",
+      "https://googleusercontent.com",
+      "https://lh3.googleusercontent.com"
+    ]
+  },
+  {
+    "id": "google-identity",
+    "alias": "google-identity",
+    "mirrorHost": "google-identity.fast.dxshelley.fun",
+    "upstreamOrigin": "https://accounts.google.com",
+    "adapter": "web-adapter",
+    "resourceOrigins": [
+      "https://gstatic.com",
+      "https://www.gstatic.com",
+      "https://ssl.gstatic.com",
+      "https://googleusercontent.com",
+      "https://lh3.googleusercontent.com"
+    ]
+  }
+]

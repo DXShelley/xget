@@ -267,14 +267,14 @@ describe('Xget Core Functionality', () => {
       // Simulate the regex replacement that happens in the code
       const rewrittenText = mockOriginalText.replace(
         /https:\/\/registry.npmjs.org\/([^/]+)/g,
-        'https://xget.xi-xu.me/npm/$1'
+        'https://fast.dxshelley.fun/npm/$1'
       );
 
       const rewrittenData = JSON.parse(rewrittenText);
 
       // Verify the URL is correctly rewritten with package name preserved
       expect(rewrittenData.versions['11.5.1'].dist.tarball).toBe(
-        'https://xget.xi-xu.me/npm/npm/-/npm-11.5.1.tgz'
+        'https://fast.dxshelley.fun/npm/npm/-/npm-11.5.1.tgz'
       );
     });
   });

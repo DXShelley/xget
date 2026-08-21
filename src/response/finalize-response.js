@@ -17,10 +17,11 @@
  */
 
 import {
+  filterPlatformTextResponse,
   isFlatpakReferenceFilePath,
-  rewriteTextResponse,
-  shouldRewriteTextResponse
-} from '../utils/rewrite.js';
+  isOriginBoundPlatformResponse,
+  shouldFilterPlatformTextResponse
+} from '../platforms/response-filters.js';
 import { addSecurityHeaders, createErrorResponse } from '../utils/security.js';
 
 /**
@@ -121,16 +122,25 @@ async function finalizeSuccessfulResponse({
   let hasOriginBoundRewrite = false;
 
   if (
-    shouldRewriteTextResponse(platform, effectivePath, response.headers.get('content-type') || '')
+    shouldFilterPlatformTextResponse(
+      platform,
+      effectivePath,
+      response.headers.get('content-type') || ''
+    )
   ) {
     const originalText =
       platform === 'flathub' && isFlatpakReferenceFilePath(effectivePath)
         ? new TextDecoder().decode(await response.arrayBuffer())
         : await response.text();
-    const rewrittenText = rewriteTextResponse(platform, effectivePath, originalText, url.origin);
+    const rewrittenText = filterPlatformTextResponse(
+      platform,
+      effectivePath,
+      originalText,
+      url.origin
+    );
     responseBody = rewrittenText;
     rewrittenContentLength = new TextEncoder().encode(rewrittenText).byteLength;
-    hasOriginBoundRewrite = platform === 'pypi';
+    hasOriginBoundRewrite = isOriginBoundPlatformResponse(platform);
   }
 
   const headers = new Headers(response.headers);

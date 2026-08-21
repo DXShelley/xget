@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { transformPath } from '../../src/routing/platform-transformers.js';
+import { transformPlatformPath as transformPath } from '../../src/platforms/path-transformers.js';
 
 describe('crates.io path transformation', () => {
   it('should transform crate download URLs correctly', () => {

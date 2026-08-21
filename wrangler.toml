@@ -1,9 +1,13 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "xget"
+name = "xget-fast"
 main = "src/index.js"
 compatibility_date = "2026-07-22"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = false
+routes = [
+  { pattern = "fast.dxshelley.fun", custom_domain = true },
+  { pattern = "*.fast.dxshelley.fun/*", zone_name = "dxshelley.fun" }
+]
 
 [placement]
 mode = "smart"
@@ -22,3 +26,11 @@ invocation_logs = true
 enabled = true
 persist = true
 head_sampling_rate = 1
+
+[env.git]
+name = "xget-git"
+workers_dev = false
+routes = [{ pattern = "git.dxshelley.fun", custom_domain = true }]
+
+[env.git.vars]
+GITHUB_WEB_HOST = "git.dxshelley.fun"
