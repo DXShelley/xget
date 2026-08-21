@@ -80,7 +80,9 @@ describe('site registry', () => {
       upstreamOrigin: 'https://gemini.google.com'
     };
 
-    for (const key of ['id', 'alias', 'mirrorHost', 'upstreamOrigin']) {
+    /** @type {Array<keyof typeof site>} */
+    const routingKeys = ['id', 'alias', 'mirrorHost', 'upstreamOrigin'];
+    for (const key of routingKeys) {
       const distinctSite = {
         id: 'other-site',
         alias: 'other-site',
