@@ -132,6 +132,12 @@ HTTP、LFS、上传和所有允许方法的请求体原样传递。
 `408`、`429`、`5xx` 故障，并使用受限超时；`POST` 不重试。配置站点响应统一为
 `Cache-Control: private, no-store`，避免跨用户缓存。
 
+Claude Code 文档是例外：`ClaudeCodeDocsAdapter` 只处理 `claude-code` 的
+`/docs` 路径。匿名 `GET` 成功后会在 Worker Cache 保存五分钟；若上游在重试后仍
+返回 `500`、`502`、`503`、`504` 或网络失败，才返回最近成功的同一镜像 URL 响应，
+并标记 `X-Xget-Cache: stale`。它不缓存 `POST`，不转发 Cookie 或 Authorization，
+也不接管 `code.claude.com` 的其他路径。
+
 默认不向上游转发浏览器的 `Cookie`、`Authorization` 或
 `Proxy-Authorization`。同一固定上游 Origin 的 `Location`
 会改回当前镜像 Origin，外部跳转保持原样。对于 HTML、JSON、CSS、JavaScript 和 Web
