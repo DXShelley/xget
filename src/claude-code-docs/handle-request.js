@@ -103,9 +103,7 @@ export async function handleClaudeCodeDocsRequest({ request, site, targetUrl }) 
   }
 
   const isStaleFallbackResponse =
-    !response ||
-    STALE_FALLBACK_STATUSES.has(response.status) ||
-    isMintlifyErrorResponse;
+    !response || STALE_FALLBACK_STATUSES.has(response.status) || isMintlifyErrorResponse;
   if (!isStaleFallbackResponse) {
     if (cache && cacheKey && response?.ok) {
       try {
