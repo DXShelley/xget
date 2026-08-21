@@ -3,6 +3,20 @@ import { getDefaultCache } from '../upstream/cache.js';
 import { createErrorResponse } from '../utils/security.js';
 
 const STALE_FALLBACK_STATUSES = new Set([500, 502, 503, 504]);
+const MINTLIFY_ERROR_PAGE_MARKERS = ['Error loading page', 'Error 500'];
+
+/**
+ * Detects Mintlify's error document, which is incorrectly returned with HTTP 200.
+ * @param {Response} response Upstream browser response.
+ * @returns {Promise<boolean>} Whether the response is an error page.
+ */
+async function isMintlifyErrorPage(response) {
+  const contentType = response.headers.get('Content-Type') || '';
+  if (!response.ok || !contentType.includes('text/html')) return false;
+
+  const body = await response.clone().text();
+  return MINTLIFY_ERROR_PAGE_MARKERS.every(marker => body.includes(marker));
+}
 
 /**
  * Builds a GET-only cache key for a browser-facing documentation URL.
@@ -73,7 +87,26 @@ export async function handleClaudeCodeDocsRequest({ request, site, targetUrl }) 
     return createErrorResponse('Claude Code documentation is temporarily unavailable', 502);
   }
 
-  if (!response || !STALE_FALLBACK_STATUSES.has(response.status)) {
+  let isMintlifyErrorResponse =
+    response !== null && request.method === 'GET' && (await isMintlifyErrorPage(response));
+  if (isMintlifyErrorResponse) {
+    try {
+      response = await handleConfiguredTargetRequest(request, targetUrl);
+    } catch (error) {
+      const cached = await getStaleResponse(cache, /** @type {Request} */ (cacheKey));
+      if (cached) return cached;
+      console.warn('Claude Code documentation retry failed:', error);
+      return createErrorResponse('Claude Code documentation is temporarily unavailable', 502);
+    }
+    isMintlifyErrorResponse =
+      response !== null && request.method === 'GET' && (await isMintlifyErrorPage(response));
+  }
+
+  const isStaleFallbackResponse =
+    !response ||
+    STALE_FALLBACK_STATUSES.has(response.status) ||
+    isMintlifyErrorResponse;
+  if (!isStaleFallbackResponse) {
     if (cache && cacheKey && response?.ok) {
       try {
         await cache.put(cacheKey, createCacheEntry(response.clone()));
@@ -84,5 +117,9 @@ export async function handleClaudeCodeDocsRequest({ request, site, targetUrl }) 
     return response;
   }
 
-  return (await getStaleResponse(cache, /** @type {Request} */ (cacheKey))) || response;
+  const cached = await getStaleResponse(cache, /** @type {Request} */ (cacheKey));
+  if (cached) return cached;
+  return isMintlifyErrorResponse
+    ? createErrorResponse('Claude Code documentation is temporarily unavailable', 502)
+    : response;
 }

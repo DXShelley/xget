@@ -62,6 +62,45 @@ describe('Claude Code documentation adapter', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
+  it('serves the cached document when an HTTP 200 response contains the Mintlify error page', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response('healthy document', {
+          status: 200,
+          headers: { 'Content-Type': 'text/html' }
+        })
+      )
+      .mockResolvedValue(
+        new Response('Error 500\nError loading page', {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        })
+      );
+
+    await handleClaudeCodeDocsRequest({ request, site, targetUrl });
+    const fallbackResponse = await handleClaudeCodeDocsRequest({ request, site, targetUrl });
+
+    expect(await fallbackResponse?.text()).toBe('healthy document');
+    expect(fallbackResponse?.headers.get('X-Xget-Cache')).toBe('stale');
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('returns a gateway error when the Mintlify error page has no cached document', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Error 500\nError loading page', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' }
+      })
+    );
+
+    const response = await handleClaudeCodeDocsRequest({ request, site, targetUrl });
+
+    expect(response?.status).toBe(502);
+    expect(await response?.text()).toContain('temporarily unavailable');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('serves the cached document when the upstream request fails', async () => {
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response('healthy document', { status: 200 }))
