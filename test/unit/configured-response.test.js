@@ -67,4 +67,20 @@ describe('configured response finalizer', () => {
     expect(body).not.toContain('https://code.claude.com/assets/app.js');
     expect(body).toContain('https://cdn.example.com/logo.svg');
   });
+
+  it('rewrites same-origin URLs in Next.js RSC payloads', async () => {
+    const response = await finalizeConfiguredResponse({
+      request: new Request('https://claude-code.fast.dxshelley.fun/docs/start'),
+      response: new Response('1:I["https://code.claude.com/docs/_next/static/chunk.js"]', {
+        headers: { 'Content-Type': 'text/x-component' }
+      }),
+      site,
+      targetUrl: new URL('https://code.claude.com/docs/start')
+    });
+
+    expect(response.headers.has('Content-Length')).toBe(false);
+    expect(await response.text()).toBe(
+      '1:I["https://claude-code.fast.dxshelley.fun/docs/_next/static/chunk.js"]'
+    );
+  });
 });

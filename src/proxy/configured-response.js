@@ -9,7 +9,7 @@ const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
   'upgrade'
 ]);
 const REWRITABLE_CONTENT_TYPES =
-  /(?:text\/html|application\/xhtml\+xml|application\/json|javascript|text\/css|manifest)/i;
+  /(?:text\/html|application\/xhtml\+xml|application\/json|javascript|text\/css|text\/x-component|manifest)/i;
 
 /**
  * Finalizes a configured-site response for its proxy origin.
