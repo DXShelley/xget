@@ -16,9 +16,30 @@ const HOP_BY_HOP_HEADERS = new Set([
   'upgrade'
 ]);
 const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+const CLIENT_IDENTITY_HEADERS = new Set([
+  'cf-connecting-ip',
+  'cf-connecting-ipv6',
+  'fastly-client-ip',
+  'forwarded',
+  'true-client-ip',
+  'via',
+  'x-client-ip',
+  'x-cluster-client-ip',
+  'x-envoy-external-address',
+  'x-forwarded',
+  'x-forwarded-for',
+  'x-forwarded-host',
+  'x-forwarded-proto',
+  'x-originating-ip',
+  'x-proxyuser-ip',
+  'x-real-ip',
+  'x-remote-addr',
+  'x-remote-ip',
+  'x-remote-user-ip'
+]);
 
 /**
- * @typedef {{ upstreamOrigin: string, allowedMethods: string[], proxyPolicy: { paths: 'all' | string[], timeoutSeconds: number, maxRetries: number }, browserCapabilities: { forwardCredentials: boolean, rewriteSameOriginRedirects: boolean }, requestFilters: Array<(context: any) => any>, responseFilters: Array<(context: any) => any> }} ConfiguredSite
+ * @typedef {{ upstreamOrigin: string, allowedMethods: string[], proxyPolicy: { paths: 'all' | string[], timeoutSeconds: number, maxRetries: number, stripClientIdentityHeaders: boolean }, browserCapabilities: { forwardCredentials: boolean, rewriteSameOriginRedirects: boolean }, requestFilters: Array<(context: any) => any>, responseFilters: Array<(context: any) => any> }} ConfiguredSite
  */
 
 /**
@@ -41,7 +62,7 @@ export function isConfiguredPathAllowed(site, pathname) {
  * Builds headers for a configuration-backed site without changing its credential names.
  * @param {Request} request
  * @param {URL} upstreamUrl
- * @param {{ browserCapabilities?: { forwardCredentials?: boolean } }} site
+ * @param {{ browserCapabilities?: { forwardCredentials?: boolean }, proxyPolicy?: { stripClientIdentityHeaders?: boolean } }} site
  * @returns {Headers} Headers safe to send upstream.
  */
 function getConfiguredHeaders(request, upstreamUrl, site) {
@@ -50,6 +71,9 @@ function getConfiguredHeaders(request, upstreamUrl, site) {
   for (const [key, value] of request.headers) {
     const normalizedKey = key.toLowerCase();
     if (HOP_BY_HOP_HEADERS.has(normalizedKey)) continue;
+    if (site.proxyPolicy?.stripClientIdentityHeaders && CLIENT_IDENTITY_HEADERS.has(normalizedKey)) {
+      continue;
+    }
     if (
       ['authorization', 'cookie'].includes(normalizedKey) &&
       !site.browserCapabilities?.forwardCredentials

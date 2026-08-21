@@ -85,7 +85,12 @@
     "upstreamOrigin": "https://www.google.com",
     "adapter": "configured",
     "allowedMethods": ["GET", "HEAD"],
-    "proxyPolicy": { "paths": "all", "timeoutSeconds": 20, "maxRetries": 1 },
+    "proxyPolicy": {
+      "paths": "all",
+      "timeoutSeconds": 20,
+      "maxRetries": 1,
+      "stripClientIdentityHeaders": true
+    },
     "browserMode": "isolated-origin",
     "browserCapabilities": {
       "forwardCredentials": false,

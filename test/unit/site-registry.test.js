@@ -144,6 +144,46 @@ describe('site registry', () => {
     expect(headers.get('Cookie')).toBeNull();
   });
 
+  it('does not forward client identity headers to Google public search', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('upstream'));
+    await handleConfiguredSiteRequest(
+      new Request('https://google-public.fast.dxshelley.fun/search?q=computer', {
+        headers: {
+          'CF-Connecting-IP': '162.158.91.80',
+          Forwarded: 'for=162.158.91.80;proto=https',
+          'True-Client-IP': '162.158.91.80',
+          'X-Client-IP': '162.158.91.80',
+          'X-Forwarded-For': '162.158.91.80',
+          'X-Real-IP': '162.158.91.80'
+        }
+      })
+    );
+
+    const headers = new Headers(fetchSpy.mock.calls.at(-1)?.[1]?.headers);
+    for (const name of [
+      'CF-Connecting-IP',
+      'Forwarded',
+      'True-Client-IP',
+      'X-Client-IP',
+      'X-Forwarded-For',
+      'X-Real-IP'
+    ]) {
+      expect(headers.get(name)).toBeNull();
+    }
+  });
+
+  it('keeps client identity headers for configured sites without the opt-in policy', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('upstream'));
+    await handleConfiguredSiteRequest(
+      new Request('https://claude.fast.dxshelley.fun/products', {
+        headers: { 'X-Forwarded-For': '198.51.100.1' }
+      })
+    );
+
+    const headers = new Headers(fetchSpy.mock.calls.at(-1)?.[1]?.headers);
+    expect(headers.get('X-Forwarded-For')).toBe('198.51.100.1');
+  });
+
   it('rejects WebSocket upgrades for configured sites without fetching upstream', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     fetchSpy.mockClear();

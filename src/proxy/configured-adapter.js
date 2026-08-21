@@ -1,7 +1,7 @@
 /**
  * Creates an immutable adapter definition for a configuration-only site.
- * @param {{ id: string, alias?: string, mirrorHost: string, upstreamOrigin: string, allowedMethods?: string[], proxyPolicy?: { paths?: 'all' | string[], timeoutSeconds?: number, maxRetries?: number }, browserMode?: string, browserCapabilities?: { forwardCredentials?: boolean, oauth?: boolean, rewriteSameOriginRedirects?: boolean, serviceWorker?: boolean, webSocket?: boolean } }} site
- * @returns {{ adapter: 'configured', id: string, alias?: string, mirrorHost: string, upstreamOrigin: string, allowedMethods: string[], proxyPolicy: { paths: 'all' | string[], timeoutSeconds: number, maxRetries: number }, browserMode: string, browserCapabilities: { forwardCredentials: boolean, oauth: boolean, rewriteSameOriginRedirects: boolean, serviceWorker: boolean, webSocket: boolean }, requestFilters: Array<(context: any) => any>, responseFilters: Array<(context: any) => any> }} Configured site adapter.
+ * @param {{ id: string, alias?: string, mirrorHost: string, upstreamOrigin: string, allowedMethods?: string[], proxyPolicy?: { paths?: 'all' | string[], timeoutSeconds?: number, maxRetries?: number, stripClientIdentityHeaders?: boolean }, browserMode?: string, browserCapabilities?: { forwardCredentials?: boolean, oauth?: boolean, rewriteSameOriginRedirects?: boolean, serviceWorker?: boolean, webSocket?: boolean } }} site
+ * @returns {{ adapter: 'configured', id: string, alias?: string, mirrorHost: string, upstreamOrigin: string, allowedMethods: string[], proxyPolicy: { paths: 'all' | string[], timeoutSeconds: number, maxRetries: number, stripClientIdentityHeaders: boolean }, browserMode: string, browserCapabilities: { forwardCredentials: boolean, oauth: boolean, rewriteSameOriginRedirects: boolean, serviceWorker: boolean, webSocket: boolean }, requestFilters: Array<(context: any) => any>, responseFilters: Array<(context: any) => any> }} Configured site adapter.
  */
 export function createConfiguredAdapter(site) {
   const browserCapabilities = Object.freeze({
@@ -24,6 +24,7 @@ export function createConfiguredAdapter(site) {
       paths: 'all',
       timeoutSeconds: 20,
       maxRetries: 1,
+      stripClientIdentityHeaders: false,
       ...(site.proxyPolicy || {})
     }),
     browserMode: site.browserMode || 'path-proxy',
