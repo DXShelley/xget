@@ -193,14 +193,14 @@ Job 日志下载权限有限，未能从底层日志确认是 Token 缺失、Tok
 推荐把代理只用于读取，把官方 GitHub 地址用于推送：
 
 ```text
-origin fetch: https://fast.dxshelley.fun/gh/DXShelley/xget.git
+origin fetch: https://git.dxshelley.fun/DXShelley/xget.git
 origin push:  https://github.com/DXShelley/xget.git
 ```
 
 可按以下方式设置当前仓库的两个地址（将所有者和仓库名替换为实际值）：
 
 ```bash
-git remote set-url origin https://fast.dxshelley.fun/gh/[所有者]/[存储库].git
+git remote set-url origin https://git.dxshelley.fun/[所有者]/[存储库].git
 git remote set-url --push origin https://github.com/[所有者]/[存储库].git
 git remote -v
 ```
@@ -215,7 +215,7 @@ git config --show-origin --get-regexp "^url\\..*\\.insteadOf$"
 如果配置了类似下面的全局 URL 重写：
 
 ```text
-url.https://fast.dxshelley.fun/gh/.insteadOf=https://github.com/
+url.https://git.dxshelley.fun/.insteadOf=https://github.com/
 ```
 
 即使命令中明确写入

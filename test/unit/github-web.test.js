@@ -25,13 +25,45 @@ afterEach(() => {
 });
 
 describe('GitHub Web routing', () => {
+  it('maps GitHub Web, downloads, and smart HTTP from the dedicated mirror host', () => {
+    const page = new URL('https://git.dxshelley.fun/Homebrew/brew');
+    const zip = new URL('https://git.dxshelley.fun/Homebrew/brew/archive/refs/heads/main.zip');
+    const git = new URL(
+      'https://git.dxshelley.fun/Homebrew/brew.git/info/refs?service=git-upload-pack'
+    );
+    const obsoletePrefix = new URL('https://git.dxshelley.fun/gh/Homebrew/brew');
+
+    expect(classifyGithubWebRequest(new Request(page), page)).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/Homebrew/brew'
+    });
+    expect(classifyGithubWebRequest(new Request(zip), zip)).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/Homebrew/brew/archive/refs/heads/main.zip'
+    });
+    expect(classifyGithubWebRequest(new Request(git), git)).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/Homebrew/brew.git/info/refs?service=git-upload-pack'
+    });
+    expect(classifyGithubWebRequest(new Request(obsoletePrefix), obsoletePrefix)).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/gh/Homebrew/brew'
+    });
+    expect(
+      classifyGithubWebRequest(
+        new Request('https://fast.dxshelley.fun/npm/react'),
+        new URL('https://fast.dxshelley.fun/npm/react')
+      )
+    ).toBeNull();
+  });
+
   it('routes all methods for trusted GitHub hosts', () => {
-    const loginUrl = new URL('https://fast.example/gh/session');
+    const loginUrl = new URL('https://git.dxshelley.fun/session');
     const uploadUrl = new URL(
-      'https://fast.example/_github/proxy/uploads.github.com/user/repository/assets'
+      'https://git.dxshelley.fun/_github/proxy/uploads.github.com/user/repository/assets'
     );
     const cloudUrl = new URL(
-      'https://fast.example/_github/proxy/cloud.githubusercontent.com/attachment'
+      'https://git.dxshelley.fun/_github/proxy/cloud.githubusercontent.com/attachment'
     );
 
     expect(
@@ -64,14 +96,11 @@ describe('GitHub Web routing', () => {
     expect(getGithubWebShortcuts()).toMatchObject({ hermes: '/search' });
 
     const result = classifyGithubWebRequest(
-      new Request('https://fast.example/search?q=Hermes'),
-      new URL('https://fast.example/search?q=Hermes')
+      new Request('https://git.dxshelley.fun/search?q=Hermes'),
+      new URL('https://git.dxshelley.fun/search?q=Hermes')
     );
 
-    expect(result).toEqual({
-      kind: 'redirect',
-      targetUrl: 'https://fast.example/gh/search?q=hermes&type=repositories'
-    });
+    expect(result).toEqual({ kind: 'proxy', upstreamUrl: 'https://github.com/search?q=Hermes' });
   });
 
   it('supports configured shortcut overrides without accepting unsafe paths', () => {
@@ -89,18 +118,18 @@ describe('GitHub Web routing', () => {
 
   it('routes generic search and repository pages to github.com', () => {
     const search = classifyGithubWebRequest(
-      new Request('https://fast.example/search?q=cloudflare&type=repositories'),
-      new URL('https://fast.example/search?q=cloudflare&type=repositories')
+      new Request('https://git.dxshelley.fun/search?q=cloudflare&type=repositories'),
+      new URL('https://git.dxshelley.fun/search?q=cloudflare&type=repositories')
     );
     const repository = classifyGithubWebRequest(
-      new Request('https://fast.example/xixu-me/Xget/blob/main/README.md'),
-      new URL('https://fast.example/gh/xixu-me/Xget/blob/main/README.md')
+      new Request('https://git.dxshelley.fun/xixu-me/Xget/blob/main/README.md'),
+      new URL('https://git.dxshelley.fun/xixu-me/Xget/blob/main/README.md')
     );
     const browserRepository = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/xixu-me/Xget/blob/main/README.md', {
+      new Request('https://git.dxshelley.fun/xixu-me/Xget/blob/main/README.md', {
         headers: { Accept: 'text/html' }
       }),
-      new URL('https://fast.example/gh/xixu-me/Xget/blob/main/README.md')
+      new URL('https://git.dxshelley.fun/xixu-me/Xget/blob/main/README.md')
     );
 
     expect(search).toEqual({
@@ -117,21 +146,21 @@ describe('GitHub Web routing', () => {
     });
 
     const missingPrefix = classifyGithubWebRequest(
-      new Request('https://fast.example/Homebrew/brew', {
+      new Request('https://git.dxshelley.fun/Homebrew/brew', {
         headers: { Accept: 'text/html', 'Sec-Fetch-Mode': 'navigate' }
       }),
-      new URL('https://fast.example/Homebrew/brew')
+      new URL('https://git.dxshelley.fun/Homebrew/brew')
     );
     expect(missingPrefix).toEqual({
-      kind: 'redirect',
-      targetUrl: 'https://fast.example/gh/Homebrew/brew'
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/Homebrew/brew'
     });
 
     const browserProfile = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/Homebrew', {
+      new Request('https://git.dxshelley.fun/Homebrew', {
         headers: { Accept: 'text/html' }
       }),
-      new URL('https://fast.example/gh/Homebrew')
+      new URL('https://git.dxshelley.fun/Homebrew')
     );
     expect(browserProfile).toEqual({
       kind: 'proxy',
@@ -139,10 +168,10 @@ describe('GitHub Web routing', () => {
     });
 
     const browserFetch = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/xixu-me/Xget', {
+      new Request('https://git.dxshelley.fun/xixu-me/Xget', {
         headers: { Accept: '*/*', 'Sec-Fetch-Mode': 'cors' }
       }),
-      new URL('https://fast.example/gh/xixu-me/Xget')
+      new URL('https://git.dxshelley.fun/xixu-me/Xget')
     );
     expect(browserFetch).toEqual({
       kind: 'proxy',
@@ -150,14 +179,14 @@ describe('GitHub Web routing', () => {
     });
 
     const githubFetch = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/latest-commit', {
         headers: {
           Accept: 'application/json',
           'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3',
           'X-Requested-With': 'XMLHttpRequest'
         }
       }),
-      new URL('https://fast.example/gh/go-gitea/gitea/latest-commit')
+      new URL('https://git.dxshelley.fun/go-gitea/gitea/latest-commit')
     );
     expect(githubFetch).toEqual({
       kind: 'proxy',
@@ -165,10 +194,10 @@ describe('GitHub Web routing', () => {
     });
 
     const manifest = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/manifest.json', {
+      new Request('https://git.dxshelley.fun/manifest.json', {
         headers: { Accept: 'application/manifest+json', 'Sec-Fetch-Mode': 'cors' }
       }),
-      new URL('https://fast.example/gh/manifest.json')
+      new URL('https://git.dxshelley.fun/manifest.json')
     );
     expect(manifest).toEqual({
       kind: 'proxy',
@@ -178,17 +207,17 @@ describe('GitHub Web routing', () => {
 
   it('proxies GitHub browser Fetches from same-origin repository paths', () => {
     const latestCommit = classifyGithubWebRequest(
-      new Request('https://fast.example/go-gitea/gitea/latest-commit', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/latest-commit', {
         headers: {
           Accept: 'application/json',
           'X-GitHub-Client-Version': 'version',
           'X-Requested-With': 'XMLHttpRequest'
         }
       }),
-      new URL('https://fast.example/go-gitea/gitea/latest-commit')
+      new URL('https://git.dxshelley.fun/go-gitea/gitea/latest-commit')
     );
     const pjaxBranches = classifyGithubWebRequest(
-      new Request('https://fast.example/go-gitea/gitea/branches', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/branches', {
         headers: {
           Accept: 'text/html',
           'Sec-Fetch-Mode': 'cors',
@@ -196,10 +225,10 @@ describe('GitHub Web routing', () => {
           'X-PJAX-Container': '#repo-content-pjax-container'
         }
       }),
-      new URL('https://fast.example/go-gitea/gitea/branches')
+      new URL('https://git.dxshelley.fun/go-gitea/gitea/branches')
     );
     const pjaxTags = classifyGithubWebRequest(
-      new Request('https://fast.example/go-gitea/gitea/tags', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/tags', {
         headers: {
           Accept: 'text/html',
           'Sec-Fetch-Mode': 'cors',
@@ -207,7 +236,7 @@ describe('GitHub Web routing', () => {
           'X-PJAX-Container': '#repo-content-pjax-container'
         }
       }),
-      new URL('https://fast.example/go-gitea/gitea/tags')
+      new URL('https://git.dxshelley.fun/go-gitea/gitea/tags')
     );
 
     expect(latestCommit).toEqual({
@@ -230,10 +259,10 @@ describe('GitHub Web routing', () => {
     expect(isGithubWritePath('/go-gitea/gitea/security/advisories/new', 'GET')).toBe(true);
 
     const securityPage = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/go-gitea/gitea/security', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/security', {
         headers: { Accept: 'text/html' }
       }),
-      new URL('https://fast.example/gh/go-gitea/gitea/security')
+      new URL('https://git.dxshelley.fun/go-gitea/gitea/security')
     );
     expect(securityPage).toEqual({
       kind: 'proxy',
@@ -242,10 +271,10 @@ describe('GitHub Web routing', () => {
 
     expect(
       classifyGithubWebRequest(
-        new Request('https://fast.example/gh/go-gitea/gitea/security/', {
+        new Request('https://git.dxshelley.fun/go-gitea/gitea/security/', {
           headers: { Accept: 'text/html' }
         }),
-        new URL('https://fast.example/gh/go-gitea/gitea/security/')
+        new URL('https://git.dxshelley.fun/go-gitea/gitea/security/')
       )
     ).toEqual({
       kind: 'proxy',
@@ -256,14 +285,14 @@ describe('GitHub Web routing', () => {
   it('keeps non-GitHub platform routes on the legacy router', () => {
     expect(
       classifyGithubWebRequest(
-        new Request('https://fast.example/gh/xixu-me/Xget'),
-        new URL('https://fast.example/gh/xixu-me/Xget')
+        new Request('https://git.dxshelley.fun/xixu-me/Xget'),
+        new URL('https://git.dxshelley.fun/xixu-me/Xget')
       )
     ).toEqual({ kind: 'proxy', upstreamUrl: 'https://github.com/xixu-me/Xget' });
     expect(
       classifyGithubWebRequest(
-        new Request('https://fast.example/npm/react'),
-        new URL('https://fast.example/npm/react')
+        new Request('https://fast.dxshelley.fun/npm/react'),
+        new URL('https://fast.dxshelley.fun/npm/react')
       )
     ).toBeNull();
   });
@@ -278,14 +307,14 @@ describe('GitHub Web routing', () => {
       '/login',
       '/signup'
     ]) {
-      const localPath = path === '/settings' || path === '/login' ? path : `/gh${path}`;
+      const localPath = path === '/settings' || path === '/login' ? path : `${path}`;
       expect(isGithubWritePath(path, 'GET')).toBe(true);
       expect(
         classifyGithubWebRequest(
-          new Request(`https://fast.example${localPath}`, {
+          new Request(`https://git.dxshelley.fun${localPath}`, {
             headers: { Accept: 'text/html' }
           }),
-          new URL(`https://fast.example${localPath}`)
+          new URL(`https://git.dxshelley.fun${localPath}`)
         )
       ).toEqual({ kind: 'proxy', upstreamUrl: `https://github.com${path}` });
     }
@@ -297,12 +326,12 @@ describe('GitHub Web routing', () => {
       expect(isGithubWritePath(path, method)).toBe(true);
       expect(
         classifyGithubWebRequest(
-          new Request(`https://fast.example/gh${path}`, {
+          new Request(`https://git.dxshelley.fun${path}`, {
             method,
             headers: { Accept: 'text/html' },
             ...(method === 'POST' && { body: 'title=blocked' })
           }),
-          new URL(`https://fast.example/gh${path}`)
+          new URL(`https://git.dxshelley.fun${path}`)
         )
       ).toEqual({
         kind: 'proxy',
@@ -314,21 +343,21 @@ describe('GitHub Web routing', () => {
 
   it('proxies JavaScript write requests without changing the legacy Git route', () => {
     const browserlessWrite = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/DXShelley/xget/issues', {
+      new Request('https://git.dxshelley.fun/DXShelley/xget/issues', {
         method: 'POST',
         headers: { Accept: '*/*', 'Sec-Fetch-Mode': 'cors' }
       }),
-      new URL('https://fast.example/gh/DXShelley/xget/issues')
+      new URL('https://git.dxshelley.fun/DXShelley/xget/issues')
     );
     const gitWrite = classifyGithubWebRequest(
-      new Request('https://fast.example/gh/DXShelley/xget.git/git-receive-pack', {
+      new Request('https://git.dxshelley.fun/DXShelley/xget.git/git-receive-pack', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-git-receive-pack-request',
           'User-Agent': 'git/2.34.1'
         }
       }),
-      new URL('https://fast.example/gh/DXShelley/xget.git/git-receive-pack')
+      new URL('https://git.dxshelley.fun/DXShelley/xget.git/git-receive-pack')
     );
 
     expect(browserlessWrite).toEqual({
@@ -336,18 +365,25 @@ describe('GitHub Web routing', () => {
       upstreamUrl: 'https://github.com/DXShelley/xget/issues',
       forwardBody: true
     });
-    expect(gitWrite).toBeNull();
+    expect(gitWrite).toEqual({
+      kind: 'proxy',
+      upstreamUrl: 'https://github.com/DXShelley/xget.git/git-receive-pack',
+      forwardBody: true
+    });
   });
 
   it('proxies non-read methods for trusted GitHub assets', () => {
     expect(
       classifyGithubWebRequest(
-        new Request('https://fast.example/_github/proxy/api.github.com/_private/browser/stats', {
-          method: 'POST',
-          body: '{"event":"page_view"}',
-          headers: { 'Content-Type': 'application/json' }
-        }),
-        new URL('https://fast.example/_github/proxy/api.github.com/_private/browser/stats')
+        new Request(
+          'https://git.dxshelley.fun/_github/proxy/api.github.com/_private/browser/stats',
+          {
+            method: 'POST',
+            body: '{"event":"page_view"}',
+            headers: { 'Content-Type': 'application/json' }
+          }
+        ),
+        new URL('https://git.dxshelley.fun/_github/proxy/api.github.com/_private/browser/stats')
       )
     ).toEqual({
       kind: 'proxy',
@@ -357,10 +393,10 @@ describe('GitHub Web routing', () => {
 
     expect(
       classifyGithubWebRequest(
-        new Request('https://fast.example/_github/proxy/api.github.com/repos/DXShelley/xget', {
+        new Request('https://git.dxshelley.fun/_github/proxy/api.github.com/repos/DXShelley/xget', {
           method: 'OPTIONS'
         }),
-        new URL('https://fast.example/_github/proxy/api.github.com/repos/DXShelley/xget')
+        new URL('https://git.dxshelley.fun/_github/proxy/api.github.com/repos/DXShelley/xget')
       )
     ).toEqual({
       kind: 'proxy',
@@ -370,12 +406,12 @@ describe('GitHub Web routing', () => {
 
     expect(
       classifyGithubWebRequest(
-        new Request('https://fast.example/_github/proxy/collector.github.com/github/collect', {
+        new Request('https://git.dxshelley.fun/_github/proxy/collector.github.com/github/collect', {
           method: 'POST',
           body: '{"event":"page_view"}',
           headers: { 'Content-Type': 'application/json' }
         }),
-        new URL('https://fast.example/_github/proxy/collector.github.com/github/collect')
+        new URL('https://git.dxshelley.fun/_github/proxy/collector.github.com/github/collect')
       )
     ).toEqual({
       kind: 'proxy',
@@ -385,11 +421,11 @@ describe('GitHub Web routing', () => {
 
     expect(
       classifyGithubWebRequest(
-        new Request('https://fast.example/_github/proxy/collector.github.com/github/other', {
+        new Request('https://git.dxshelley.fun/_github/proxy/collector.github.com/github/other', {
           method: 'POST',
           body: '{}'
         }),
-        new URL('https://fast.example/_github/proxy/collector.github.com/github/other')
+        new URL('https://git.dxshelley.fun/_github/proxy/collector.github.com/github/other')
       )
     ).toEqual({
       kind: 'proxy',
@@ -419,7 +455,7 @@ describe('GitHub Web routing', () => {
   });
 
   it('forwards scoped credentials, CSRF context, and React metadata', () => {
-    const request = new Request('https://fast.example/xixu-me/Xget', {
+    const request = new Request('https://git.dxshelley.fun/xixu-me/Xget', {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -429,8 +465,8 @@ describe('GitHub Web routing', () => {
         'GitHub-Is-React': 'true',
         'GitHub-Verified-Fetch': 'true',
         'If-None-Match': 'W/"browser-cache-entry"',
-        Origin: 'https://fast.example',
-        Referer: 'https://fast.example/gh/Homebrew/brew',
+        Origin: 'https://git.dxshelley.fun',
+        Referer: 'https://git.dxshelley.fun/Homebrew/brew',
         'X-Fetch-Nonce': 'v2:nonce',
         'X-PJAX': 'true',
         'X-GitHub-Client-Version': 'version'
@@ -454,7 +490,7 @@ describe('GitHub Web routing', () => {
   it.each(['latest-commit', 'recently-touched-branches', 'branch-and-tag-count'])(
     'proxies GitHub repository metadata endpoint %s with HAR request context',
     endpoint => {
-      const url = new URL(`https://fast.example/Homebrew/brew/${endpoint}`);
+      const url = new URL(`https://git.dxshelley.fun/Homebrew/brew/${endpoint}`);
       const request = new Request(url, {
         headers: {
           Accept: 'application/json',
@@ -479,12 +515,12 @@ describe('GitHub Web routing', () => {
     const config = { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5, CACHE_DURATION: 1800 };
 
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/Homebrew/brew/latest-commit', {
+      request: new Request('https://git.dxshelley.fun/Homebrew/brew/latest-commit', {
         headers: {
           Accept: 'application/json',
           'GitHub-Is-React': 'true',
           'GitHub-Verified-Fetch': 'true',
-          Referer: 'https://fast.example/gh/Homebrew/brew',
+          Referer: 'https://git.dxshelley.fun/Homebrew/brew',
           'X-Fetch-Nonce': 'v2:nonce',
           'X-GitHub-Client-Version': 'version',
           'X-Requested-With': 'XMLHttpRequest'
@@ -518,7 +554,7 @@ describe('GitHub Web routing', () => {
       );
 
     const result = await fetchGithubWeb({
-      request: new Request('https://fast.example/xixu-me/Xget', {
+      request: new Request('https://git.dxshelley.fun/xixu-me/Xget', {
         headers: { Cookie: 'secret=1' }
       }),
       targetUrl: 'https://github.com/xixu-me/Xget',
@@ -537,14 +573,14 @@ describe('GitHub Web routing', () => {
     const config = { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5, CACHE_DURATION: 1800 };
 
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+      request: new Request('https://git.dxshelley.fun/go-gitea/gitea', {
         headers: { Accept: 'text/html' }
       }),
       targetUrl: 'https://github.com/go-gitea/gitea',
       config
     });
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+      request: new Request('https://git.dxshelley.fun/go-gitea/gitea', {
         headers: {
           Accept: 'application/json',
           'X-GitHub-Client-Version': 'version',
@@ -555,28 +591,28 @@ describe('GitHub Web routing', () => {
       config
     });
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+      request: new Request('https://git.dxshelley.fun/go-gitea/gitea', {
         headers: { Accept: 'text/html', 'X-PJAX': 'true' }
       }),
       targetUrl: 'https://github.com/go-gitea/gitea',
       config
     });
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+      request: new Request('https://git.dxshelley.fun/go-gitea/gitea', {
         headers: { Accept: 'text/html', 'X-PJAX': 'true', 'X-PJAX-Container': '#repo' }
       }),
       targetUrl: 'https://github.com/go-gitea/gitea',
       config
     });
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea', {
+      request: new Request('https://git.dxshelley.fun/go-gitea/gitea', {
         headers: { Accept: 'text/html', 'X-PJAX': 'true', 'X-PJAX-Container': '#issues' }
       }),
       targetUrl: 'https://github.com/go-gitea/gitea',
       config
     });
     await fetchGithubWeb({
-      request: new Request('https://fast.example/gh/go-gitea/gitea', { method: 'POST' }),
+      request: new Request('https://git.dxshelley.fun/go-gitea/gitea', { method: 'POST' }),
       targetUrl: 'https://github.com/go-gitea/gitea',
       config
     });
@@ -607,22 +643,22 @@ describe('GitHub Web routing', () => {
   });
 
   it('keeps GitHub read and write links local to the proxy', () => {
-    const origin = 'https://fast.example';
+    const origin = 'https://git.dxshelley.fun';
 
     expect(rewriteGithubUrl('https://github.com/xixu-me/Xget/blob/main/README.md', origin)).toBe(
-      `${origin}/gh/xixu-me/Xget/blob/main/README.md`
+      `${origin}/xixu-me/Xget/blob/main/README.md`
     );
     expect(rewriteGithubUrl('https://github.com/search?q=hermes&type=repositories', origin)).toBe(
-      `${origin}/gh/search?q=hermes&type=repositories`
+      `${origin}/search?q=hermes&type=repositories`
     );
     expect(rewriteGithubUrl('/go-gitea/gitea/security', origin)).toBe(
-      `${origin}/gh/go-gitea/gitea/security`
+      `${origin}/go-gitea/gitea/security`
     );
     expect(rewriteGithubUrl('/go-gitea/gitea/security/advisories/new', origin)).toBe(
-      `${origin}/gh/go-gitea/gitea/security/advisories/new`
+      `${origin}/go-gitea/gitea/security/advisories/new`
     );
-    expect(rewriteGithubUrl('/Homebrew/brew', origin)).toBe(`${origin}/gh/Homebrew/brew`);
-    expect(rewriteGithubUrl('/xixu-me/Xget/fork', origin)).toBe(`${origin}/gh/xixu-me/Xget/fork`);
+    expect(rewriteGithubUrl('/Homebrew/brew', origin)).toBe(`${origin}/Homebrew/brew`);
+    expect(rewriteGithubUrl('/xixu-me/Xget/fork', origin)).toBe(`${origin}/xixu-me/Xget/fork`);
     expect(
       rewriteGithubUrl('https://raw.githubusercontent.com/xixu-me/Xget/main/README.md', origin)
     ).toBe(`${origin}/_github/proxy/raw.githubusercontent.com/xixu-me/Xget/main/README.md`);
@@ -639,15 +675,15 @@ describe('GitHub Web routing', () => {
         avatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4',
         externalUrl: 'https://example.com/repository'
       }),
-      'https://fast.example'
+      'https://git.dxshelley.fun'
     );
 
     expect(JSON.parse(rewritten)).toEqual({
-      url: 'https://fast.example/gh/Homebrew/brew/commit/abc',
-      tagsPath: 'https://fast.example/gh/Homebrew/brew/tags',
+      url: 'https://git.dxshelley.fun/Homebrew/brew/commit/abc',
+      tagsPath: 'https://git.dxshelley.fun/Homebrew/brew/tags',
       shortMessageHtmlLink:
-        '<a href="https://fast.example/gh/Homebrew/brew/commit/abc" data-hovercard-url="https://fast.example/gh/Homebrew/brew/pull/1/hovercard">commit</a>',
-      avatarUrl: 'https://fast.example/_github/proxy/avatars.githubusercontent.com/u/1?v=4',
+        '<a href="https://git.dxshelley.fun/Homebrew/brew/commit/abc" data-hovercard-url="https://git.dxshelley.fun/Homebrew/brew/pull/1/hovercard">commit</a>',
+      avatarUrl: 'https://git.dxshelley.fun/_github/proxy/avatars.githubusercontent.com/u/1?v=4',
       externalUrl: 'https://example.com/repository'
     });
   });
@@ -666,21 +702,21 @@ describe('GitHub Web routing', () => {
       <a href="https://docs.example.com">external</a>
     `;
 
-    const rewritten = rewriteGithubHtml(html, 'https://fast.example');
+    const rewritten = rewriteGithubHtml(html, 'https://git.dxshelley.fun');
 
-    expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget"');
-    expect(rewritten).toContain('href="https://fast.example/gh/Homebrew/brew"');
-    expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget/issues/new"');
+    expect(rewritten).toContain('href="https://git.dxshelley.fun/xixu-me/Xget"');
+    expect(rewritten).toContain('href="https://git.dxshelley.fun/Homebrew/brew"');
+    expect(rewritten).toContain('href="https://git.dxshelley.fun/xixu-me/Xget/issues/new"');
     expect(rewritten).toContain('data-turbo-frame="repo-content-turbo-frame"');
     expect(rewritten).not.toContain(
-      'data-turbo-frame="https://fast.example/gh/repo-content-turbo-frame"'
+      'data-turbo-frame="https://git.dxshelley.fun/repo-content-turbo-frame"'
     );
     expect(rewritten).toContain(
-      'data-turbo-frame-src="https://fast.example/gh/go-gitea/gitea/branches"'
+      'data-turbo-frame-src="https://git.dxshelley.fun/go-gitea/gitea/branches"'
     );
     expect(rewritten).toContain('data-custom-src="/go-gitea/gitea/branches"');
     expect(rewritten).toContain(
-      'src="https://fast.example/_github/proxy/github.githubassets.com/assets/app.js"'
+      'src="https://git.dxshelley.fun/_github/proxy/github.githubassets.com/assets/app.js"'
     );
     expect(rewritten).toContain('href="https://docs.example.com"');
   });
@@ -697,15 +733,15 @@ describe('GitHub Web routing', () => {
       <a href="/xixu-me/Xget/issues/new">write</a>
     `;
 
-    const rewritten = rewriteGithubHtml(html, 'https://fast.example');
+    const rewritten = rewriteGithubHtml(html, 'https://git.dxshelley.fun');
     const embeddedData = rewritten.match(/<script[^>]*>([\s\S]*?)<\/script>/)?.[1] || '';
 
     expect(JSON.parse(embeddedData)).toEqual({
-      url: 'https://fast.example/gh/go-gitea/gitea/commits/main',
-      api: 'https://fast.example/gh/go-gitea/gitea/branches',
-      href: 'https://fast.example/gh/go-gitea/gitea/tags'
+      url: 'https://git.dxshelley.fun/go-gitea/gitea/commits/main',
+      api: 'https://git.dxshelley.fun/go-gitea/gitea/branches',
+      href: 'https://git.dxshelley.fun/go-gitea/gitea/tags'
     });
-    expect(rewritten).toContain('href="https://fast.example/gh/xixu-me/Xget/issues/new"');
+    expect(rewritten).toContain('href="https://git.dxshelley.fun/xixu-me/Xget/issues/new"');
   });
 
   it('rewrites GitHub React component URL data without changing route state paths', () => {
@@ -715,15 +751,15 @@ describe('GitHub Web routing', () => {
       </script>
     `;
 
-    const rewritten = rewriteGithubHtml(html, 'https://fast.example');
+    const rewritten = rewriteGithubHtml(html, 'https://git.dxshelley.fun');
     const embeddedData = rewritten.match(/<script[^>]*>([\s\S]*?)<\/script>/)?.[1] || '';
 
     expect(JSON.parse(embeddedData)).toEqual({
       payload: {
         codeButton: {
-          zipballUrl: 'https://fast.example/gh/Homebrew/brew/archive/refs/heads/main.zip',
-          setProtocolPath: 'https://fast.example/gh/users/set_protocol?protocol_type=clone',
-          newCodespacePath: 'https://fast.example/gh/codespaces/new?repo=1',
+          zipballUrl: 'https://git.dxshelley.fun/Homebrew/brew/archive/refs/heads/main.zip',
+          setProtocolPath: 'https://git.dxshelley.fun/users/set_protocol?protocol_type=clone',
+          newCodespacePath: 'https://git.dxshelley.fun/codespaces/new?repo=1',
           path: '/'
         }
       }
@@ -733,37 +769,40 @@ describe('GitHub Web routing', () => {
   it('rewrites static JavaScript URL prefixes without consuming template expressions', () => {
     const script = 'const url = `https://github.com/github/github/blob/master/${t[1]}#L${t[2]}`;';
 
-    expect(rewriteGithubText(script, 'https://fast.example')).toBe(
-      'const url = `https://fast.example/gh/github/github/blob/master/${t[1]}#L${t[2]}`;'
+    expect(rewriteGithubText(script, 'https://git.dxshelley.fun')).toBe(
+      'const url = `https://git.dxshelley.fun/github/github/blob/master/${t[1]}#L${t[2]}`;'
     );
   });
 
   it('rewrites redirect headers and embedded text URLs', () => {
-    expect(rewriteGithubLocation('/xixu-me/Xget/blob/main/README.md', 'https://fast.example')).toBe(
-      'https://fast.example/gh/xixu-me/Xget/blob/main/README.md'
-    );
-    expect(rewriteGithubLocation('https://github.com/login', 'https://fast.example')).toBe(
-      'https://fast.example/gh/login'
+    expect(
+      rewriteGithubLocation('/xixu-me/Xget/blob/main/README.md', 'https://git.dxshelley.fun')
+    ).toBe('https://git.dxshelley.fun/xixu-me/Xget/blob/main/README.md');
+    expect(rewriteGithubLocation('https://github.com/login', 'https://git.dxshelley.fun')).toBe(
+      'https://git.dxshelley.fun/login'
     );
     expect(
-      rewriteGithubText('"url":"https://api.github.com/repos/xixu-me/Xget"', 'https://fast.example')
-    ).toBe('"url":"https://fast.example/_github/proxy/api.github.com/repos/xixu-me/Xget"');
+      rewriteGithubText(
+        '"url":"https://api.github.com/repos/xixu-me/Xget"',
+        'https://git.dxshelley.fun'
+      )
+    ).toBe('"url":"https://git.dxshelley.fun/_github/proxy/api.github.com/repos/xixu-me/Xget"');
     expect(
       rewriteGithubText(
         'fetch("https://collector.github.com/github/collect")',
-        'https://fast.example'
+        'https://git.dxshelley.fun'
       )
-    ).toBe('fetch("https://fast.example/_github/proxy/collector.github.com/github/collect")');
+    ).toBe('fetch("https://git.dxshelley.fun/_github/proxy/collector.github.com/github/collect")');
   });
 
   it('rewrites CSP proxy origins as path prefixes without matching nested hostnames', () => {
     expect(
       rewriteGithubCsp(
         'style-src github.githubassets.com; connect-src uploads.github.com gist.github.com github.com raw.githubusercontent.com collector.github.com',
-        'https://fast.example'
+        'https://git.dxshelley.fun'
       )
     ).toBe(
-      'style-src https://fast.example/_github/proxy/github.githubassets.com/; connect-src https://fast.example/_github/proxy/uploads.github.com/ https://fast.example/_github/proxy/gist.github.com/ https://fast.example https://fast.example/_github/proxy/raw.githubusercontent.com/ https://fast.example/_github/proxy/collector.github.com/'
+      'style-src https://git.dxshelley.fun/_github/proxy/github.githubassets.com/; connect-src https://git.dxshelley.fun/_github/proxy/uploads.github.com/ https://git.dxshelley.fun/_github/proxy/gist.github.com/ https://git.dxshelley.fun https://git.dxshelley.fun/_github/proxy/raw.githubusercontent.com/ https://git.dxshelley.fun/_github/proxy/collector.github.com/'
     );
   });
 
@@ -779,23 +818,44 @@ describe('GitHub Web routing', () => {
           'Set-Cookie': 'logged_in=true'
         }
       }),
-      origin: 'https://fast.example'
+      origin: 'https://git.dxshelley.fun'
     });
 
-    expect(await response.text()).toContain('https://fast.example/gh/xixu-me/Xget');
+    expect(await response.text()).toContain('https://git.dxshelley.fun/xixu-me/Xget');
     expect(response.headers.get('Set-Cookie')).toContain('__xget_gh_github_com__logged_in=true');
     expect(response.headers.get('Set-Cookie')).not.toContain('Domain=github.com');
     expect(response.headers.get('Content-Encoding')).toBeNull();
     expect(response.headers.get('Content-Length')).toBeNull();
     expect(response.headers.get('Content-Security-Policy')).toContain(
-      'https://fast.example/_github/proxy/github.githubassets.com'
+      'https://git.dxshelley.fun/_github/proxy/github.githubassets.com'
     );
     expect(response.headers.get('Cache-Control')).toBe('no-store');
   });
 
+  it('copies every Set-Cookie value exposed through the Workers getAll API', async () => {
+    const upstreamHeaders = new Headers({ 'Content-Type': 'text/plain' });
+    Object.defineProperty(upstreamHeaders, 'getAll', {
+      value: name =>
+        name.toLowerCase() === 'set-cookie'
+          ? [
+              '_gh_sess=session; Domain=github.com; Path=/; HttpOnly; Secure',
+              'logged_in=yes; Domain=github.com; Path=/; Secure'
+            ]
+          : []
+    });
+    const response = await finalizeGithubWebResponse({
+      response: new Response('ok', { headers: upstreamHeaders }),
+      origin: 'https://git.dxshelley.fun'
+    });
+
+    const setCookie = response.headers.get('Set-Cookie') || '';
+    expect(setCookie).toContain('__xget_gh_github_com___gh_sess=session');
+    expect(setCookie).toContain('__xget_gh_github_com__logged_in=yes');
+  });
+
   it('rewrites GitHub WebSocket URLs through the mirror', () => {
-    expect(rewriteGithubLocation('wss://live.github.com/socket', 'https://fast.example')).toBe(
-      'wss://fast.example/_github/proxy/live.github.com/socket'
+    expect(rewriteGithubLocation('wss://live.github.com/socket', 'https://git.dxshelley.fun')).toBe(
+      'wss://git.dxshelley.fun/_github/proxy/live.github.com/socket'
     );
   });
 
@@ -807,11 +867,11 @@ describe('GitHub Web routing', () => {
         }),
         { status: 200, headers: { 'Content-Type': 'application/manifest+json; charset=utf-8' } }
       ),
-      origin: 'https://fast.example'
+      origin: 'https://git.dxshelley.fun'
     });
 
     expect(await response.text()).toContain(
-      'https://fast.example/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png'
+      'https://git.dxshelley.fun/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png'
     );
   });
 });

@@ -27,7 +27,9 @@
   "scripts": {
     "commitlint": "commitlint --last --verbose",
     "commitmsg": "commitlint --edit",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run deploy:fast && npm run deploy:git",
+    "deploy:fast": "wrangler deploy --env \"\"",
+    "deploy:git": "wrangler deploy --env git",
     "dev": "wrangler dev",
     "format": "prettier --write src/ test/ *.js *.json",
     "format:check": "prettier --check src/ test/ *.js *.json",

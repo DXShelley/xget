@@ -16,14 +16,14 @@ describe('npm URL Rewriting Fix', () => {
     // Simulate the regex replacement that happens in the code
     const rewrittenText = mockOriginalText.replace(
       /https:\/\/registry.npmjs.org\/([^/]+)/g,
-      'https://xget.xi-xu.me/npm/$1'
+      'https://fast.dxshelley.fun/npm/$1'
     );
 
     const rewrittenData = JSON.parse(rewrittenText);
 
     // Verify the URL is correctly rewritten
     expect(rewrittenData.versions['11.5.1'].dist.tarball).toBe(
-      'https://xget.xi-xu.me/npm/npm/-/npm-11.5.1.tgz'
+      'https://fast.dxshelley.fun/npm/npm/-/npm-11.5.1.tgz'
     );
   });
 
@@ -41,13 +41,13 @@ describe('npm URL Rewriting Fix', () => {
 
     const rewrittenText = mockOriginalText.replace(
       /https:\/\/registry.npmjs.org\/([^/]+)/g,
-      'https://xget.xi-xu.me/npm/$1'
+      'https://fast.dxshelley.fun/npm/$1'
     );
 
     const rewrittenData = JSON.parse(rewrittenText);
 
     expect(rewrittenData.versions['20.0.0'].dist.tarball).toBe(
-      'https://xget.xi-xu.me/npm/@types/node/-/node-20.0.0.tgz'
+      'https://fast.dxshelley.fun/npm/@types/node/-/node-20.0.0.tgz'
     );
   });
 
@@ -67,16 +67,16 @@ describe('npm URL Rewriting Fix', () => {
 
     const rewrittenText = mockOriginalText.replace(
       /https:\/\/registry.npmjs.org\/([^/]+)/g,
-      'https://xget.xi-xu.me/npm/$1'
+      'https://fast.dxshelley.fun/npm/$1'
     );
 
     const rewrittenData = JSON.parse(rewrittenText);
 
     expect(rewrittenData.dist.tarball).toBe(
-      'https://xget.xi-xu.me/npm/package1/-/package1-1.0.0.tgz'
+      'https://fast.dxshelley.fun/npm/package1/-/package1-1.0.0.tgz'
     );
     expect(rewrittenData.dependencies.dep.dist.tarball).toBe(
-      'https://xget.xi-xu.me/npm/dep/-/dep-2.0.0.tgz'
+      'https://fast.dxshelley.fun/npm/dep/-/dep-2.0.0.tgz'
     );
   });
 });

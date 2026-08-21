@@ -41,10 +41,7 @@ function normalizeGithubReferer(value, requestUrl, upstreamHost) {
       return null;
     }
 
-    const pathname = referer.pathname.startsWith('/gh/')
-      ? referer.pathname.slice('/gh'.length)
-      : referer.pathname;
-    return `https://${upstreamHost}${pathname}${referer.search}`;
+    return `https://${upstreamHost}${referer.pathname}${referer.search}`;
   } catch {
     return null;
   }

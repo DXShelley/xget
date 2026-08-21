@@ -13,19 +13,29 @@ describe('GitHub Web integration', () => {
     vi.restoreAllMocks();
   });
 
-  it('redirects the hermes shortcut to repository search without contacting an upstream', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  it('leaves Xget platform routes on fast.dxshelley.fun', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+
     const response = await worker.fetch(
-      new Request('https://fast.example/search?q=Hermes'),
+      new Request('https://fast.dxshelley.fun/npm/react'),
       {},
       executionContext
     );
 
-    expect(response.status).toBe(302);
-    expect(response.headers.get('Location')).toBe(
-      'https://fast.example/gh/search?q=hermes&type=repositories'
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://registry.npmjs.org/react');
+  });
+
+  it('proxies GitHub search without a mirror-only shortcut route', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('search'));
+    const response = await worker.fetch(
+      new Request('https://git.dxshelley.fun/search?q=Hermes'),
+      {},
+      executionContext
     );
-    expect(fetchSpy).not.toHaveBeenCalled();
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/search?q=Hermes');
   });
 
   it('proxies a public repository page and rewrites internal links', async () => {
@@ -40,7 +50,7 @@ describe('GitHub Web integration', () => {
     );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/gh/DXShelley/hermes', {
+      new Request('https://git.dxshelley.fun/DXShelley/hermes', {
         headers: { Accept: 'text/html', Cookie: 'must-not-forward=true' }
       }),
       {},
@@ -49,14 +59,14 @@ describe('GitHub Web integration', () => {
 
     expect(response.status).toBe(200);
     const body = await response.text();
-    expect(body).toContain('https://fast.example/gh/DXShelley/hermes');
+    expect(body).toContain('https://git.dxshelley.fun/DXShelley/hermes');
     expect(body).not.toContain('href="/DXShelley/hermes/fork"');
-    expect(body).toContain('https://fast.example/gh/DXShelley/hermes/fork');
+    expect(body).toContain('https://git.dxshelley.fun/DXShelley/hermes/fork');
     expect(body).toContain(
-      'data-turbo-frame-src="https://fast.example/gh/go-gitea/gitea/branches"'
+      'data-turbo-frame-src="https://git.dxshelley.fun/go-gitea/gitea/branches"'
     );
-    expect(body).toContain('"url":"https://fast.example/gh/go-gitea/gitea/commits/main"');
-    expect(body).toContain('"api":"https://fast.example/gh/go-gitea/gitea/tags"');
+    expect(body).toContain('"url":"https://git.dxshelley.fun/go-gitea/gitea/commits/main"');
+    expect(body).toContain('"api":"https://git.dxshelley.fun/go-gitea/gitea/tags"');
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/DXShelley/hermes');
     expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Cookie')).toBeNull();
   });
@@ -65,14 +75,14 @@ describe('GitHub Web integration', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
 
     await worker.fetch(
-      new Request('https://fast.example/gh/go-gitea/gitea', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea', {
         headers: { Accept: 'text/html' }
       }),
       {},
       executionContext
     );
     await worker.fetch(
-      new Request('https://fast.example/gh/go-gitea/gitea', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea', {
         headers: {
           Accept: 'application/json',
           'X-GitHub-Client-Version': 'version',
@@ -108,12 +118,12 @@ describe('GitHub Web integration', () => {
     );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/latest-commit', {
         headers: {
           Accept: 'application/json',
           'GitHub-Is-React': 'true',
           'GitHub-Verified-Fetch': 'true',
-          Referer: 'https://fast.example/gh/go-gitea/gitea',
+          Referer: 'https://git.dxshelley.fun/go-gitea/gitea',
           'X-Fetch-Nonce': 'v2:nonce',
           'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3',
           'X-Requested-With': 'XMLHttpRequest'
@@ -126,9 +136,9 @@ describe('GitHub Web integration', () => {
     expect(response.status).toBe(200);
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/go-gitea/gitea/latest-commit');
     const body = await response.json();
-    expect(body.url).toBe('https://fast.example/gh/go-gitea/gitea/commit/abc123');
+    expect(body.url).toBe('https://git.dxshelley.fun/go-gitea/gitea/commit/abc123');
     expect(body.shortMessageHtmlLink).toBe(
-      '<a href="https://fast.example/gh/go-gitea/gitea/commit/abc123" data-hovercard-url="https://fast.example/gh/go-gitea/gitea/pull/1/hovercard">Fix repository metadata</a>'
+      '<a href="https://git.dxshelley.fun/go-gitea/gitea/commit/abc123" data-hovercard-url="https://git.dxshelley.fun/go-gitea/gitea/pull/1/hovercard">Fix repository metadata</a>'
     );
     const upstreamHeaders = new Headers(fetchSpy.mock.calls[0][1]?.headers);
     expect(upstreamHeaders.get('GitHub-Is-React')).toBe('true');
@@ -150,7 +160,7 @@ describe('GitHub Web integration', () => {
     );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/go-gitea/gitea/latest-commit', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/latest-commit', {
         headers: {
           Accept: 'application/json',
           'X-GitHub-Client-Version': 'version',
@@ -175,7 +185,7 @@ describe('GitHub Web integration', () => {
     );
 
     await worker.fetch(
-      new Request('https://fast.example/gh/go-gitea/gitea/latest-commit', {
+      new Request('https://git.dxshelley.fun/go-gitea/gitea/latest-commit', {
         headers: {
           Accept: 'application/json',
           'X-GitHub-Client-Version': 'e85d7dcc80e884128537c9f6334006eb46b2d2c3'
@@ -200,7 +210,7 @@ describe('GitHub Web integration', () => {
       );
 
       const response = await worker.fetch(
-        new Request(`https://fast.example${path}`, {
+        new Request(`https://git.dxshelley.fun${path}`, {
           headers: {
             Accept: 'text/html',
             'Sec-Fetch-Mode': 'cors',
@@ -220,10 +230,10 @@ describe('GitHub Web integration', () => {
 
   it('proxies repository read pages with a CSP that allows local asset descendants', async () => {
     const paths = [
-      '/gh/xixu-me/xget',
-      '/gh/xixu-me/xget/tree/main/src',
-      '/gh/xixu-me/xget/blob/main/README.zh-Hans.md',
-      '/gh/go-gitea/gitea/security'
+      '/xixu-me/xget',
+      '/xixu-me/xget/tree/main/src',
+      '/xixu-me/xget/blob/main/README.zh-Hans.md',
+      '/go-gitea/gitea/security'
     ];
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
       async () =>
@@ -242,17 +252,17 @@ describe('GitHub Web integration', () => {
 
     for (const path of paths) {
       const response = await worker.fetch(
-        new Request(`https://fast.example${path}`, { headers: { Accept: 'text/html' } }),
+        new Request(`https://git.dxshelley.fun${path}`, { headers: { Accept: 'text/html' } }),
         {},
         executionContext
       );
 
       expect(response.status).toBe(200);
       expect(await response.text()).toContain(
-        'https://fast.example/_github/proxy/github.githubassets.com/assets/app.css'
+        'https://git.dxshelley.fun/_github/proxy/github.githubassets.com/assets/app.css'
       );
       expect(response.headers.get('Content-Security-Policy')).toContain(
-        'https://fast.example/_github/proxy/github.githubassets.com/'
+        'https://git.dxshelley.fun/_github/proxy/github.githubassets.com/'
       );
       expect(response.headers.get('Content-Security-Policy')).toContain('uploads.github.com');
     }
@@ -273,7 +283,7 @@ describe('GitHub Web integration', () => {
         new Response('upstream', { status: 200, headers: { 'Content-Type': 'text/plain' } })
       );
     const response = await worker.fetch(
-      new Request('https://fast.example/gh/DXShelley/hermes/issues', {
+      new Request('https://git.dxshelley.fun/DXShelley/hermes/issues', {
         method: 'POST',
         body: 'title=should-not-reach-proxy',
         headers: {
@@ -301,7 +311,7 @@ describe('GitHub Web integration', () => {
 
     const response = await worker.fetch(
       new Request(
-        'https://fast.example/_github/proxy/raw.githubusercontent.com/DXShelley/hermes/main/README.md'
+        'https://git.dxshelley.fun/_github/proxy/raw.githubusercontent.com/DXShelley/hermes/main/README.md'
       ),
       {},
       executionContext
@@ -322,7 +332,7 @@ describe('GitHub Web integration', () => {
       );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/_github/proxy/api.github.com/_private/browser/stats', {
+      new Request('https://git.dxshelley.fun/_github/proxy/api.github.com/_private/browser/stats', {
         method: 'POST',
         body: '{"event":"page_view"}',
         headers: { 'Content-Type': 'application/json' }
@@ -349,7 +359,7 @@ describe('GitHub Web integration', () => {
       );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/_github/proxy/collector.github.com/github/collect', {
+      new Request('https://git.dxshelley.fun/_github/proxy/collector.github.com/github/collect', {
         method: 'POST',
         body: '{"event":"page_view"}',
         headers: { 'Content-Type': 'application/json' }
@@ -379,9 +389,12 @@ describe('GitHub Web integration', () => {
       );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/_github/proxy/github.githubassets.com/assets/app.css', {
-        headers: { Accept: 'text/css,*/*;q=0.1' }
-      }),
+      new Request(
+        'https://git.dxshelley.fun/_github/proxy/github.githubassets.com/assets/app.css',
+        {
+          headers: { Accept: 'text/css,*/*;q=0.1' }
+        }
+      ),
       {},
       executionContext
     );
@@ -389,7 +402,7 @@ describe('GitHub Web integration', () => {
     expect(response.status).toBe(200);
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.githubassets.com/assets/app.css');
     expect(await response.text()).toContain(
-      'https://fast.example/_github/proxy/github.githubassets.com/assets/icon.svg'
+      'https://git.dxshelley.fun/_github/proxy/github.githubassets.com/assets/icon.svg'
     );
   });
 
@@ -405,7 +418,7 @@ describe('GitHub Web integration', () => {
     );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/gh/Homebrew/brew', {
+      new Request('https://git.dxshelley.fun/Homebrew/brew', {
         headers: { Accept: 'text/html' }
       }),
       {},
@@ -413,7 +426,7 @@ describe('GitHub Web integration', () => {
     );
 
     expect(await response.text()).toContain(
-      'href="https://fast.example/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png"'
+      'href="https://git.dxshelley.fun/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png"'
     );
   });
 
@@ -428,7 +441,7 @@ describe('GitHub Web integration', () => {
     );
 
     const response = await worker.fetch(
-      new Request('https://fast.example/gh/manifest.json', {
+      new Request('https://git.dxshelley.fun/manifest.json', {
         headers: { Accept: 'application/manifest+json', 'Sec-Fetch-Mode': 'cors' }
       }),
       {},
@@ -438,14 +451,14 @@ describe('GitHub Web integration', () => {
     expect(response.status).toBe(200);
     expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/manifest.json');
     expect(await response.text()).toContain(
-      'https://fast.example/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png'
+      'https://git.dxshelley.fun/_github/proxy/github.githubassets.com/assets/apple-touch-icon.png'
     );
   });
 
   it('applies the existing path safety policy before GitHub Web proxying', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const response = await worker.fetch(
-      new Request(`https://fast.example/gh/DXShelley/hermes/${'a'.repeat(2100)}`, {
+      new Request(`https://git.dxshelley.fun/DXShelley/hermes/${'a'.repeat(2100)}`, {
         headers: { Accept: 'text/html' }
       }),
       {},

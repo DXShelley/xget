@@ -68,7 +68,7 @@ Xget 已受邀入駐
 
 ## 🎯 快速開始
 
-**預部署實例：`xget.xi-xu.me`** - 僅適合評估與試用，正式環境或對可用性敏感的場景建議自行部署。
+**預部署實例：`fast.dxshelley.fun`** - 僅適合評估與試用，正式環境或對可用性敏感的場景建議自行部署。
 
 **URL 轉換器：**[**`xuc.xi-xu.me`**](https://xuc.xi-xu.me) - 一鍵轉換任意支援平台的 URL 為 Xget 的加速格式
 
@@ -248,47 +248,47 @@ classDiagram
 
 ## 📖 URL 轉換規則
 
-使用預部署實例 **`xget.xi-xu.me`**
+使用預部署實例 **`fast.dxshelley.fun`**
 或您自己部署的實例，只需簡單替換網域並新增平台前綴：
 
 ### 轉換格式
 
 | 平台             | 平台前綴    | 原始 URL 格式                                                       | 加速 URL 格式                                                                    |
 | ---------------- | ----------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| GitHub           | `gh`        | `https://github.com/...`                                            | `https://xget.xi-xu.me/gh/...`                                                   |
-| GitHub Gist      | `gist`      | `https://gist.github.com/...`                                       | `https://xget.xi-xu.me/gist/...`                                                 |
-| GitLab           | `gl`        | `https://gitlab.com/...`                                            | `https://xget.xi-xu.me/gl/...`                                                   |
-| Gitea            | `gitea`     | `https://gitea.com/...`                                             | `https://xget.xi-xu.me/gitea/...`                                                |
-| Codeberg         | `codeberg`  | `https://codeberg.org/...`                                          | `https://xget.xi-xu.me/codeberg/...`                                             |
-| SourceForge      | `sf`        | `https://sourceforge.net/...`                                       | `https://xget.xi-xu.me/sf/...`                                                   |
-| AOSP             | `aosp`      | `https://android.googlesource.com/...`                              | `https://xget.xi-xu.me/aosp/...`                                                 |
-| Hugging Face     | `hf`        | `https://huggingface.co/...`                                        | `https://xget.xi-xu.me/hf/...`                                                   |
-| Civitai          | `civitai`   | `https://civitai.com/...`                                           | `https://xget.xi-xu.me/civitai/...`                                              |
-| npm              | `npm`       | `https://registry.npmjs.org/...`                                    | `https://xget.xi-xu.me/npm/...`                                                  |
-| PyPI             | `pypi`      | `https://pypi.org/...`                                              | `https://xget.xi-xu.me/pypi/...`                                                 |
-| conda            | `conda`     | `https://repo.anaconda.com/...` 和 `https://conda.anaconda.org/...` | `https://xget.xi-xu.me/conda/...` 和 `https://xget.xi-xu.me/conda/community/...` |
-| Maven            | `maven`     | `https://repo1.maven.org/...`                                       | `https://xget.xi-xu.me/maven/...`                                                |
-| Apache           | `apache`    | `https://downloads.apache.org/...`                                  | `https://xget.xi-xu.me/apache/...`                                               |
-| Gradle           | `gradle`    | `https://plugins.gradle.org/...`                                    | `https://xget.xi-xu.me/gradle/...`                                               |
-| Homebrew         | `homebrew`  | `https://github.com/Homebrew/...`                                   | `https://xget.xi-xu.me/homebrew/...`                                             |
-| RubyGems         | `rubygems`  | `https://rubygems.org/...`                                          | `https://xget.xi-xu.me/rubygems/...`                                             |
-| CRAN             | `cran`      | `https://cran.r-project.org/...`                                    | `https://xget.xi-xu.me/cran/...`                                                 |
-| CPAN             | `cpan`      | `https://www.cpan.org/...`                                          | `https://xget.xi-xu.me/cpan/...`                                                 |
-| CTAN             | `ctan`      | `https://tug.ctan.org/...`                                          | `https://xget.xi-xu.me/ctan/...`                                                 |
-| Go 模組          | `golang`    | `https://proxy.golang.org/...`                                      | `https://xget.xi-xu.me/golang/...`                                               |
-| NuGet            | `nuget`     | `https://api.nuget.org/...`                                         | `https://xget.xi-xu.me/nuget/...`                                                |
-| Rust Crates      | `crates`    | `https://crates.io/...`                                             | `https://xget.xi-xu.me/crates/...`                                               |
-| Packagist        | `packagist` | `https://repo.packagist.org/...`                                    | `https://xget.xi-xu.me/packagist/...`                                            |
-| Flathub          | `flathub`   | `https://dl.flathub.org/...`                                        | `https://xget.xi-xu.me/flathub/...`                                              |
-| Debian           | `debian`    | `https://deb.debian.org/...`                                        | `https://xget.xi-xu.me/debian/...`                                               |
-| Ubuntu           | `ubuntu`    | `https://archive.ubuntu.com/...`                                    | `https://xget.xi-xu.me/ubuntu/...`                                               |
-| Fedora           | `fedora`    | `https://dl.fedoraproject.org/...`                                  | `https://xget.xi-xu.me/fedora/...`                                               |
-| Rocky Linux      | `rocky`     | `https://download.rockylinux.org/...`                               | `https://xget.xi-xu.me/rocky/...`                                                |
-| openSUSE         | `opensuse`  | `https://download.opensuse.org/...`                                 | `https://xget.xi-xu.me/opensuse/...`                                             |
-| Arch Linux       | `arch`      | `https://geo.mirror.pkgbuild.com/...`                               | `https://xget.xi-xu.me/arch/...`                                                 |
-| arXiv            | `arxiv`     | `https://arxiv.org/...`                                             | `https://xget.xi-xu.me/arxiv/...`                                                |
-| F-Droid          | `fdroid`    | `https://f-droid.org/...`                                           | `https://xget.xi-xu.me/fdroid/...`                                               |
-| Jenkins 外掛程式 | `jenkins`   | `https://updates.jenkins.io/...`                                    | `https://xget.xi-xu.me/jenkins/...`                                              |
+| GitHub           | `gh`        | `https://github.com/...`                                            | `https://git.dxshelley.fun/...`                                                   |
+| GitHub Gist      | `gist`      | `https://gist.github.com/...`                                       | `https://fast.dxshelley.fun/gist/...`                                                 |
+| GitLab           | `gl`        | `https://gitlab.com/...`                                            | `https://fast.dxshelley.fun/gl/...`                                                   |
+| Gitea            | `gitea`     | `https://gitea.com/...`                                             | `https://fast.dxshelley.fun/gitea/...`                                                |
+| Codeberg         | `codeberg`  | `https://codeberg.org/...`                                          | `https://fast.dxshelley.fun/codeberg/...`                                             |
+| SourceForge      | `sf`        | `https://sourceforge.net/...`                                       | `https://fast.dxshelley.fun/sf/...`                                                   |
+| AOSP             | `aosp`      | `https://android.googlesource.com/...`                              | `https://fast.dxshelley.fun/aosp/...`                                                 |
+| Hugging Face     | `hf`        | `https://huggingface.co/...`                                        | `https://fast.dxshelley.fun/hf/...`                                                   |
+| Civitai          | `civitai`   | `https://civitai.com/...`                                           | `https://fast.dxshelley.fun/civitai/...`                                              |
+| npm              | `npm`       | `https://registry.npmjs.org/...`                                    | `https://fast.dxshelley.fun/npm/...`                                                  |
+| PyPI             | `pypi`      | `https://pypi.org/...`                                              | `https://fast.dxshelley.fun/pypi/...`                                                 |
+| conda            | `conda`     | `https://repo.anaconda.com/...` 和 `https://conda.anaconda.org/...` | `https://fast.dxshelley.fun/conda/...` 和 `https://fast.dxshelley.fun/conda/community/...` |
+| Maven            | `maven`     | `https://repo1.maven.org/...`                                       | `https://fast.dxshelley.fun/maven/...`                                                |
+| Apache           | `apache`    | `https://downloads.apache.org/...`                                  | `https://fast.dxshelley.fun/apache/...`                                               |
+| Gradle           | `gradle`    | `https://plugins.gradle.org/...`                                    | `https://fast.dxshelley.fun/gradle/...`                                               |
+| Homebrew         | `homebrew`  | `https://github.com/Homebrew/...`                                   | `https://fast.dxshelley.fun/homebrew/...`                                             |
+| RubyGems         | `rubygems`  | `https://rubygems.org/...`                                          | `https://fast.dxshelley.fun/rubygems/...`                                             |
+| CRAN             | `cran`      | `https://cran.r-project.org/...`                                    | `https://fast.dxshelley.fun/cran/...`                                                 |
+| CPAN             | `cpan`      | `https://www.cpan.org/...`                                          | `https://fast.dxshelley.fun/cpan/...`                                                 |
+| CTAN             | `ctan`      | `https://tug.ctan.org/...`                                          | `https://fast.dxshelley.fun/ctan/...`                                                 |
+| Go 模組          | `golang`    | `https://proxy.golang.org/...`                                      | `https://fast.dxshelley.fun/golang/...`                                               |
+| NuGet            | `nuget`     | `https://api.nuget.org/...`                                         | `https://fast.dxshelley.fun/nuget/...`                                                |
+| Rust Crates      | `crates`    | `https://crates.io/...`                                             | `https://fast.dxshelley.fun/crates/...`                                               |
+| Packagist        | `packagist` | `https://repo.packagist.org/...`                                    | `https://fast.dxshelley.fun/packagist/...`                                            |
+| Flathub          | `flathub`   | `https://dl.flathub.org/...`                                        | `https://fast.dxshelley.fun/flathub/...`                                              |
+| Debian           | `debian`    | `https://deb.debian.org/...`                                        | `https://fast.dxshelley.fun/debian/...`                                               |
+| Ubuntu           | `ubuntu`    | `https://archive.ubuntu.com/...`                                    | `https://fast.dxshelley.fun/ubuntu/...`                                               |
+| Fedora           | `fedora`    | `https://dl.fedoraproject.org/...`                                  | `https://fast.dxshelley.fun/fedora/...`                                               |
+| Rocky Linux      | `rocky`     | `https://download.rockylinux.org/...`                               | `https://fast.dxshelley.fun/rocky/...`                                                |
+| openSUSE         | `opensuse`  | `https://download.opensuse.org/...`                                 | `https://fast.dxshelley.fun/opensuse/...`                                             |
+| Arch Linux       | `arch`      | `https://geo.mirror.pkgbuild.com/...`                               | `https://fast.dxshelley.fun/arch/...`                                                 |
+| arXiv            | `arxiv`     | `https://arxiv.org/...`                                             | `https://fast.dxshelley.fun/arxiv/...`                                                |
+| F-Droid          | `fdroid`    | `https://f-droid.org/...`                                           | `https://fast.dxshelley.fun/fdroid/...`                                               |
+| Jenkins 外掛程式 | `jenkins`   | `https://updates.jenkins.io/...`                                    | `https://fast.dxshelley.fun/jenkins/...`                                              |
 | 容器註冊表       | `cr`        | 見[容器註冊表](#容器註冊表)                                         | 見[容器註冊表](#容器註冊表)                                                      |
 | AI 推理供應商    | `ip`        | 見 [AI 推理供應商](#ai-推理供應商)                                  | 見 [AI 推理供應商](#ai-推理供應商)                                               |
 
@@ -301,7 +301,7 @@ classDiagram
 https://github.com/microsoft/vscode/archive/refs/heads/main.zip
 
 # 轉換後（新增 gh 前綴）
-https://xget.xi-xu.me/gh/microsoft/vscode/archive/refs/heads/main.zip
+https://git.dxshelley.fun/microsoft/vscode/archive/refs/heads/main.zip
 ```
 
 #### GitHub Gist
@@ -311,7 +311,7 @@ https://xget.xi-xu.me/gh/microsoft/vscode/archive/refs/heads/main.zip
 https://gist.github.com/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b8807172ee492d0da3a7e370b0fb88fc97b53e6/Free-ChatGPT-Paid-Plan.md
 
 # 轉換後（新增 gist 前綴）
-https://xget.xi-xu.me/gist/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b8807172ee492d0da3a7e370b0fb88fc97b53e6/Free-ChatGPT-Paid-Plan.md
+https://fast.dxshelley.fun/gist/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b8807172ee492d0da3a7e370b0fb88fc97b53e6/Free-ChatGPT-Paid-Plan.md
 ```
 
 #### GitLab
@@ -321,7 +321,7 @@ https://xget.xi-xu.me/gist/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b880717
 https://gitlab.com/gitlab-org/gitlab/-/archive/master/gitlab-master.zip
 
 # 轉換後（新增 gl 前綴）
-https://xget.xi-xu.me/gl/gitlab-org/gitlab/-/archive/master/gitlab-master.zip
+https://fast.dxshelley.fun/gl/gitlab-org/gitlab/-/archive/master/gitlab-master.zip
 ```
 
 #### Gitea
@@ -331,7 +331,7 @@ https://xget.xi-xu.me/gl/gitlab-org/gitlab/-/archive/master/gitlab-master.zip
 https://gitea.com/gitea/gitea/archive/master.zip
 
 # 轉換後（新增 gitea 前綴）
-https://xget.xi-xu.me/gitea/gitea/gitea/archive/master.zip
+https://fast.dxshelley.fun/gitea/gitea/gitea/archive/master.zip
 ```
 
 #### Codeberg
@@ -341,7 +341,7 @@ https://xget.xi-xu.me/gitea/gitea/gitea/archive/master.zip
 https://codeberg.org/forgejo/forgejo/archive/forgejo.zip
 
 # 轉換後（新增 codeberg 前綴）
-https://xget.xi-xu.me/codeberg/forgejo/forgejo/archive/forgejo.zip
+https://fast.dxshelley.fun/codeberg/forgejo/forgejo/archive/forgejo.zip
 ```
 
 #### SourceForge
@@ -351,7 +351,7 @@ https://xget.xi-xu.me/codeberg/forgejo/forgejo/archive/forgejo.zip
 https://sourceforge.net/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/download
 
 # 轉換後（新增 sf 前綴）
-https://xget.xi-xu.me/sf/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/download
+https://fast.dxshelley.fun/sf/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/download
 ```
 
 #### AOSP (Android 開源專案)
@@ -361,13 +361,13 @@ https://xget.xi-xu.me/sf/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/down
 https://android.googlesource.com/platform/frameworks/base
 
 # 轉換後（新增 aosp 前綴）
-https://xget.xi-xu.me/aosp/platform/frameworks/base
+https://fast.dxshelley.fun/aosp/platform/frameworks/base
 
 # AOSP 裝置樹原始 URL
 https://android.googlesource.com/device/google/pixel
 
 # 轉換後（新增 aosp 前綴）
-https://xget.xi-xu.me/aosp/device/google/pixel
+https://fast.dxshelley.fun/aosp/device/google/pixel
 ```
 
 #### Hugging Face
@@ -377,13 +377,13 @@ https://xget.xi-xu.me/aosp/device/google/pixel
 https://huggingface.co/microsoft/DialoGPT-medium/resolve/main/pytorch_model.bin
 
 # 轉換後（新增 hf 前綴）
-https://xget.xi-xu.me/hf/microsoft/DialoGPT-medium/resolve/main/pytorch_model.bin
+https://fast.dxshelley.fun/hf/microsoft/DialoGPT-medium/resolve/main/pytorch_model.bin
 
 # 資料集檔案原始 URL
 https://huggingface.co/datasets/rajpurkar/squad/resolve/main/plain_text/train-00000-of-00001.parquet
 
 # 轉換後（新增 hf 前綴）
-https://xget.xi-xu.me/hf/datasets/rajpurkar/squad/resolve/main/plain_text/train-00000-of-00001.parquet
+https://fast.dxshelley.fun/hf/datasets/rajpurkar/squad/resolve/main/plain_text/train-00000-of-00001.parquet
 ```
 
 #### Civitai
@@ -393,19 +393,19 @@ https://xget.xi-xu.me/hf/datasets/rajpurkar/squad/resolve/main/plain_text/train-
 https://civitai.com/api/download/models/128713
 
 # 轉換後（新增 civitai 前綴）
-https://xget.xi-xu.me/civitai/api/download/models/128713
+https://fast.dxshelley.fun/civitai/api/download/models/128713
 
 # 模型 API 原始 URL
 https://civitai.com/api/v1/models/7240
 
 # 轉換後（新增 civitai 前綴）
-https://xget.xi-xu.me/civitai/api/v1/models/7240
+https://fast.dxshelley.fun/civitai/api/v1/models/7240
 
 # 模型版本 API 原始 URL
 https://civitai.com/api/v1/model-versions/128713
 
 # 轉換後（新增 civitai 前綴）
-https://xget.xi-xu.me/civitai/api/v1/model-versions/128713
+https://fast.dxshelley.fun/civitai/api/v1/model-versions/128713
 ```
 
 #### npm
@@ -415,13 +415,13 @@ https://xget.xi-xu.me/civitai/api/v1/model-versions/128713
 https://registry.npmjs.org/react/-/react-18.2.0.tgz
 
 # 轉換後（新增 npm 前綴）
-https://xget.xi-xu.me/npm/react/-/react-18.2.0.tgz
+https://fast.dxshelley.fun/npm/react/-/react-18.2.0.tgz
 
 # 軟體包元資料原始 URL
 https://registry.npmjs.org/lodash
 
 # 轉換後（新增 npm 前綴）
-https://xget.xi-xu.me/npm/lodash
+https://fast.dxshelley.fun/npm/lodash
 ```
 
 #### PyPI
@@ -431,13 +431,13 @@ https://xget.xi-xu.me/npm/lodash
 https://pypi.org/packages/source/r/requests/requests-2.31.0.tar.gz
 
 # 轉換後（新增 pypi 前綴）
-https://xget.xi-xu.me/pypi/packages/source/r/requests/requests-2.31.0.tar.gz
+https://fast.dxshelley.fun/pypi/packages/source/r/requests/requests-2.31.0.tar.gz
 
 # Wheel 檔案原始 URL
 https://pypi.org/packages/py3/r/requests/requests-2.31.0-py3-none-any.whl
 
 # 轉換後（新增 pypi 前綴）
-https://xget.xi-xu.me/pypi/packages/py3/r/requests/requests-2.31.0-py3-none-any.whl
+https://fast.dxshelley.fun/pypi/packages/py3/r/requests/requests-2.31.0-py3-none-any.whl
 ```
 
 #### conda
@@ -447,13 +447,13 @@ https://xget.xi-xu.me/pypi/packages/py3/r/requests/requests-2.31.0-py3-none-any.
 https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.24.3-py311h08b1b3b_1.conda
 
 # 轉換後（新增 conda 前綴）
-https://xget.xi-xu.me/conda/pkgs/main/linux-64/numpy-1.24.3-py311h08b1b3b_1.conda
+https://fast.dxshelley.fun/conda/pkgs/main/linux-64/numpy-1.24.3-py311h08b1b3b_1.conda
 
 # 社群頻道元資料原始 URL
 https://conda.anaconda.org/conda-forge/linux-64/repodata.json
 
 # 轉換後（新增 conda/community 前綴）
-https://xget.xi-xu.me/conda/community/conda-forge/linux-64/repodata.json
+https://fast.dxshelley.fun/conda/community/conda-forge/linux-64/repodata.json
 ```
 
 #### Maven
@@ -463,13 +463,13 @@ https://xget.xi-xu.me/conda/community/conda-forge/linux-64/repodata.json
 https://repo1.maven.org/maven2/org/springframework/spring-core/5.3.21/spring-core-5.3.21.jar
 
 # 轉換後（新增 maven 前綴）
-https://xget.xi-xu.me/maven/maven2/org/springframework/spring-core/5.3.21/spring-core-5.3.21.jar
+https://fast.dxshelley.fun/maven/maven2/org/springframework/spring-core/5.3.21/spring-core-5.3.21.jar
 
 # Maven 元資料原始 URL
 https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/maven-metadata.xml
 
 # 轉換後（新增 maven 前綴）
-https://xget.xi-xu.me/maven/maven2/org/apache/commons/commons-lang3/maven-metadata.xml
+https://fast.dxshelley.fun/maven/maven2/org/apache/commons/commons-lang3/maven-metadata.xml
 ```
 
 #### Apache 軟體下載
@@ -479,19 +479,19 @@ https://xget.xi-xu.me/maven/maven2/org/apache/commons/commons-lang3/maven-metada
 https://downloads.apache.org/kafka/3.6.1/kafka_2.13-3.6.1.tgz
 
 # 轉換後（新增 apache 前綴）
-https://xget.xi-xu.me/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz
+https://fast.dxshelley.fun/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz
 
 # Apache Maven 下載原始 URL
 https://downloads.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz
 
 # 轉換後（新增 apache 前綴）
-https://xget.xi-xu.me/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz
+https://fast.dxshelley.fun/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz
 
 # Apache Spark 下載原始 URL
 https://downloads.apache.org/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
 
 # 轉換後（新增 apache 前綴）
-https://xget.xi-xu.me/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
+https://fast.dxshelley.fun/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
 ```
 
 #### Gradle
@@ -501,13 +501,13 @@ https://xget.xi-xu.me/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
 https://plugins.gradle.org/m2/org/gradle/gradle-hello-world-plugin/0.2/gradle-hello-world-plugin-0.2.jar
 
 # 轉換後（新增 gradle 前綴）
-https://xget.xi-xu.me/gradle/m2/org/gradle/gradle-hello-world-plugin/0.2/gradle-hello-world-plugin-0.2.jar
+https://fast.dxshelley.fun/gradle/m2/org/gradle/gradle-hello-world-plugin/0.2/gradle-hello-world-plugin-0.2.jar
 
 # Gradle 外掛程式元資料原始 URL
 https://plugins.gradle.org/m2/com/github/ben-manes/gradle-versions-plugin/0.51.0/gradle-versions-plugin-0.51.0.module
 
 # 轉換後（新增 gradle 前綴）
-https://xget.xi-xu.me/gradle/m2/com/github/ben-manes/gradle-versions-plugin/0.51.0/gradle-versions-plugin-0.51.0.module
+https://fast.dxshelley.fun/gradle/m2/com/github/ben-manes/gradle-versions-plugin/0.51.0/gradle-versions-plugin-0.51.0.module
 ```
 
 #### Homebrew
@@ -517,19 +517,19 @@ https://xget.xi-xu.me/gradle/m2/com/github/ben-manes/gradle-versions-plugin/0.51
 https://github.com/Homebrew/homebrew-core/raw/HEAD/Formula/g/git.rb
 
 # 轉換後（新增 homebrew 前綴）
-https://xget.xi-xu.me/homebrew/homebrew-core/raw/HEAD/Formula/g/git.rb
+https://fast.dxshelley.fun/homebrew/homebrew-core/raw/HEAD/Formula/g/git.rb
 
 # Homebrew API 原始 URL
 https://formulae.brew.sh/api/formula/git.json
 
 # 轉換後（新增 homebrew/api 前綴）
-https://xget.xi-xu.me/homebrew/api/formula/git.json
+https://fast.dxshelley.fun/homebrew/api/formula/git.json
 
 # Homebrew Bottles 原始 URL
 https://ghcr.io/v2/homebrew/core/git/manifests/2.39.0
 
 # 轉換後（新增 homebrew/bottles 前綴）
-https://xget.xi-xu.me/homebrew/bottles/v2/homebrew/core/git/manifests/2.39.0
+https://fast.dxshelley.fun/homebrew/bottles/v2/homebrew/core/git/manifests/2.39.0
 ```
 
 #### RubyGems
@@ -539,13 +539,13 @@ https://xget.xi-xu.me/homebrew/bottles/v2/homebrew/core/git/manifests/2.39.0
 https://rubygems.org/gems/rails-7.0.4.gem
 
 # 轉換後（新增 rubygems 前綴）
-https://xget.xi-xu.me/rubygems/gems/rails-7.0.4.gem
+https://fast.dxshelley.fun/rubygems/gems/rails-7.0.4.gem
 
 # RubyGems API 原始 URL
 https://rubygems.org/api/v1/gems/nokogiri.json
 
 # 轉換後（新增 rubygems 前綴）
-https://xget.xi-xu.me/rubygems/api/v1/gems/nokogiri.json
+https://fast.dxshelley.fun/rubygems/api/v1/gems/nokogiri.json
 ```
 
 #### CRAN
@@ -555,13 +555,13 @@ https://xget.xi-xu.me/rubygems/api/v1/gems/nokogiri.json
 https://cran.r-project.org/src/contrib/ggplot2_3.5.2.tar.gz
 
 # 轉換後（新增 cran 前綴）
-https://xget.xi-xu.me/cran/src/contrib/ggplot2_3.5.2.tar.gz
+https://fast.dxshelley.fun/cran/src/contrib/ggplot2_3.5.2.tar.gz
 
 # CRAN 軟體包元資料原始 URL
 https://cran.r-project.org/web/packages/dplyr/DESCRIPTION
 
 # 轉換後（新增 cran 前綴）
-https://xget.xi-xu.me/cran/web/packages/dplyr/DESCRIPTION
+https://fast.dxshelley.fun/cran/web/packages/dplyr/DESCRIPTION
 ```
 
 #### CPAN (Perl 軟體包管理)
@@ -571,13 +571,13 @@ https://xget.xi-xu.me/cran/web/packages/dplyr/DESCRIPTION
 https://www.cpan.org/modules/by-module/DBI/DBI-1.643.tar.gz
 
 # 轉換後（新增 cpan 前綴）
-https://xget.xi-xu.me/cpan/modules/by-module/DBI/DBI-1.643.tar.gz
+https://fast.dxshelley.fun/cpan/modules/by-module/DBI/DBI-1.643.tar.gz
 
 # CPAN 作者軟體包原始 URL
 https://www.cpan.org/authors/id/T/TI/TIMB/DBI-1.643.tar.gz
 
 # 轉換後（新增 cpan 前綴）
-https://xget.xi-xu.me/cpan/authors/id/T/TI/TIMB/DBI-1.643.tar.gz
+https://fast.dxshelley.fun/cpan/authors/id/T/TI/TIMB/DBI-1.643.tar.gz
 ```
 
 #### CTAN (TeX/LaTeX 軟體包管理)
@@ -587,13 +587,13 @@ https://xget.xi-xu.me/cpan/authors/id/T/TI/TIMB/DBI-1.643.tar.gz
 https://tug.ctan.org/tex-archive/macros/latex/contrib/beamer.zip
 
 # 轉換後（新增 ctan 前綴）
-https://xget.xi-xu.me/ctan/tex-archive/macros/latex/contrib/beamer.zip
+https://fast.dxshelley.fun/ctan/tex-archive/macros/latex/contrib/beamer.zip
 
 # CTAN 字體檔案原始 URL
 https://tug.ctan.org/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10.pk
 
 # 轉換後（新增 ctan 前綴）
-https://xget.xi-xu.me/ctan/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10.pk
+https://fast.dxshelley.fun/ctan/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10.pk
 ```
 
 #### Go 模組
@@ -603,13 +603,13 @@ https://xget.xi-xu.me/ctan/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10
 https://proxy.golang.org/github.com/gin-gonic/gin/@v/v1.9.1.zip
 
 # 轉換後（新增 golang 前綴）
-https://xget.xi-xu.me/golang/github.com/gin-gonic/gin/@v/v1.9.1.zip
+https://fast.dxshelley.fun/golang/github.com/gin-gonic/gin/@v/v1.9.1.zip
 
 # Go 模組資訊原始 URL
 https://proxy.golang.org/github.com/gorilla/mux/@v/list
 
 # 轉換後（新增 golang 前綴）
-https://xget.xi-xu.me/golang/github.com/gorilla/mux/@v/list
+https://fast.dxshelley.fun/golang/github.com/gorilla/mux/@v/list
 ```
 
 #### NuGet
@@ -619,13 +619,13 @@ https://xget.xi-xu.me/golang/github.com/gorilla/mux/@v/list
 https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg
 
 # 轉換後（新增 nuget 前綴）
-https://xget.xi-xu.me/nuget/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg
+https://fast.dxshelley.fun/nuget/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg
 
 # NuGet 軟體包元資料原始 URL
 https://api.nuget.org/v3/registration5-semver1/microsoft.aspnetcore.app/index.json
 
 # 轉換後（新增 nuget 前綴）
-https://xget.xi-xu.me/nuget/v3/registration5-semver1/microsoft.aspnetcore.app/index.json
+https://fast.dxshelley.fun/nuget/v3/registration5-semver1/microsoft.aspnetcore.app/index.json
 ```
 
 #### Rust Crates
@@ -635,19 +635,19 @@ https://xget.xi-xu.me/nuget/v3/registration5-semver1/microsoft.aspnetcore.app/in
 https://crates.io/api/v1/crates/serde/1.0.0/download
 
 # 轉換後（新增 crates 前綴）
-https://xget.xi-xu.me/crates/serde/1.0.0/download
+https://fast.dxshelley.fun/crates/serde/1.0.0/download
 
 # Crate 元資料原始 URL
 https://crates.io/api/v1/crates/serde
 
 # 轉換後（新增 crates 前綴）
-https://xget.xi-xu.me/crates/serde
+https://fast.dxshelley.fun/crates/serde
 
 # Crate 搜尋原始 URL
 https://crates.io/api/v1/crates?q=serde
 
 # 轉換後（新增 crates 前綴）
-https://xget.xi-xu.me/crates/?q=serde
+https://fast.dxshelley.fun/crates/?q=serde
 ```
 
 #### Packagist
@@ -657,13 +657,13 @@ https://xget.xi-xu.me/crates/?q=serde
 https://repo.packagist.org/p2/symfony/console.json
 
 # 轉換後（新增 packagist 前綴）
-https://xget.xi-xu.me/packagist/p2/symfony/console.json
+https://fast.dxshelley.fun/packagist/p2/symfony/console.json
 
 # Packagist 軟體包清單原始 URL
 https://repo.packagist.org/packages/list.json
 
 # 轉換後（新增 packagist 前綴）
-https://xget.xi-xu.me/packagist/packages/list.json
+https://fast.dxshelley.fun/packagist/packages/list.json
 ```
 
 #### Flathub
@@ -673,13 +673,13 @@ https://xget.xi-xu.me/packagist/packages/list.json
 https://dl.flathub.org/repo/summary
 
 # 轉換後（新增 flathub 前綴）
-https://xget.xi-xu.me/flathub/repo/summary
+https://fast.dxshelley.fun/flathub/repo/summary
 
 # Flathub 應用程式引用原始 URL
 https://dl.flathub.org/repo/appstream/org.gnome.gedit.flatpakref
 
 # 轉換後（新增 flathub 前綴）
-https://xget.xi-xu.me/flathub/repo/appstream/org.gnome.gedit.flatpakref
+https://fast.dxshelley.fun/flathub/repo/appstream/org.gnome.gedit.flatpakref
 ```
 
 #### Linux 發行版
@@ -689,37 +689,37 @@ https://xget.xi-xu.me/flathub/repo/appstream/org.gnome.gedit.flatpakref
 https://deb.debian.org/debian/pool/main/c/curl/curl_7.88.1-10+deb12u4_amd64.deb
 
 # 轉換後（新增 debian 前綴）
-https://xget.xi-xu.me/debian/debian/pool/main/c/curl/curl_7.88.1-10+deb12u4_amd64.deb
+https://fast.dxshelley.fun/debian/debian/pool/main/c/curl/curl_7.88.1-10+deb12u4_amd64.deb
 
 # Ubuntu 軟體包原始 URL
 https://archive.ubuntu.com/ubuntu/pool/main/g/git/git_2.34.1-1ubuntu1.9_amd64.deb
 
 # 轉換後（新增 ubuntu 前綴）
-https://xget.xi-xu.me/ubuntu/ubuntu/pool/main/g/git/git_2.34.1-1ubuntu1.9_amd64.deb
+https://fast.dxshelley.fun/ubuntu/ubuntu/pool/main/g/git/git_2.34.1-1ubuntu1.9_amd64.deb
 
 # Fedora 軟體包原始 URL
 https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Everything/x86_64/os/Packages/n/nginx-1.24.0-1.fc39.x86_64.rpm
 
 # 轉換後（新增 fedora 前綴）
-https://xget.xi-xu.me/fedora/pub/fedora/linux/releases/39/Everything/x86_64/os/Packages/n/nginx-1.24.0-1.fc39.x86_64.rpm
+https://fast.dxshelley.fun/fedora/pub/fedora/linux/releases/39/Everything/x86_64/os/Packages/n/nginx-1.24.0-1.fc39.x86_64.rpm
 
 # Rocky Linux 軟體包原始 URL
 https://download.rockylinux.org/pub/rocky/9/BaseOS/x86_64/os/Packages/b/bash-5.1.8-6.el9.x86_64.rpm
 
 # 轉換後（新增 rocky 前綴）
-https://xget.xi-xu.me/rocky/pub/rocky/9/BaseOS/x86_64/os/Packages/b/bash-5.1.8-6.el9.x86_64.rpm
+https://fast.dxshelley.fun/rocky/pub/rocky/9/BaseOS/x86_64/os/Packages/b/bash-5.1.8-6.el9.x86_64.rpm
 
 # openSUSE 軟體包原始 URL
 https://download.opensuse.org/distribution/leap/15.5/repo/oss/x86_64/vim-9.0.1572-150500.20.8.1.x86_64.rpm
 
 # 轉換後（新增 opensuse 前綴）
-https://xget.xi-xu.me/opensuse/distribution/leap/15.5/repo/oss/x86_64/vim-9.0.1572-150500.20.8.1.x86_64.rpm
+https://fast.dxshelley.fun/opensuse/distribution/leap/15.5/repo/oss/x86_64/vim-9.0.1572-150500.20.8.1.x86_64.rpm
 
 # Arch Linux 軟體包原始 URL
 https://geo.mirror.pkgbuild.com/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zst
 
 # 轉換後（新增 arch 前綴）
-https://xget.xi-xu.me/arch/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zst
+https://fast.dxshelley.fun/arch/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zst
 ```
 
 #### arXiv
@@ -729,13 +729,13 @@ https://xget.xi-xu.me/arch/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zs
 https://arxiv.org/pdf/2301.07041.pdf
 
 # 轉換後（新增 arxiv 前綴）
-https://xget.xi-xu.me/arxiv/pdf/2301.07041.pdf
+https://fast.dxshelley.fun/arxiv/pdf/2301.07041.pdf
 
 # arXiv 論文原始碼原始 URL
 https://arxiv.org/e-print/2301.07041
 
 # 轉換後（新增 arxiv 前綴）
-https://xget.xi-xu.me/arxiv/e-print/2301.07041
+https://fast.dxshelley.fun/arxiv/e-print/2301.07041
 ```
 
 #### F-Droid
@@ -745,13 +745,13 @@ https://xget.xi-xu.me/arxiv/e-print/2301.07041
 https://f-droid.org/repo/org.fdroid.fdroid_1016050.apk
 
 # 轉換後（新增 fdroid 前綴）
-https://xget.xi-xu.me/fdroid/repo/org.fdroid.fdroid_1016050.apk
+https://fast.dxshelley.fun/fdroid/repo/org.fdroid.fdroid_1016050.apk
 
 # F-Droid 應用程式元資料原始 URL
 https://f-droid.org/api/v1/packages/org.fdroid.fdroid
 
 # 轉換後（新增 fdroid 前綴）
-https://xget.xi-xu.me/fdroid/api/v1/packages/org.fdroid.fdroid
+https://fast.dxshelley.fun/fdroid/api/v1/packages/org.fdroid.fdroid
 ```
 
 #### Jenkins 外掛程式
@@ -761,13 +761,13 @@ https://xget.xi-xu.me/fdroid/api/v1/packages/org.fdroid.fdroid
 https://updates.jenkins.io/update-center.json
 
 # 轉換後（新增 jenkins 前綴）
-https://xget.xi-xu.me/jenkins/update-center.json
+https://fast.dxshelley.fun/jenkins/update-center.json
 
 # Jenkins 外掛程式下載原始 URL
 https://updates.jenkins.io/download/plugins/maven-plugin/3.27/maven-plugin.hpi
 
 # 轉換後（新增 jenkins 前綴）
-https://xget.xi-xu.me/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi
+https://fast.dxshelley.fun/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi
 ```
 
 #### 容器註冊表
@@ -776,48 +776,48 @@ Xget 支援多個容器註冊表，使用 `cr/[容器註冊表前綴]` 格式：
 
 | 容器註冊表           | 容器註冊表前綴 | 原始 URL 格式                               | 加速 URL 格式                               |
 | -------------------- | -------------- | ------------------------------------------- | ------------------------------------------- |
-| Docker Hub           | `docker`       | `https://registry-1.docker.io/...`          | `https://xget.xi-xu.me/cr/docker/...`       |
-| Quay.io              | `quay`         | `https://quay.io/...`                       | `https://xget.xi-xu.me/cr/quay/...`         |
-| Google 容器註冊表    | `gcr`          | `https://gcr.io/...`                        | `https://xget.xi-xu.me/cr/gcr/...`          |
-| Microsoft 容器註冊表 | `mcr`          | `https://mcr.microsoft.com/...`             | `https://xget.xi-xu.me/cr/mcr/...`          |
-| Amazon Public ECR    | `ecr`          | `https://public.ecr.aws/...`                | `https://xget.xi-xu.me/cr/ecr/...`          |
-| GitHub 容器註冊表    | `ghcr`         | `https://ghcr.io/...`                       | `https://xget.xi-xu.me/cr/ghcr/...`         |
-| GitLab 容器註冊表    | `gitlab`       | `https://registry.gitlab.com/...`           | `https://xget.xi-xu.me/cr/gitlab/...`       |
-| Red Hat 註冊表       | `redhat`       | `https://registry.redhat.io/...`            | `https://xget.xi-xu.me/cr/redhat/...`       |
-| Oracle 容器註冊表    | `oracle`       | `https://container-registry.oracle.com/...` | `https://xget.xi-xu.me/cr/oracle/...`       |
-| Cloudsmith           | `cloudsmith`   | `https://docker.cloudsmith.io/...`          | `https://xget.xi-xu.me/cr/cloudsmith/...`   |
-| DigitalOcean 註冊表  | `digitalocean` | `https://registry.digitalocean.com/...`     | `https://xget.xi-xu.me/cr/digitalocean/...` |
-| VMware 註冊表        | `vmware`       | `https://projects.registry.vmware.com/...`  | `https://xget.xi-xu.me/cr/vmware/...`       |
-| Kubernetes 註冊表    | `k8s`          | `https://registry.k8s.io/...`               | `https://xget.xi-xu.me/cr/k8s/...`          |
-| Heroku 註冊表        | `heroku`       | `https://registry.heroku.com/...`           | `https://xget.xi-xu.me/cr/heroku/...`       |
-| SUSE 註冊表          | `suse`         | `https://registry.suse.com/...`             | `https://xget.xi-xu.me/cr/suse/...`         |
-| openSUSE 註冊表      | `opensuse`     | `https://registry.opensuse.org/...`         | `https://xget.xi-xu.me/cr/opensuse/...`     |
-| Gitpod 註冊表        | `gitpod`       | `https://registry.gitpod.io/...`            | `https://xget.xi-xu.me/cr/gitpod/...`       |
+| Docker Hub           | `docker`       | `https://registry-1.docker.io/...`          | `https://fast.dxshelley.fun/cr/docker/...`       |
+| Quay.io              | `quay`         | `https://quay.io/...`                       | `https://fast.dxshelley.fun/cr/quay/...`         |
+| Google 容器註冊表    | `gcr`          | `https://gcr.io/...`                        | `https://fast.dxshelley.fun/cr/gcr/...`          |
+| Microsoft 容器註冊表 | `mcr`          | `https://mcr.microsoft.com/...`             | `https://fast.dxshelley.fun/cr/mcr/...`          |
+| Amazon Public ECR    | `ecr`          | `https://public.ecr.aws/...`                | `https://fast.dxshelley.fun/cr/ecr/...`          |
+| GitHub 容器註冊表    | `ghcr`         | `https://ghcr.io/...`                       | `https://fast.dxshelley.fun/cr/ghcr/...`         |
+| GitLab 容器註冊表    | `gitlab`       | `https://registry.gitlab.com/...`           | `https://fast.dxshelley.fun/cr/gitlab/...`       |
+| Red Hat 註冊表       | `redhat`       | `https://registry.redhat.io/...`            | `https://fast.dxshelley.fun/cr/redhat/...`       |
+| Oracle 容器註冊表    | `oracle`       | `https://container-registry.oracle.com/...` | `https://fast.dxshelley.fun/cr/oracle/...`       |
+| Cloudsmith           | `cloudsmith`   | `https://docker.cloudsmith.io/...`          | `https://fast.dxshelley.fun/cr/cloudsmith/...`   |
+| DigitalOcean 註冊表  | `digitalocean` | `https://registry.digitalocean.com/...`     | `https://fast.dxshelley.fun/cr/digitalocean/...` |
+| VMware 註冊表        | `vmware`       | `https://projects.registry.vmware.com/...`  | `https://fast.dxshelley.fun/cr/vmware/...`       |
+| Kubernetes 註冊表    | `k8s`          | `https://registry.k8s.io/...`               | `https://fast.dxshelley.fun/cr/k8s/...`          |
+| Heroku 註冊表        | `heroku`       | `https://registry.heroku.com/...`           | `https://fast.dxshelley.fun/cr/heroku/...`       |
+| SUSE 註冊表          | `suse`         | `https://registry.suse.com/...`             | `https://fast.dxshelley.fun/cr/suse/...`         |
+| openSUSE 註冊表      | `opensuse`     | `https://registry.opensuse.org/...`         | `https://fast.dxshelley.fun/cr/opensuse/...`     |
+| Gitpod 註冊表        | `gitpod`       | `https://registry.gitpod.io/...`            | `https://fast.dxshelley.fun/cr/gitpod/...`       |
 
 ```url
 # Docker Hub 原始 URL（官方鏡像）
 https://registry-1.docker.io/v2/library/nginx/manifests/latest
 
 # 轉換後（新增 cr/docker 前綴）
-https://xget.xi-xu.me/cr/docker/v2/nginx/manifests/latest
+https://fast.dxshelley.fun/cr/docker/v2/nginx/manifests/latest
 
 # Docker Hub 原始 URL（使用者鏡像）
 https://registry-1.docker.io/v2/nginxinc/nginx-unprivileged/manifests/latest
 
 # 轉換後（新增 cr/docker 前綴）
-https://xget.xi-xu.me/cr/docker/v2/nginxinc/nginx-unprivileged/manifests/latest
+https://fast.dxshelley.fun/cr/docker/v2/nginxinc/nginx-unprivileged/manifests/latest
 
 # GitHub 容器註冊表原始 URL
 https://ghcr.io/v2/nginxinc/nginx-unprivileged/manifests/latest
 
 # 轉換後（新增 cr/ghcr 前綴）
-https://xget.xi-xu.me/cr/ghcr/v2/nginxinc/nginx-unprivileged/manifests/latest
+https://fast.dxshelley.fun/cr/ghcr/v2/nginxinc/nginx-unprivileged/manifests/latest
 
 # Google 容器註冊表原始 URL
 https://gcr.io/v2/distroless/base/manifests/latest
 
 # 轉換後（新增 cr/gcr 前綴）
-https://xget.xi-xu.me/cr/gcr/v2/distroless/base/manifests/latest
+https://fast.dxshelley.fun/cr/gcr/v2/distroless/base/manifests/latest
 ```
 
 應用場景見[容器鏡像加速](#容器鏡像加速)。
@@ -828,59 +828,59 @@ Xget 支援眾多主流 AI 推理供應商的 API 加速，使用 `ip/[AI 推理
 
 | AI 推理供應商  | AI 推理供應商前綴 | 原始 URL 格式                                   | 加速 URL 格式                                |
 | -------------- | ----------------- | ----------------------------------------------- | -------------------------------------------- |
-| OpenAI         | `openai`          | `https://api.openai.com/...`                    | `https://xget.xi-xu.me/ip/openai/...`        |
-| Anthropic      | `anthropic`       | `https://api.anthropic.com/...`                 | `https://xget.xi-xu.me/ip/anthropic/...`     |
-| Gemini         | `gemini`          | `https://generativelanguage.googleapis.com/...` | `https://xget.xi-xu.me/ip/gemini/...`        |
-| Vertex AI      | `vertexai`        | `https://aiplatform.googleapis.com/...`         | `https://xget.xi-xu.me/ip/vertexai/...`      |
-| Cohere         | `cohere`          | `https://api.cohere.ai/...`                     | `https://xget.xi-xu.me/ip/cohere/...`        |
-| Mistral AI     | `mistralai`       | `https://api.mistral.ai/...`                    | `https://xget.xi-xu.me/ip/mistralai/...`     |
-| xAI            | `xai`             | `https://api.x.ai/...`                          | `https://xget.xi-xu.me/ip/xai/...`           |
-| GitHub Models  | `githubmodels`    | `https://models.github.ai/...`                  | `https://xget.xi-xu.me/ip/githubmodels/...`  |
-| NVIDIA API     | `nvidiaapi`       | `https://integrate.api.nvidia.com/...`          | `https://xget.xi-xu.me/ip/nvidiaapi/...`     |
-| Perplexity     | `perplexity`      | `https://api.perplexity.ai/...`                 | `https://xget.xi-xu.me/ip/perplexity/...`    |
-| Groq           | `groq`            | `https://api.groq.com/...`                      | `https://xget.xi-xu.me/ip/groq/...`          |
-| Cerebras       | `cerebras`        | `https://api.cerebras.ai/...`                   | `https://xget.xi-xu.me/ip/cerebras/...`      |
-| SambaNova      | `sambanova`       | `https://api.sambanova.ai/...`                  | `https://xget.xi-xu.me/ip/sambanova/...`     |
-| Siray          | `siray`           | `https://api.siray.ai/...`                      | `https://xget.xi-xu.me/ip/siray/...`         |
-| HF Inference   | `huggingface`     | `https://router.huggingface.co/...`             | `https://xget.xi-xu.me/ip/huggingface/...`   |
-| Together       | `together`        | `https://api.together.xyz/...`                  | `https://xget.xi-xu.me/ip/together/...`      |
-| Replicate      | `replicate`       | `https://api.replicate.com/...`                 | `https://xget.xi-xu.me/ip/replicate/...`     |
-| Fireworks      | `fireworks`       | `https://api.fireworks.ai/...`                  | `https://xget.xi-xu.me/ip/fireworks/...`     |
-| Nebius         | `nebius`          | `https://api.studio.nebius.ai/...`              | `https://xget.xi-xu.me/ip/nebius/...`        |
-| Jina           | `jina`            | `https://api.jina.ai/...`                       | `https://xget.xi-xu.me/ip/jina/...`          |
-| Voyage AI      | `voyageai`        | `https://api.voyageai.com/...`                  | `https://xget.xi-xu.me/ip/voyageai/...`      |
-| Fal AI         | `falai`           | `https://fal.run/...`                           | `https://xget.xi-xu.me/ip/falai/...`         |
-| Novita         | `novita`          | `https://api.novita.ai/...`                     | `https://xget.xi-xu.me/ip/novita/...`        |
-| Burncloud      | `burncloud`       | `https://ai.burncloud.com/...`                  | `https://xget.xi-xu.me/ip/burncloud/...`     |
-| OpenRouter     | `openrouter`      | `https://openrouter.ai/...`                     | `https://xget.xi-xu.me/ip/openrouter/...`    |
-| Poe            | `poe`             | `https://api.poe.com/...`                       | `https://xget.xi-xu.me/ip/poe/...`           |
-| Featherless AI | `featherlessai`   | `https://api.featherless.ai/...`                | `https://xget.xi-xu.me/ip/featherlessai/...` |
-| Hyperbolic     | `hyperbolic`      | `https://api.hyperbolic.xyz/...`                | `https://xget.xi-xu.me/ip/hyperbolic/...`    |
+| OpenAI         | `openai`          | `https://api.openai.com/...`                    | `https://fast.dxshelley.fun/ip/openai/...`        |
+| Anthropic      | `anthropic`       | `https://api.anthropic.com/...`                 | `https://fast.dxshelley.fun/ip/anthropic/...`     |
+| Gemini         | `gemini`          | `https://generativelanguage.googleapis.com/...` | `https://fast.dxshelley.fun/ip/gemini/...`        |
+| Vertex AI      | `vertexai`        | `https://aiplatform.googleapis.com/...`         | `https://fast.dxshelley.fun/ip/vertexai/...`      |
+| Cohere         | `cohere`          | `https://api.cohere.ai/...`                     | `https://fast.dxshelley.fun/ip/cohere/...`        |
+| Mistral AI     | `mistralai`       | `https://api.mistral.ai/...`                    | `https://fast.dxshelley.fun/ip/mistralai/...`     |
+| xAI            | `xai`             | `https://api.x.ai/...`                          | `https://fast.dxshelley.fun/ip/xai/...`           |
+| GitHub Models  | `githubmodels`    | `https://models.github.ai/...`                  | `https://fast.dxshelley.fun/ip/githubmodels/...`  |
+| NVIDIA API     | `nvidiaapi`       | `https://integrate.api.nvidia.com/...`          | `https://fast.dxshelley.fun/ip/nvidiaapi/...`     |
+| Perplexity     | `perplexity`      | `https://api.perplexity.ai/...`                 | `https://fast.dxshelley.fun/ip/perplexity/...`    |
+| Groq           | `groq`            | `https://api.groq.com/...`                      | `https://fast.dxshelley.fun/ip/groq/...`          |
+| Cerebras       | `cerebras`        | `https://api.cerebras.ai/...`                   | `https://fast.dxshelley.fun/ip/cerebras/...`      |
+| SambaNova      | `sambanova`       | `https://api.sambanova.ai/...`                  | `https://fast.dxshelley.fun/ip/sambanova/...`     |
+| Siray          | `siray`           | `https://api.siray.ai/...`                      | `https://fast.dxshelley.fun/ip/siray/...`         |
+| HF Inference   | `huggingface`     | `https://router.huggingface.co/...`             | `https://fast.dxshelley.fun/ip/huggingface/...`   |
+| Together       | `together`        | `https://api.together.xyz/...`                  | `https://fast.dxshelley.fun/ip/together/...`      |
+| Replicate      | `replicate`       | `https://api.replicate.com/...`                 | `https://fast.dxshelley.fun/ip/replicate/...`     |
+| Fireworks      | `fireworks`       | `https://api.fireworks.ai/...`                  | `https://fast.dxshelley.fun/ip/fireworks/...`     |
+| Nebius         | `nebius`          | `https://api.studio.nebius.ai/...`              | `https://fast.dxshelley.fun/ip/nebius/...`        |
+| Jina           | `jina`            | `https://api.jina.ai/...`                       | `https://fast.dxshelley.fun/ip/jina/...`          |
+| Voyage AI      | `voyageai`        | `https://api.voyageai.com/...`                  | `https://fast.dxshelley.fun/ip/voyageai/...`      |
+| Fal AI         | `falai`           | `https://fal.run/...`                           | `https://fast.dxshelley.fun/ip/falai/...`         |
+| Novita         | `novita`          | `https://api.novita.ai/...`                     | `https://fast.dxshelley.fun/ip/novita/...`        |
+| Burncloud      | `burncloud`       | `https://ai.burncloud.com/...`                  | `https://fast.dxshelley.fun/ip/burncloud/...`     |
+| OpenRouter     | `openrouter`      | `https://openrouter.ai/...`                     | `https://fast.dxshelley.fun/ip/openrouter/...`    |
+| Poe            | `poe`             | `https://api.poe.com/...`                       | `https://fast.dxshelley.fun/ip/poe/...`           |
+| Featherless AI | `featherlessai`   | `https://api.featherless.ai/...`                | `https://fast.dxshelley.fun/ip/featherlessai/...` |
+| Hyperbolic     | `hyperbolic`      | `https://api.hyperbolic.xyz/...`                | `https://fast.dxshelley.fun/ip/hyperbolic/...`    |
 
 ```url
 # OpenAI API 原始 URL
 https://api.openai.com/v1/chat/completions
 
 # 轉換後（新增 ip/openai 前綴）
-https://xget.xi-xu.me/ip/openai/v1/chat/completions
+https://fast.dxshelley.fun/ip/openai/v1/chat/completions
 
 # Claude API 原始 URL
 https://api.anthropic.com/v1/messages
 
 # 轉換後（新增 ip/anthropic 前綴）
-https://xget.xi-xu.me/ip/anthropic/v1/messages
+https://fast.dxshelley.fun/ip/anthropic/v1/messages
 
 # Gemini API 原始 URL
 https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
 
 # 轉換後（新增 ip/gemini 前綴）
-https://xget.xi-xu.me/ip/gemini/v1beta/models/gemini-2.5-flash:generateContent
+https://fast.dxshelley.fun/ip/gemini/v1beta/models/gemini-2.5-flash:generateContent
 
 # HF Inference API 原始 URL
 https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3
 
 # 轉換後（新增 ip/huggingface 前綴）
-https://xget.xi-xu.me/ip/huggingface/hf-inference/models/openai/whisper-large-v3
+https://fast.dxshelley.fun/ip/huggingface/hf-inference/models/openai/whisper-large-v3
 ```
 
 應用場景見 [AI 推理 API 加速](#ai-推理-api-加速)。
@@ -893,49 +893,49 @@ https://xget.xi-xu.me/ip/huggingface/hf-inference/models/openai/whisper-large-v3
 
 ```bash
 # 克隆儲存庫
-git clone https://xget.xi-xu.me/gh/microsoft/vscode.git
+git clone https://git.dxshelley.fun/microsoft/vscode.git
 
 # 克隆指定分支
-git clone -b main https://xget.xi-xu.me/gh/facebook/react.git
+git clone -b main https://git.dxshelley.fun/facebook/react.git
 
 # 淺克隆（僅最新提交）
-git clone --depth 1 https://xget.xi-xu.me/gh/torvalds/linux.git
+git clone --depth 1 https://git.dxshelley.fun/torvalds/linux.git
 
 # 克隆 GitLab 儲存庫
-git clone https://xget.xi-xu.me/gl/gitlab-org/gitlab.git
+git clone https://fast.dxshelley.fun/gl/gitlab-org/gitlab.git
 
 # 克隆 Gitea 儲存庫
-git clone https://xget.xi-xu.me/gitea/gitea/gitea.git
+git clone https://fast.dxshelley.fun/gitea/gitea/gitea.git
 
 # 克隆 Codeberg 儲存庫
-git clone https://xget.xi-xu.me/codeberg/forgejo/forgejo.git
+git clone https://fast.dxshelley.fun/codeberg/forgejo/forgejo.git
 
 # 克隆 SourceForge 儲存庫
-git clone https://xget.xi-xu.me/sf/projects/mingw-w64/code.git
+git clone https://fast.dxshelley.fun/sf/projects/mingw-w64/code.git
 
 # 克隆 AOSP 儲存庫
-git clone https://xget.xi-xu.me/aosp/platform/frameworks/base.git
+git clone https://fast.dxshelley.fun/aosp/platform/frameworks/base.git
 
 # 新增遠端儲存庫
-git remote add upstream https://xget.xi-xu.me/gh/[擁有者]/[儲存庫].git
+git remote add upstream https://git.dxshelley.fun/[擁有者]/[儲存庫].git
 
 # 拉取更新
-git pull https://xget.xi-xu.me/gh/microsoft/vscode.git main
+git pull https://git.dxshelley.fun/microsoft/vscode.git main
 
 # 子模組遞迴克隆
-git clone --recursive https://xget.xi-xu.me/gh/[使用者名稱]/[帶子模組的儲存庫].git
+git clone --recursive https://git.dxshelley.fun/[使用者名稱]/[帶子模組的儲存庫].git
 ```
 
 #### Git 全域加速配置
 
 ```bash
 # 為特定網域配置 Git 使用 Xget
-git config --global url."https://xget.xi-xu.me/gh/".insteadOf "https://github.com/"
-git config --global url."https://xget.xi-xu.me/gl/".insteadOf "https://gitlab.com/"
-git config --global url."https://xget.xi-xu.me/gitea/".insteadOf "https://gitea.com/"
-git config --global url."https://xget.xi-xu.me/codeberg/".insteadOf "https://codeberg.org/"
-git config --global url."https://xget.xi-xu.me/sf/".insteadOf "https://sourceforge.net/"
-git config --global url."https://xget.xi-xu.me/aosp/".insteadOf "https://android.googlesource.com/"
+git config --global url."https://git.dxshelley.fun/".insteadOf "https://github.com/"
+git config --global url."https://fast.dxshelley.fun/gl/".insteadOf "https://gitlab.com/"
+git config --global url."https://fast.dxshelley.fun/gitea/".insteadOf "https://gitea.com/"
+git config --global url."https://fast.dxshelley.fun/codeberg/".insteadOf "https://codeberg.org/"
+git config --global url."https://fast.dxshelley.fun/sf/".insteadOf "https://sourceforge.net/"
+git config --global url."https://fast.dxshelley.fun/aosp/".insteadOf "https://android.googlesource.com/"
 
 # 驗證配置
 git config --global --get-regexp url
@@ -953,10 +953,10 @@ git clone https://android.googlesource.com/platform/frameworks/base.git  # 自�
 
 ```bash
 # 下載單一檔案
-wget https://xget.xi-xu.me/gh/microsoft/vscode/archive/refs/heads/main.zip
+wget https://git.dxshelley.fun/microsoft/vscode/archive/refs/heads/main.zip
 
 # 斷點續傳
-wget -c https://xget.xi-xu.me/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin
+wget -c https://fast.dxshelley.fun/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin
 
 # 批次下載
 wget -i urls.txt  # urls.txt 包含多個 Xget URL
@@ -966,23 +966,23 @@ wget -i urls.txt  # urls.txt 包含多個 Xget URL
 
 ```bash
 # 基本下載
-curl -L -O https://xget.xi-xu.me/gh/golang/go/archive/refs/tags/go1.22.0.tar.gz
+curl -L -O https://git.dxshelley.fun/golang/go/archive/refs/tags/go1.22.0.tar.gz
 
 # 顯示進度列
-curl -L --progress-bar -o model.bin https://xget.xi-xu.me/hf/openai/whisper-large-v3/resolve/main/pytorch_model.bin
+curl -L --progress-bar -o model.bin https://fast.dxshelley.fun/hf/openai/whisper-large-v3/resolve/main/pytorch_model.bin
 
 # 設定 User-Agent
-curl -L -H "User-Agent: MyApp/1.0" https://xget.xi-xu.me/gl/gitlab-org/gitlab-runner/-/archive/main/gitlab-runner-main.zip
+curl -L -H "User-Agent: MyApp/1.0" https://fast.dxshelley.fun/gl/gitlab-org/gitlab-runner/-/archive/main/gitlab-runner-main.zip
 ```
 
 #### aria2 多執行緒下載
 
 ```bash
 # 多執行緒下載大檔案
-aria2c -x 16 -s 16 https://xget.xi-xu.me/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin
+aria2c -x 16 -s 16 https://fast.dxshelley.fun/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin
 
 # 斷點續傳
-aria2c -c https://xget.xi-xu.me/gh/microsoft/vscode/archive/refs/heads/main.zip
+aria2c -c https://git.dxshelley.fun/microsoft/vscode/archive/refs/heads/main.zip
 
 # 批次下載設定檔
 aria2c -i download-list.txt  # 包含多個 Xget URL 的檔案
@@ -995,7 +995,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # 設定環境變數，讓 transformers 庫自動使用 Xget 鏡像
-os.environ['HF_ENDPOINT'] = 'https://xget.xi-xu.me/hf'
+os.environ['HF_ENDPOINT'] = 'https://fast.dxshelley.fun/hf'
 
 # 定義模型名稱
 model_name = 'microsoft/DialoGPT-medium'
@@ -1022,7 +1022,7 @@ print("模型和分詞器載入成功！")
 import requests
 
 # 設定 API 基礎 URL 使用 Xget
-base_url = "https://xget.xi-xu.me/civitai"
+base_url = "https://fast.dxshelley.fun/civitai"
 
 # 獲取模型資訊
 def get_model_info(model_id):
@@ -1064,10 +1064,10 @@ if model_info['modelVersions']:
 
 ```bash
 # 臨時使用 Xget 鏡像
-npm install --registry https://xget.xi-xu.me/npm/
+npm install --registry https://fast.dxshelley.fun/npm/
 
 # 全域配置 npm 鏡像
-npm config set registry https://xget.xi-xu.me/npm/
+npm config set registry https://fast.dxshelley.fun/npm/
 
 # 驗證配置
 npm config get registry
@@ -1078,7 +1078,7 @@ npm config get registry
 ```toml
 # bunfig.toml（專案級）或 ~/.bunfig.toml（全域）
 [install]
-registry = "https://xget.xi-xu.me/npm/"
+registry = "https://fast.dxshelley.fun/npm/"
 ```
 
 ```bash
@@ -1086,7 +1086,7 @@ registry = "https://xget.xi-xu.me/npm/"
 bun install
 
 # Bun 也支援 .npmrc，可直接重用既有的 npm 鏡像配置
-echo "registry=https://xget.xi-xu.me/npm/" > .npmrc
+echo "registry=https://fast.dxshelley.fun/npm/" > .npmrc
 bun install
 ```
 
@@ -1094,7 +1094,7 @@ bun install
 
 ```bash
 # 在 .npmrc 檔案中配置專案級鏡像（npm / Bun 可重用）
-echo "registry=https://xget.xi-xu.me/npm/" > .npmrc
+echo "registry=https://fast.dxshelley.fun/npm/" > .npmrc
 
 # 使用 npm 安裝依賴項
 npm install
@@ -1109,11 +1109,11 @@ bun install
 
 ```bash
 # 臨時使用 Xget 鏡像
-pip install requests -i https://xget.xi-xu.me/pypi/simple/
+pip install requests -i https://fast.dxshelley.fun/pypi/simple/
 
 # 全域配置 pip 鏡像
-pip config set global.index-url https://xget.xi-xu.me/pypi/simple/
-pip config set global.trusted-host xget.xi-xu.me
+pip config set global.index-url https://fast.dxshelley.fun/pypi/simple/
+pip config set global.trusted-host fast.dxshelley.fun
 
 # 驗證配置
 pip config list
@@ -1126,15 +1126,15 @@ pip config list
 mkdir -p ~/.pip
 cat > ~/.pip/pip.conf << EOF
 [global]
-index-url = https://xget.xi-xu.me/pypi/simple/
-trusted-host = xget.xi-xu.me
+index-url = https://fast.dxshelley.fun/pypi/simple/
+trusted-host = fast.dxshelley.fun
 EOF
 
 # 或在專案根目錄建立 pip.conf
 cat > pip.conf << EOF
 [global]
-index-url = https://xget.xi-xu.me/pypi/simple/
-trusted-host = xget.xi-xu.me
+index-url = https://fast.dxshelley.fun/pypi/simple/
+trusted-host = fast.dxshelley.fun
 EOF
 
 # 使用設定檔安裝
@@ -1145,8 +1145,8 @@ pip install -r requirements.txt --config-file pip.conf
 
 ```txt
 # requirements.txt
---index-url https://xget.xi-xu.me/pypi/simple/
---trusted-host xget.xi-xu.me
+--index-url https://fast.dxshelley.fun/pypi/simple/
+--trusted-host fast.dxshelley.fun
 
 requests>=2.25.0
 numpy>=1.21.0
@@ -1160,16 +1160,16 @@ matplotlib>=3.4.0
 
 ```bash
 # 配置預設頻道鏡像
-conda config --add default_channels https://xget.xi-xu.me/conda/pkgs/msys2
-conda config --add default_channels https://xget.xi-xu.me/conda/pkgs/r
-conda config --add default_channels https://xget.xi-xu.me/conda/pkgs/main
+conda config --add default_channels https://fast.dxshelley.fun/conda/pkgs/msys2
+conda config --add default_channels https://fast.dxshelley.fun/conda/pkgs/r
+conda config --add default_channels https://fast.dxshelley.fun/conda/pkgs/main
 
 # 配置所有社群頻道鏡像（推薦）
-conda config --set channel_alias https://xget.xi-xu.me/conda/community
+conda config --set channel_alias https://fast.dxshelley.fun/conda/community
 
 # 或配置特定社群頻道
-conda config --add channels https://xget.xi-xu.me/conda/community/conda-forge
-conda config --add channels https://xget.xi-xu.me/conda/community/bioconda
+conda config --add channels https://fast.dxshelley.fun/conda/community/conda-forge
+conda config --add channels https://fast.dxshelley.fun/conda/community/bioconda
 
 # 設定頻道優先順序
 conda config --set channel_priority strict
@@ -1184,10 +1184,10 @@ conda config --show
 
 ```yaml
 default_channels:
-  - https://xget.xi-xu.me/conda/pkgs/main
-  - https://xget.xi-xu.me/conda/pkgs/r
-  - https://xget.xi-xu.me/conda/pkgs/msys2
-channel_alias: https://xget.xi-xu.me/conda/community
+  - https://fast.dxshelley.fun/conda/pkgs/main
+  - https://fast.dxshelley.fun/conda/pkgs/r
+  - https://fast.dxshelley.fun/conda/pkgs/msys2
+channel_alias: https://fast.dxshelley.fun/conda/community
 channel_priority: strict
 show_channel_urls: true
 ```
@@ -1200,10 +1200,10 @@ show_channel_urls: true
 # environment.yml
 name: myproject
 channels:
-  - https://xget.xi-xu.me/conda/pkgs/main
-  - https://xget.xi-xu.me/conda/pkgs/r
-  - https://xget.xi-xu.me/conda/community/bioconda
-  - https://xget.xi-xu.me/conda/community/conda-forge
+  - https://fast.dxshelley.fun/conda/pkgs/main
+  - https://fast.dxshelley.fun/conda/pkgs/r
+  - https://fast.dxshelley.fun/conda/community/bioconda
+  - https://fast.dxshelley.fun/conda/community/conda-forge
 dependencies:
   - python=3.11
   - numpy>=1.24.0
@@ -1235,7 +1235,7 @@ conda env update -f environment.yml
       <id>xget-maven-central</id>
       <mirrorOf>central</mirrorOf>
       <name>Xget Maven Central Mirror</name>
-      <url>https://xget.xi-xu.me/maven/maven2</url>
+      <url>https://fast.dxshelley.fun/maven/maven2</url>
     </mirror>
   </mirrors>
 </settings>
@@ -1250,7 +1250,7 @@ conda env update -f environment.yml
     <repository>
       <id>xget-maven-central</id>
       <name>Xget Maven Central</name>
-      <url>https://xget.xi-xu.me/maven/maven2</url>
+      <url>https://fast.dxshelley.fun/maven/maven2</url>
     </repository>
   </repositories>
 
@@ -1258,7 +1258,7 @@ conda env update -f environment.yml
     <pluginRepository>
       <id>xget-maven-central</id>
       <name>Xget Maven Central</name>
-      <url>https://xget.xi-xu.me/maven/maven2</url>
+      <url>https://fast.dxshelley.fun/maven/maven2</url>
     </pluginRepository>
   </pluginRepositories>
 </project>
@@ -1266,11 +1266,11 @@ conda env update -f environment.yml
 
 ```bash
 # 使用命令列指定鏡像
-mvn clean install -Dmaven.repo.remote=https://xget.xi-xu.me/maven/maven2
+mvn clean install -Dmaven.repo.remote=https://fast.dxshelley.fun/maven/maven2
 
 # 下載特定依賴項
 mvn dependency:get -Dartifact=org.springframework:spring-core:5.3.21 \
-  -DremoteRepositories=https://xget.xi-xu.me/maven/maven2
+  -DremoteRepositories=https://fast.dxshelley.fun/maven/maven2
 ```
 
 ### Apache 軟體下載加速
@@ -1279,36 +1279,36 @@ mvn dependency:get -Dartifact=org.springframework:spring-core:5.3.21 \
 
 ```bash
 # 下載 Apache Kafka
-wget https://xget.xi-xu.me/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz
+wget https://fast.dxshelley.fun/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz
 
 # 下載 Apache Maven
-curl -L -O https://xget.xi-xu.me/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz
+curl -L -O https://fast.dxshelley.fun/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz
 
 # 下載 Apache Spark
-aria2c https://xget.xi-xu.me/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
+aria2c https://fast.dxshelley.fun/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
 
 # 下載 Apache Hadoop
-wget https://xget.xi-xu.me/apache/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
+wget https://fast.dxshelley.fun/apache/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
 
 # 下載 Apache Flink
-curl -L -O https://xget.xi-xu.me/apache/flink/flink-1.18.1/flink-1.18.1-bin-scala_2.12.tgz
+curl -L -O https://fast.dxshelley.fun/apache/flink/flink-1.18.1/flink-1.18.1-bin-scala_2.12.tgz
 ```
 
 #### 常用 Apache 軟體下載
 
 ```bash
 # 大數據相關
-wget https://xget.xi-xu.me/apache/hive/hive-3.1.3/apache-hive-3.1.3-bin.tar.gz
-wget https://xget.xi-xu.me/apache/hbase/2.5.7/hbase-2.5.7-bin.tar.gz
-wget https://xget.xi-xu.me/apache/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz
+wget https://fast.dxshelley.fun/apache/hive/hive-3.1.3/apache-hive-3.1.3-bin.tar.gz
+wget https://fast.dxshelley.fun/apache/hbase/2.5.7/hbase-2.5.7-bin.tar.gz
+wget https://fast.dxshelley.fun/apache/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz
 
 # Web 伺服器
-wget https://xget.xi-xu.me/apache/httpd/httpd-2.4.59.tar.gz
-wget https://xget.xi-xu.me/apache/tomcat/tomcat-10/v10.1.19/bin/apache-tomcat-10.1.19.tar.gz
+wget https://fast.dxshelley.fun/apache/httpd/httpd-2.4.59.tar.gz
+wget https://fast.dxshelley.fun/apache/tomcat/tomcat-10/v10.1.19/bin/apache-tomcat-10.1.19.tar.gz
 
 # 開發工具
-wget https://xget.xi-xu.me/apache/ant/1.10.14/apache-ant-1.10.14-bin.tar.gz
-wget https://xget.xi-xu.me/apache/netbeans/netbeans/20/netbeans-20-bin.zip
+wget https://fast.dxshelley.fun/apache/ant/1.10.14/apache-ant-1.10.14-bin.tar.gz
+wget https://fast.dxshelley.fun/apache/netbeans/netbeans/20/netbeans-20-bin.zip
 ```
 
 ### Gradle 軟體包管理加速
@@ -1319,10 +1319,10 @@ wget https://xget.xi-xu.me/apache/netbeans/netbeans/20/netbeans-20-bin.zip
 // 在 build.gradle 中配置 Gradle 鏡像
 repositories {
     maven {
-        url 'https://xget.xi-xu.me/maven/maven2'
+        url 'https://fast.dxshelley.fun/maven/maven2'
     }
     gradlePluginPortal {
-        url 'https://xget.xi-xu.me/gradle/m2'
+        url 'https://fast.dxshelley.fun/gradle/m2'
     }
 }
 
@@ -1330,7 +1330,7 @@ repositories {
 pluginManagement {
     repositories {
         maven {
-            url 'https://xget.xi-xu.me/gradle/m2'
+            url 'https://fast.dxshelley.fun/gradle/m2'
         }
         gradlePluginPortal()
     }
@@ -1344,7 +1344,7 @@ pluginManagement {
 allprojects {
     repositories {
         maven {
-            url 'https://xget.xi-xu.me/maven/maven2'
+            url 'https://fast.dxshelley.fun/maven/maven2'
         }
     }
 }
@@ -1353,7 +1353,7 @@ settingsEvaluated { settings ->
     settings.pluginManagement {
         repositories {
             maven {
-                url 'https://xget.xi-xu.me/gradle/m2'
+                url 'https://fast.dxshelley.fun/gradle/m2'
             }
             gradlePluginPortal()
         }
@@ -1363,7 +1363,7 @@ settingsEvaluated { settings ->
 
 ```bash
 # 使用命令列指定鏡像
-gradle build -Dmaven.repo.remote=https://xget.xi-xu.me/maven/maven2
+gradle build -Dmaven.repo.remote=https://fast.dxshelley.fun/maven/maven2
 
 # 重新整理依賴項
 gradle build --refresh-dependencies
@@ -1375,10 +1375,10 @@ gradle build --refresh-dependencies
 
 ```bash
 # 設定 Homebrew 環境變數使用 Xget 鏡像
-export HOMEBREW_BREW_GIT_REMOTE="https://xget.xi-xu.me/homebrew/brew.git"
-export HOMEBREW_CORE_GIT_REMOTE="https://xget.xi-xu.me/homebrew/homebrew-core.git"
-export HOMEBREW_API_DOMAIN="https://xget.xi-xu.me/homebrew/api"
-export HOMEBREW_BOTTLE_DOMAIN="https://xget.xi-xu.me/homebrew/bottles"
+export HOMEBREW_BREW_GIT_REMOTE="https://fast.dxshelley.fun/homebrew/brew.git"
+export HOMEBREW_CORE_GIT_REMOTE="https://fast.dxshelley.fun/homebrew/homebrew-core.git"
+export HOMEBREW_API_DOMAIN="https://fast.dxshelley.fun/homebrew/api"
+export HOMEBREW_BOTTLE_DOMAIN="https://fast.dxshelley.fun/homebrew/bottles"
 
 # 更新 Homebrew
 brew update
@@ -1388,16 +1388,16 @@ brew update
 
 ```bash
 # 為 bash 使用者新增到 ~/.bash_profile
-echo 'export HOMEBREW_BREW_GIT_REMOTE="https://xget.xi-xu.me/homebrew/brew.git"' >> ~/.bash_profile
-echo 'export HOMEBREW_CORE_GIT_REMOTE="https://xget.xi-xu.me/homebrew/homebrew-core.git"' >> ~/.bash_profile
-echo 'export HOMEBREW_API_DOMAIN="https://xget.xi-xu.me/homebrew/api"' >> ~/.bash_profile
-echo 'export HOMEBREW_BOTTLE_DOMAIN="https://xget.xi-xu.me/homebrew/bottles"' >> ~/.bash_profile
+echo 'export HOMEBREW_BREW_GIT_REMOTE="https://fast.dxshelley.fun/homebrew/brew.git"' >> ~/.bash_profile
+echo 'export HOMEBREW_CORE_GIT_REMOTE="https://fast.dxshelley.fun/homebrew/homebrew-core.git"' >> ~/.bash_profile
+echo 'export HOMEBREW_API_DOMAIN="https://fast.dxshelley.fun/homebrew/api"' >> ~/.bash_profile
+echo 'export HOMEBREW_BOTTLE_DOMAIN="https://fast.dxshelley.fun/homebrew/bottles"' >> ~/.bash_profile
 
 # 為 zsh 使用者新增到 ~/.zprofile
-echo 'export HOMEBREW_BREW_GIT_REMOTE="https://xget.xi-xu.me/homebrew/brew.git"' >> ~/.zprofile
-echo 'export HOMEBREW_CORE_GIT_REMOTE="https://xget.xi-xu.me/homebrew/homebrew-core.git"' >> ~/.zprofile
-echo 'export HOMEBREW_API_DOMAIN="https://xget.xi-xu.me/homebrew/api"' >> ~/.zprofile
-echo 'export HOMEBREW_BOTTLE_DOMAIN="https://xget.xi-xu.me/homebrew/bottles"' >> ~/.zprofile
+echo 'export HOMEBREW_BREW_GIT_REMOTE="https://fast.dxshelley.fun/homebrew/brew.git"' >> ~/.zprofile
+echo 'export HOMEBREW_CORE_GIT_REMOTE="https://fast.dxshelley.fun/homebrew/homebrew-core.git"' >> ~/.zprofile
+echo 'export HOMEBREW_API_DOMAIN="https://fast.dxshelley.fun/homebrew/api"' >> ~/.zprofile
+echo 'export HOMEBREW_BOTTLE_DOMAIN="https://fast.dxshelley.fun/homebrew/bottles"' >> ~/.zprofile
 ```
 
 #### 在專案中使用
@@ -1433,10 +1433,10 @@ echo $HOMEBREW_BOTTLE_DOMAIN
 
 ```bash
 # 臨時使用 Xget 鏡像
-gem install rails --source https://xget.xi-xu.me/rubygems/
+gem install rails --source https://fast.dxshelley.fun/rubygems/
 
 # 全域配置 RubyGems 鏡像
-gem sources --add https://xget.xi-xu.me/rubygems/
+gem sources --add https://fast.dxshelley.fun/rubygems/
 gem sources --remove https://rubygems.org/
 
 # 驗證配置
@@ -1447,7 +1447,7 @@ gem sources -l
 
 ```ruby
 # 在 Gemfile 中配置專案級鏡像
-source 'https://xget.xi-xu.me/rubygems/'
+source 'https://fast.dxshelley.fun/rubygems/'
 
 gem 'rails', '~> 7.0.0'
 gem 'pg', '~> 1.1'
@@ -1456,7 +1456,7 @@ gem 'puma', '~> 5.0'
 
 ```bash
 # 使用 bundle 安裝
-bundle config mirror.https://rubygems.org https://xget.xi-xu.me/rubygems/
+bundle config mirror.https://rubygems.org https://fast.dxshelley.fun/rubygems/
 bundle install
 ```
 
@@ -1466,10 +1466,10 @@ bundle install
 
 ```r
 # 在 R 中臨時使用 Xget CRAN 鏡像
-install.packages("ggplot2", repos = "https://xget.xi-xu.me/cran/")
+install.packages("ggplot2", repos = "https://fast.dxshelley.fun/cran/")
 
 # 全域配置 CRAN 鏡像
-options(repos = c(CRAN = "https://xget.xi-xu.me/cran/"))
+options(repos = c(CRAN = "https://fast.dxshelley.fun/cran/"))
 
 # 驗證配置
 getOption("repos")
@@ -1480,7 +1480,7 @@ getOption("repos")
 ```r
 # 在使用者主目錄的 .Rprofile 檔案中配置全域鏡像
 options(repos = c(
-  CRAN = "https://xget.xi-xu.me/cran/",
+  CRAN = "https://fast.dxshelley.fun/cran/",
   BioCsoft = "https://bioconductor.org/packages/release/bioc",
   BioCann = "https://bioconductor.org/packages/release/data/annotation",
   BioCexp = "https://bioconductor.org/packages/release/data/experiment"
@@ -1495,22 +1495,22 @@ options(download.file.method = "libcurl")
 ```r
 # 在專案的 renv.lock 或指令碼中指定鏡像
 renv::init()
-renv::settings$repos.override(c(CRAN = "https://xget.xi-xu.me/cran/"))
+renv::settings$repos.override(c(CRAN = "https://fast.dxshelley.fun/cran/"))
 
 # 安裝包
 install.packages(c("dplyr", "ggplot2", "tidyr"))
 
 # 或使用 pak 軟體包管理器
-pak::pkg_install("tidyverse", repos = "https://xget.xi-xu.me/cran/")
+pak::pkg_install("tidyverse", repos = "https://fast.dxshelley.fun/cran/")
 ```
 
 ```bash
 # 在命令列中使用 R 指令碼安裝包
-Rscript -e "options(repos = c(CRAN = 'https://xget.xi-xu.me/cran/')); install.packages('ggplot2')"
+Rscript -e "options(repos = c(CRAN = 'https://fast.dxshelley.fun/cran/')); install.packages('ggplot2')"
 
 # 批次安裝包
 Rscript -e "
-options(repos = c(CRAN = 'https://xget.xi-xu.me/cran/'))
+options(repos = c(CRAN = 'https://fast.dxshelley.fun/cran/'))
 packages <- c('dplyr', 'ggplot2', 'tidyr', 'readr')
 install.packages(packages)
 "
@@ -1522,12 +1522,12 @@ install.packages(packages)
 
 ```bash
 # 配置 CPAN 使用 Xget 鏡像
-cpan o conf urllist push https://xget.xi-xu.me/cpan/
+cpan o conf urllist push https://fast.dxshelley.fun/cpan/
 cpan o conf commit
 
 # 或者直接編輯設定檔 ~/.cpan/CPAN/MyConfig.pm
 # 新增：
-# 'urllist' => [q[https://xget.xi-xu.me/cpan/]],
+# 'urllist' => [q[https://fast.dxshelley.fun/cpan/]],
 ```
 
 #### 使用 cpanm 安裝模組
@@ -1537,11 +1537,11 @@ cpan o conf commit
 curl -L https://cpanmin.us | perl - --sudo App::cpanminus
 
 # 使用 Xget 鏡像安裝模組
-cpanm --mirror https://xget.xi-xu.me/cpan/ DBI
-cpanm --mirror https://xget.xi-xu.me/cpan/ Mojolicious
+cpanm --mirror https://fast.dxshelley.fun/cpan/ DBI
+cpanm --mirror https://fast.dxshelley.fun/cpan/ Mojolicious
 
 # 從 Makefile.PL 安裝依賴項
-cpanm --mirror https://xget.xi-xu.me/cpan/ --installdeps .
+cpanm --mirror https://fast.dxshelley.fun/cpan/ --installdeps .
 ```
 
 #### 在專案中使用
@@ -1553,7 +1553,7 @@ requires 'Mojolicious';
 requires 'JSON';
 
 # 然後使用 Xget 鏡像安裝
-cpanm --mirror https://xget.xi-xu.me/cpan/ --installdeps .
+cpanm --mirror https://fast.dxshelley.fun/cpan/ --installdeps .
 ```
 
 ### TeX/LaTeX 軟體包管理加速
@@ -1562,7 +1562,7 @@ cpanm --mirror https://xget.xi-xu.me/cpan/ --installdeps .
 
 ```bash
 # 配置 tlmgr 使用 Xget CTAN 鏡像
-tlmgr option repository https://xget.xi-xu.me/ctan/systems/texlive/tlnet
+tlmgr option repository https://fast.dxshelley.fun/ctan/systems/texlive/tlnet
 
 # 更新軟體包資料庫
 tlmgr update --self --all
@@ -1576,7 +1576,7 @@ tlmgr install tikz
 
 ```bash
 # Windows MiKTeX 配置
-mpm --set-repository=https://xget.xi-xu.me/ctan/systems/win32/miktex
+mpm --set-repository=https://fast.dxshelley.fun/ctan/systems/win32/miktex
 
 # 更新軟體包資料庫
 mpm --update-db
@@ -1604,11 +1604,11 @@ tlmgr install algorithm2e
 
 ```bash
 # 配置 Go 模組代理
-export GOPROXY=https://xget.xi-xu.me/golang,direct
+export GOPROXY=https://fast.dxshelley.fun/golang,direct
 export GOSUMDB=off
 
 # 或者永久配置
-go env -w GOPROXY=https://xget.xi-xu.me/golang,direct
+go env -w GOPROXY=https://fast.dxshelley.fun/golang,direct
 go env -w GOSUMDB=off
 
 # 驗證配置
@@ -1634,13 +1634,13 @@ go clean -modcache
 
 ```bash
 # 新增 Xget 軟體包來源
-dotnet nuget add source https://xget.xi-xu.me/nuget/v3/index.json -n xget
+dotnet nuget add source https://fast.dxshelley.fun/nuget/v3/index.json -n xget
 
 # 列出軟體包來源
 dotnet nuget list source
 
 # 在專案中使用
-dotnet restore --source https://xget.xi-xu.me/nuget/v3/index.json
+dotnet restore --source https://fast.dxshelley.fun/nuget/v3/index.json
 ```
 
 #### 在 NuGet.Config 中配置
@@ -1650,7 +1650,7 @@ dotnet restore --source https://xget.xi-xu.me/nuget/v3/index.json
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
-    <add key="xget" value="https://xget.xi-xu.me/nuget/v3/index.json" />
+    <add key="xget" value="https://fast.dxshelley.fun/nuget/v3/index.json" />
   </packageSources>
 </configuration>
 ```
@@ -1667,7 +1667,7 @@ cat >> ~/.cargo/config.toml << EOF
 replace-with = "xget"
 
 [source.xget]
-registry = "https://xget.xi-xu.me/crates/"
+registry = "https://fast.dxshelley.fun/crates/"
 EOF
 
 # 驗證配置
@@ -1701,10 +1701,10 @@ cargo add clap
 
 ```bash
 # 全域配置 Composer 鏡像
-composer config -g repo.packagist composer https://xget.xi-xu.me/packagist/
+composer config -g repo.packagist composer https://fast.dxshelley.fun/packagist/
 
 # 專案級配置
-composer config repo.packagist composer https://xget.xi-xu.me/packagist/
+composer config repo.packagist composer https://fast.dxshelley.fun/packagist/
 
 # 驗證配置
 composer config -l
@@ -1717,7 +1717,7 @@ composer config -l
   "repositories": [
     {
       "type": "composer",
-      "url": "https://xget.xi-xu.me/packagist/"
+      "url": "https://fast.dxshelley.fun/packagist/"
     }
   ],
   "require": {
@@ -1739,7 +1739,7 @@ flatpak remote-add --if-not-exists flathub \
 
 # 然後將現有的 Flathub 遠端儲存庫改寫到 Xget 鏡像
 flatpak remote-modify flathub \
-  --url=https://xget.xi-xu.me/flathub/repo/
+  --url=https://fast.dxshelley.fun/flathub/repo/
 
 # 需要時恢復預設上游位址
 flatpak remote-modify flathub \
@@ -1756,22 +1756,22 @@ Xget 鏡像的是 Flathub 的 OSTree 儲存庫端點。依照目前 Flatpak 用�
 
 ```url
 # OSTree 儲存庫中繼資料
-https://xget.xi-xu.me/flathub/repo/config
-https://xget.xi-xu.me/flathub/repo/summary
-https://xget.xi-xu.me/flathub/repo/summary.sig
-https://xget.xi-xu.me/flathub/repo/summary.idx
-https://xget.xi-xu.me/flathub/repo/summaries/...
+https://fast.dxshelley.fun/flathub/repo/config
+https://fast.dxshelley.fun/flathub/repo/summary
+https://fast.dxshelley.fun/flathub/repo/summary.sig
+https://fast.dxshelley.fun/flathub/repo/summary.idx
+https://fast.dxshelley.fun/flathub/repo/summaries/...
 
 # Flatpak 遠端儲存庫描述檔
-https://xget.xi-xu.me/flathub/repo/flathub.flatpakrepo
+https://fast.dxshelley.fun/flathub/repo/flathub.flatpakrepo
 
 # 應用程式引用描述檔
-https://xget.xi-xu.me/flathub/repo/appstream/[應用程式 ID].flatpakref
+https://fast.dxshelley.fun/flathub/repo/appstream/[應用程式 ID].flatpakref
 
 # 儲存庫物件與靜態增量
-https://xget.xi-xu.me/flathub/repo/objects/...
-https://xget.xi-xu.me/flathub/repo/deltas/...
-https://xget.xi-xu.me/flathub/repo/delta-indexes/...
+https://fast.dxshelley.fun/flathub/repo/objects/...
+https://fast.dxshelley.fun/flathub/repo/deltas/...
+https://fast.dxshelley.fun/flathub/repo/delta-indexes/...
 ```
 
 #### 使用範例
@@ -1788,7 +1788,7 @@ flatpak install flathub org.gnome.gedit
 
 # 直接透過重寫後的 .flatpakref 安裝
 flatpak install --from \
-  https://xget.xi-xu.me/flathub/repo/appstream/org.gnome.gedit.flatpakref
+  https://fast.dxshelley.fun/flathub/repo/appstream/org.gnome.gedit.flatpakref
 
 # 疑難排解時輸出 libcurl HTTP 偵錯資訊
 OSTREE_DEBUG_HTTP=1 flatpak remote-ls flathub
@@ -1806,12 +1806,12 @@ flatpak update
 sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup
 
 # 配置 Debian 鏡像
-echo "deb https://xget.xi-xu.me/debian/debian bookworm main" | sudo tee /etc/apt/sources.list
-echo "deb https://xget.xi-xu.me/debian/debian-security bookworm-security main" | sudo tee -a /etc/apt/sources.list
+echo "deb https://fast.dxshelley.fun/debian/debian bookworm main" | sudo tee /etc/apt/sources.list
+echo "deb https://fast.dxshelley.fun/debian/debian-security bookworm-security main" | sudo tee -a /etc/apt/sources.list
 
 # 配置 Ubuntu 鏡像
-echo "deb https://xget.xi-xu.me/ubuntu/ubuntu jammy main restricted universe multiverse" | sudo tee /etc/apt/sources.list
-echo "deb https://xget.xi-xu.me/ubuntu/ubuntu jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+echo "deb https://fast.dxshelley.fun/ubuntu/ubuntu jammy main restricted universe multiverse" | sudo tee /etc/apt/sources.list
+echo "deb https://fast.dxshelley.fun/ubuntu/ubuntu jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
 
 # 更新軟體包列表
 sudo apt update
@@ -1822,7 +1822,7 @@ sudo apt update
 ```bash
 # 配置 Fedora 鏡像
 sudo sed -i 's|^metalink=|#metalink=|g' /etc/yum.repos.d/fedora*.repo
-sudo sed -i 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://xget.xi-xu.me/fedora/pub/fedora/linux|g' /etc/yum.repos.d/fedora*.repo
+sudo sed -i 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://fast.dxshelley.fun/fedora/pub/fedora/linux|g' /etc/yum.repos.d/fedora*.repo
 
 # 更新軟體包快取
 sudo dnf makecache
@@ -1833,7 +1833,7 @@ sudo dnf makecache
 ```bash
 # 配置 Rocky Linux 鏡像
 sudo sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/rocky*.repo
-sudo sed -i 's|^#baseurl=http://dl.rockylinux.org|baseurl=https://xget.xi-xu.me/rocky|g' /etc/yum.repos.d/rocky*.repo
+sudo sed -i 's|^#baseurl=http://dl.rockylinux.org|baseurl=https://fast.dxshelley.fun/rocky|g' /etc/yum.repos.d/rocky*.repo
 
 # 更新軟體包快取
 sudo dnf makecache
@@ -1844,11 +1844,11 @@ sudo dnf makecache
 ```bash
 # 配置 openSUSE Leap 鏡像
 sudo zypper mr -d repo-oss
-sudo zypper ar -f https://xget.xi-xu.me/opensuse/distribution/leap/15.5/repo/oss/ repo-oss-xget
+sudo zypper ar -f https://fast.dxshelley.fun/opensuse/distribution/leap/15.5/repo/oss/ repo-oss-xget
 
 # 配置 openSUSE Tumbleweed 鏡像
 sudo zypper mr -d repo-oss
-sudo zypper ar -f https://xget.xi-xu.me/opensuse/tumbleweed/repo/oss/ repo-oss-xget
+sudo zypper ar -f https://fast.dxshelley.fun/opensuse/tumbleweed/repo/oss/ repo-oss-xget
 
 # 重新整理軟體源
 sudo zypper refresh
@@ -1864,7 +1864,7 @@ sudo zypper lr -u
 sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
 
 # 配置 Arch Linux 鏡像
-echo 'Server = https://xget.xi-xu.me/arch/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist
+echo 'Server = https://fast.dxshelley.fun/arch/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist
 
 # 更新軟體包資料庫
 sudo pacman -Sy
@@ -1876,14 +1876,14 @@ sudo pacman -Sy
 
 ```bash
 # 下載 arXiv 論文 PDF
-wget https://xget.xi-xu.me/arxiv/pdf/2301.07041.pdf
+wget https://fast.dxshelley.fun/arxiv/pdf/2301.07041.pdf
 
 # 下載論文原始碼
-curl -L -O https://xget.xi-xu.me/arxiv/e-print/2301.07041
+curl -L -O https://fast.dxshelley.fun/arxiv/e-print/2301.07041
 
 # 批次下載多篇論文
 for id in 2301.07041 2302.13971 2303.08774; do
-  wget https://xget.xi-xu.me/arxiv/pdf/${id}.pdf
+  wget https://fast.dxshelley.fun/arxiv/pdf/${id}.pdf
 done
 ```
 
@@ -1894,7 +1894,7 @@ done
 import requests
 
 def download_arxiv_paper(arxiv_id, output_path):
-    url = f"https://xget.xi-xu.me/arxiv/pdf/{arxiv_id}.pdf"
+    url = f"https://fast.dxshelley.fun/arxiv/pdf/{arxiv_id}.pdf"
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -1913,36 +1913,36 @@ download_arxiv_paper("2301.07041", "attention_is_all_you_need.pdf")
 #### 配置 F-Droid 用戶端使用 Xget 鏡像
 
 1. 在 F-Droid 應用程式中進入**設定** → **儲存庫**
-2. 點擊 **+** 後輸入儲存庫 URL：`https://xget.xi-xu.me/fdroid/repo`
+2. 點擊 **+** 後輸入儲存庫 URL：`https://fast.dxshelley.fun/fdroid/repo`
 3. 點擊**新增**後再點擊**新增鏡像**
 
 #### 支援的 F-Droid 服務
 
 ```url
 # F-Droid 應用程式 APK 下載
-https://xget.xi-xu.me/fdroid/repo/[軟體包名]_[版本號].apk
+https://fast.dxshelley.fun/fdroid/repo/[軟體包名]_[版本號].apk
 
 # F-Droid 儲存庫索引
-https://xget.xi-xu.me/fdroid/repo/index-v1.jar
+https://fast.dxshelley.fun/fdroid/repo/index-v1.jar
 
 # F-Droid 應用程式圖示
-https://xget.xi-xu.me/fdroid/repo/icons-640/[軟體包名].[版本號].png
+https://fast.dxshelley.fun/fdroid/repo/icons-640/[軟體包名].[版本號].png
 
 # F-Droid API 介面
-https://xget.xi-xu.me/fdroid/api/v1/packages/[軟體包名]
+https://fast.dxshelley.fun/fdroid/api/v1/packages/[軟體包名]
 ```
 
 #### 使用範例
 
 ```bash
 # 直接下載 F-Droid 用戶端 APK
-wget https://xget.xi-xu.me/fdroid/repo/org.fdroid.fdroid_1016050.apk
+wget https://fast.dxshelley.fun/fdroid/repo/org.fdroid.fdroid_1016050.apk
 
 # 下載其他開源應用程式
-curl -L -O https://xget.xi-xu.me/fdroid/repo/org.mozilla.fennec_fdroid_1014000.apk
+curl -L -O https://fast.dxshelley.fun/fdroid/repo/org.mozilla.fennec_fdroid_1014000.apk
 
 # 獲取應用程式資訊
-curl https://xget.xi-xu.me/fdroid/api/v1/packages/org.fdroid.fdroid
+curl https://fast.dxshelley.fun/fdroid/api/v1/packages/org.fdroid.fdroid
 ```
 
 #### 批次應用程式管理
@@ -1966,7 +1966,7 @@ mkdir -p fdroid_apps
 # 批次下載應用程式
 for app in "${apps[@]}"; do
     echo "正在下載: $app"
-    wget -P fdroid_apps "https://xget.xi-xu.me/fdroid/repo/$app"
+    wget -P fdroid_apps "https://fast.dxshelley.fun/fdroid/repo/$app"
 done
 
 echo "所有應用程式下載完成！"
@@ -1984,7 +1984,7 @@ chmod +x download_fdroid_apps.sh
 // 在 build.gradle 中配置 F-Droid 依賴項檢查
 task checkFDroidAvailability {
     doLast {
-        def fdroidUrl = "https://xget.xi-xu.me/fdroid/api/v1/packages/${project.name}"
+        def fdroidUrl = "https://fast.dxshelley.fun/fdroid/api/v1/packages/${project.name}"
         try {
             def connection = new URL(fdroidUrl).openConnection()
             connection.requestMethod = 'GET'
@@ -2012,7 +2012,7 @@ task checkFDroidAvailability {
 1. 登入 Jenkins 管理介面
 2. 進入 **Manage Jenkins** → **Plugins** → **Advanced**
 3. 在 **Update Site** 部分，將 URL 更改為
-   `https://xget.xi-xu.me/jenkins/update-center.json`
+   `https://fast.dxshelley.fun/jenkins/update-center.json`
 4. 點擊 **Submit** 儲存配置
 
 ##### 方法二：修改設定檔
@@ -2023,7 +2023,7 @@ task checkFDroidAvailability {
 sudo nano /var/lib/jenkins/hudson.model.UpdateCenter.xml
 
 # 將 URL 改為：
-# <url>https://xget.xi-xu.me/jenkins/update-center.json</url>
+# <url>https://fast.dxshelley.fun/jenkins/update-center.json</url>
 
 # 重啟 Jenkins 服務
 sudo systemctl restart jenkins
@@ -2033,29 +2033,29 @@ sudo systemctl restart jenkins
 
 ```url
 # Jenkins 更新中心 JSON
-https://xget.xi-xu.me/jenkins/update-center.json
+https://fast.dxshelley.fun/jenkins/update-center.json
 
 # Jenkins 更新中心（實際 JSON 格式）
-https://xget.xi-xu.me/jenkins/update-center.actual.json
+https://fast.dxshelley.fun/jenkins/update-center.actual.json
 
 # Jenkins 外掛程式下載
-https://xget.xi-xu.me/jenkins/download/plugins/[外掛程式名]/[版本]/[外掛程式名].hpi
+https://fast.dxshelley.fun/jenkins/download/plugins/[外掛程式名]/[版本]/[外掛程式名].hpi
 
 # 實驗性外掛程式更新中心
-https://xget.xi-xu.me/jenkins/experimental/update-center.json
+https://fast.dxshelley.fun/jenkins/experimental/update-center.json
 ```
 
 #### 使用範例
 
 ```bash
 # 下載 Maven 外掛程式
-wget https://xget.xi-xu.me/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi
+wget https://fast.dxshelley.fun/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi
 
 # 下載 Git 外掛程式
-curl -L -O https://xget.xi-xu.me/jenkins/download/plugins/git/5.2.1/git.hpi
+curl -L -O https://fast.dxshelley.fun/jenkins/download/plugins/git/5.2.1/git.hpi
 
 # 獲取更新中心資訊
-curl https://xget.xi-xu.me/jenkins/update-center.json
+curl https://fast.dxshelley.fun/jenkins/update-center.json
 
 # 批次下載常用外掛程式
 cat > download_jenkins_plugins.sh << 'EOF'
@@ -2078,7 +2078,7 @@ for plugin in "${plugins[@]}"; do
     name=$(echo $plugin | cut -d: -f1)
     version=$(echo $plugin | cut -d: -f2)
     echo "正在下載外掛程式: $name v$version"
-    wget -P jenkins_plugins "https://xget.xi-xu.me/jenkins/download/plugins/$name/$version/$name.hpi"
+    wget -P jenkins_plugins "https://fast.dxshelley.fun/jenkins/download/plugins/$name/$version/$name.hpi"
 done
 
 echo "所有外掛程式下載完成！"
@@ -2094,7 +2094,7 @@ chmod +x download_jenkins_plugins.sh
 
 ```bash
 # 1. 下載 Jenkins 核心檔案
-wget https://xget.xi-xu.me/jenkins/war/jenkins.war
+wget https://fast.dxshelley.fun/jenkins/war/jenkins.war
 
 # 2. 建立外掛程式打包指令碼
 cat > prepare_jenkins_offline.sh << 'EOF'
@@ -2105,7 +2105,7 @@ mkdir -p jenkins_offline/{plugins,update_center}
 
 # 下載更新中心配置
 curl -o jenkins_offline/update_center/update-center.json \
-    https://xget.xi-xu.me/jenkins/update-center.json
+    https://fast.dxshelley.fun/jenkins/update-center.json
 
 # 必備外掛程式列表
 essential_plugins=(
@@ -2133,7 +2133,7 @@ for plugin in "${essential_plugins[@]}"; do
     version=$(echo $plugin | cut -d: -f2)
     echo "下載 $name:$version"
     wget -P jenkins_offline/plugins \
-        "https://xget.xi-xu.me/jenkins/download/plugins/$name/$version/$name.hpi"
+        "https://fast.dxshelley.fun/jenkins/download/plugins/$name/$version/$name.hpi"
 done
 
 # 建立部署說明
@@ -2166,7 +2166,7 @@ pipeline {
             steps {
                 script {
                     // 檢查 Maven 外掛程式可用性
-                    def pluginUrl = "https://xget.xi-xu.me/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi"
+                    def pluginUrl = "https://fast.dxshelley.fun/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi"
 
                     try {
                         def response = httpRequest url: pluginUrl, httpMode: 'HEAD'
@@ -2196,13 +2196,13 @@ pipeline {
 
 ```bash
 # 拉取 GitHub 容器註冊表鏡像
-docker pull xget.xi-xu.me/cr/ghcr/nginxinc/nginx-unprivileged:latest
+docker pull fast.dxshelley.fun/cr/ghcr/nginxinc/nginx-unprivileged:latest
 
 # 拉取 Google 容器註冊表鏡像
-docker pull xget.xi-xu.me/cr/gcr/distroless/base:latest
+docker pull fast.dxshelley.fun/cr/gcr/distroless/base:latest
 
 # 拉取 Microsoft 容器註冊表鏡像
-docker pull xget.xi-xu.me/cr/mcr/dotnet/runtime:8.0
+docker pull fast.dxshelley.fun/cr/mcr/dotnet/runtime:8.0
 ```
 
 #### Kubernetes 部署配置
@@ -2225,11 +2225,11 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: xget.xi-xu.me/cr/ghcr/nginxinc/nginx-unprivileged:latest
+          image: fast.dxshelley.fun/cr/ghcr/nginxinc/nginx-unprivileged:latest
           ports:
             - containerPort: 80
         - name: redis
-          image: xget.xi-xu.me/cr/ghcr/bitnami/redis:alpine
+          image: fast.dxshelley.fun/cr/ghcr/bitnami/redis:alpine
           ports:
             - containerPort: 6379
 ```
@@ -2241,14 +2241,14 @@ spec:
 version: '3.8'
 services:
   web:
-    image: xget.xi-xu.me/cr/ghcr/nginxinc/nginx-unprivileged:latest
+    image: fast.dxshelley.fun/cr/ghcr/nginxinc/nginx-unprivileged:latest
     ports:
       - '80:80'
     volumes:
       - ./html:/usr/share/nginx/html
 
   database:
-    image: xget.xi-xu.me/cr/mcr/mssql/server:2022-latest
+    image: fast.dxshelley.fun/cr/mcr/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: Y
       SA_PASSWORD: 'MyStrongPassword123!'
@@ -2256,7 +2256,7 @@ services:
       - mssql_data:/var/opt/mssql
 
   cache:
-    image: xget.xi-xu.me/cr/ghcr/bitnami/redis:alpine
+    image: fast.dxshelley.fun/cr/ghcr/bitnami/redis:alpine
     ports:
       - '6379:6379'
 
@@ -2268,7 +2268,7 @@ volumes:
 
 ```dockerfile
 # 在 Dockerfile 中使用 Xget 加速基礎鏡像
-FROM xget.xi-xu.me/cr/ghcr/nodejs/node:18-alpine AS builder
+FROM fast.dxshelley.fun/cr/ghcr/nodejs/node:18-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
@@ -2278,11 +2278,11 @@ COPY . .
 RUN npm run build
 
 # 生產階段
-FROM xget.xi-xu.me/cr/ghcr/nginxinc/nginx-unprivileged:latest
+FROM fast.dxshelley.fun/cr/ghcr/nginxinc/nginx-unprivileged:latest
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # 使用 Microsoft 容器註冊表的 .NET 鏡像
-FROM xget.xi-xu.me/cr/mcr/dotnet/aspnet:8.0 AS runtime
+FROM fast.dxshelley.fun/cr/mcr/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=builder /app/publish .
 ENTRYPOINT ["dotnet", "MyApp.dll"]
@@ -2305,13 +2305,13 @@ jobs:
         run: |
           # 建置時使用 Xget 的基礎鏡像
           docker build -t myapp:latest \
-            --build-arg BASE_IMAGE=xget.xi-xu.me/cr/ghcr/nodejs/node:18-alpine .
+            --build-arg BASE_IMAGE=fast.dxshelley.fun/cr/ghcr/nodejs/node:18-alpine .
 
       - name: Test with accelerated images
         run: |
           # 使用加速鏡像進行測試
           docker run --rm \
-            xget.xi-xu.me/cr/mcr/dotnet/runtime:8.0 \
+            fast.dxshelley.fun/cr/mcr/dotnet/runtime:8.0 \
             dotnet --version
 ```
 
@@ -2322,11 +2322,11 @@ jobs:
 # 編輯 /etc/containers/registries.conf
 [[registry]]
 prefix = "ghcr.io"
-location = "xget.xi-xu.me/cr/ghcr"
+location = "fast.dxshelley.fun/cr/ghcr"
 
 # 或者直接拉取
-podman pull xget.xi-xu.me/cr/ghcr/alpine/alpine:latest
-podman pull xget.xi-xu.me/cr/ghcr/nginxinc/nginx-unprivileged:latest
+podman pull fast.dxshelley.fun/cr/ghcr/alpine/alpine:latest
+podman pull fast.dxshelley.fun/cr/ghcr/nginxinc/nginx-unprivileged:latest
 ```
 
 #### containerd 配置
@@ -2336,9 +2336,9 @@ podman pull xget.xi-xu.me/cr/ghcr/nginxinc/nginx-unprivileged:latest
 # 編輯 /etc/containerd/config.toml
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
-    endpoint = ["https://xget.xi-xu.me/cr/ghcr"]
+    endpoint = ["https://fast.dxshelley.fun/cr/ghcr"]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
-    endpoint = ["https://xget.xi-xu.me/cr/gcr"]
+    endpoint = ["https://fast.dxshelley.fun/cr/gcr"]
 ```
 
 ```bash
@@ -2355,7 +2355,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-api-key",
-    base_url="https://xget.xi-xu.me/ip/openai/v1",  # 使用 Xget
+    base_url="https://fast.dxshelley.fun/ip/openai/v1",  # 使用 Xget
 )
 
 response = client.responses.create(
@@ -2373,7 +2373,7 @@ from anthropic import Anthropic
 
 client = Anthropic(
     api_key="your-api-key",
-    base_url="https://xget.xi-xu.me/ip/anthropic",  # 使用 Xget
+    base_url="https://fast.dxshelley.fun/ip/anthropic",  # 使用 Xget
 )
 
 message = client.messages.create(
@@ -2398,7 +2398,7 @@ from google.genai import types
 
 client = genai.Client(
     api_key="your-api-key",
-    http_options=types.HttpOptions(base_url="https://xget.xi-xu.me/ip/gemini"),  # 使用 Xget
+    http_options=types.HttpOptions(base_url="https://fast.dxshelley.fun/ip/gemini"),  # 使用 Xget
 )
 
 response = client.models.generate_content(
@@ -2421,7 +2421,7 @@ providers = [
 ]
 
 for name, key, path, model in providers:
-    client = OpenAI(api_key=key, base_url="https://xget.xi-xu.me/ip" + path)  # 使用 Xget
+    client = OpenAI(api_key=key, base_url="https://fast.dxshelley.fun/ip" + path)  # 使用 Xget
     response = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": f"Hello, who are you?"}],
@@ -2437,7 +2437,7 @@ import OpenAI from 'openai';
 
 const openaiClient = new OpenAI({
   apiKey: 'your-openai-api-key',
-  baseURL: 'https://xget.xi-xu.me/ip/openai/v1' // 使用 Xget
+  baseURL: 'https://fast.dxshelley.fun/ip/openai/v1' // 使用 Xget
 });
 
 async function chatWithGPT() {
@@ -2454,7 +2454,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropicClient = new Anthropic({
   apiKey: 'your-claude-api-key',
-  baseURL: 'https://xget.xi-xu.me/ip/anthropic' // 使用 Xget
+  baseURL: 'https://fast.dxshelley.fun/ip/anthropic' // 使用 Xget
 });
 
 async function chatWithClaude() {
@@ -2485,7 +2485,7 @@ async function chatWithGemini() {
     contents: 'Hello, Gemini!',
     config: {
       httpOptions: {
-        baseUrl: 'https://xget.xi-xu.me/ip/gemini' // 使用 Xget
+        baseUrl: 'https://fast.dxshelley.fun/ip/gemini' // 使用 Xget
       }
     }
   });
@@ -2498,12 +2498,12 @@ async function chatWithGemini() {
 
 ```bash
 # 在 .env 檔案中配置
-OPENAI_BASE_URL=https://xget.xi-xu.me/ip/openai
-ANTHROPIC_BASE_URL=https://xget.xi-xu.me/ip/anthropic
-GEMINI_BASE_URL=https://xget.xi-xu.me/ip/gemini
-COHERE_BASE_URL=https://xget.xi-xu.me/ip/cohere
-MISTRAL_AI_BASE_URL=https://xget.xi-xu.me/ip/mistralai
-GROQ_BASE_URL=https://xget.xi-xu.me/ip/groq
+OPENAI_BASE_URL=https://fast.dxshelley.fun/ip/openai
+ANTHROPIC_BASE_URL=https://fast.dxshelley.fun/ip/anthropic
+GEMINI_BASE_URL=https://fast.dxshelley.fun/ip/gemini
+COHERE_BASE_URL=https://fast.dxshelley.fun/ip/cohere
+MISTRAL_AI_BASE_URL=https://fast.dxshelley.fun/ip/mistralai
+GROQ_BASE_URL=https://fast.dxshelley.fun/ip/groq
 ```
 
 然後在程式碼中使用：

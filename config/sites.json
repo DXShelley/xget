@@ -1,0 +1,22 @@
+[
+  {
+    "id": "github",
+    "mirrorHost": "git.dxshelley.fun",
+    "upstreamOrigin": "https://github.com",
+    "adapter": "github"
+  },
+  {
+    "id": "claude-web",
+    "mirrorHost": "claude.fast.dxshelley.fun",
+    "upstreamOrigin": "https://claude.com",
+    "adapter": "configured",
+    "allowedMethods": ["GET", "HEAD", "POST"]
+  },
+  {
+    "id": "claude-code",
+    "mirrorHost": "code.claude.fast.dxshelley.fun",
+    "upstreamOrigin": "https://code.claude.com",
+    "adapter": "configured",
+    "allowedMethods": ["GET", "HEAD", "POST"]
+  }
+]
