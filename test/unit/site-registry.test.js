@@ -23,10 +23,11 @@ describe('site registry', () => {
       id: 'claude-web',
       upstreamOrigin: 'https://claude.com'
     });
-    expect(resolveSite('code.claude.fast.dxshelley.fun')).toMatchObject({
+    expect(resolveSite('claude-code.fast.dxshelley.fun')).toMatchObject({
       id: 'claude-code',
       upstreamOrigin: 'https://code.claude.com'
     });
+    expect(resolveSite('code.claude.fast.dxshelley.fun')).toBeNull();
     expect(resolveSite('untrusted.example')).toBeNull();
   });
 

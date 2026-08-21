@@ -25,7 +25,7 @@
   {
     "id": "claude-code",
     "alias": "claude-code",
-    "mirrorHost": "code.claude.fast.dxshelley.fun",
+    "mirrorHost": "claude-code.fast.dxshelley.fun",
     "upstreamOrigin": "https://code.claude.com",
     "adapter": "configured",
     "allowedMethods": ["GET", "HEAD", "POST"],
