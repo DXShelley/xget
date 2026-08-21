@@ -71,7 +71,10 @@ function getConfiguredHeaders(request, upstreamUrl, site) {
   for (const [key, value] of request.headers) {
     const normalizedKey = key.toLowerCase();
     if (HOP_BY_HOP_HEADERS.has(normalizedKey)) continue;
-    if (site.proxyPolicy?.stripClientIdentityHeaders && CLIENT_IDENTITY_HEADERS.has(normalizedKey)) {
+    if (
+      site.proxyPolicy?.stripClientIdentityHeaders &&
+      CLIENT_IDENTITY_HEADERS.has(normalizedKey)
+    ) {
       continue;
     }
     if (
