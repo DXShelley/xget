@@ -10,7 +10,9 @@
 
 import { handleDockerAuth } from '../protocols/docker.js';
 import { handleGithubWebRequest } from '../github/handle-request.js';
+import { handleWebAdapterRequest } from '../web-adapters/handle-request.js';
 import { handleConfiguredSiteRequest } from '../proxy/handle-configured-site.js';
+import { handleFastRoute } from '../proxy/fast-route.js';
 import { finalizeResponse } from '../response/finalize-response.js';
 import {
   createHomepageRedirect,
@@ -23,6 +25,25 @@ import { PerformanceMonitor, addPerformanceHeaders } from '../utils/performance.
 import { addCorsHeaders, addSecurityHeaders, createErrorResponse } from '../utils/security.js';
 import { getAllowedMethods, isProtocolRequest, validateRequest } from '../utils/validation.js';
 import { createRequestContext } from './request-context.js';
+
+/**
+ * Dispatches routes that own a fixed browser-facing host before platform routing.
+ * @param {{ request: Request, url: URL, env: Record<string, unknown>, config: import('../config/index.js').ApplicationConfig }} options
+ * @returns {Promise<{ response: Response, isProxiedResponse: boolean } | null>} A handled application route, or null.
+ */
+export async function handleApplicationRoute({ request, url, env, config }) {
+  const webAdapterResponse = await handleWebAdapterRequest({ request, url });
+  if (webAdapterResponse) return { response: webAdapterResponse, isProxiedResponse: true };
+
+  const githubRoute = await handleGithubWebRequest({ request, url, env, config });
+  if (githubRoute) return githubRoute;
+
+  const configuredResponse = await handleConfiguredSiteRequest(request);
+  if (configuredResponse) return { response: configuredResponse, isProxiedResponse: true };
+
+  const fastRouteResponse = await handleFastRoute(request, url);
+  return fastRouteResponse ? { response: fastRouteResponse, isProxiedResponse: true } : null;
+}
 
 /**
  * Main request handler with comprehensive caching, retry logic, and security measures.
@@ -61,25 +82,20 @@ export async function handleRequest(request, env, ctx) {
         }
       }
     } else {
-      const githubRoute = await handleGithubWebRequest({
+      const applicationRoute = await handleApplicationRoute({
         request,
         url,
         env: requestContext.env,
         config
       });
-
-      if (githubRoute) {
-        const { response: githubResponse, isProxiedResponse: githubProxiedResponse } = githubRoute;
-        response = githubResponse;
-        isProxiedResponse = githubProxiedResponse;
+      if (applicationRoute) {
+        const { response: applicationResponse, isProxiedResponse: applicationResponseIsProxied } =
+          applicationRoute;
+        response = applicationResponse;
+        isProxiedResponse = applicationResponseIsProxied;
       } else {
-        const configuredResponse = await handleConfiguredSiteRequest(request);
-        if (configuredResponse) {
-          response = configuredResponse;
-          isProxiedResponse = true;
-        }
         // Handle Docker API version check
-        else if (isDocker && (url.pathname === '/v2/' || url.pathname === '/v2')) {
+        if (isDocker && (url.pathname === '/v2/' || url.pathname === '/v2')) {
           const headers = new Headers({
             'Docker-Distribution-Api-Version': 'registry/2.0',
             'Content-Type': 'application/json'

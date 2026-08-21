@@ -835,7 +835,7 @@ describe('GitHub Web routing', () => {
   it('copies every Set-Cookie value exposed through the Workers getAll API', async () => {
     const upstreamHeaders = new Headers({ 'Content-Type': 'text/plain' });
     Object.defineProperty(upstreamHeaders, 'getAll', {
-      value: name =>
+      value: (/** @type {string} */ name) =>
         name.toLowerCase() === 'set-cookie'
           ? [
               '_gh_sess=session; Domain=github.com; Path=/; HttpOnly; Secure',
@@ -844,7 +844,13 @@ describe('GitHub Web routing', () => {
           : []
     });
     const response = await finalizeGithubWebResponse({
-      response: new Response('ok', { headers: upstreamHeaders }),
+      response: /** @type {Response} */ ({
+        body: null,
+        headers: upstreamHeaders,
+        status: 200,
+        statusText: 'OK',
+        text: async () => 'ok'
+      }),
       origin: 'https://git.dxshelley.fun'
     });
 

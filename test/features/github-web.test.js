@@ -26,6 +26,159 @@ describe('GitHub Web integration', () => {
     expect(fetchSpy.mock.calls[0][0]).toBe('https://registry.npmjs.org/react');
   });
 
+  it('turns an allowlisted target URL into an isolated proxy URL', async () => {
+    const target = encodeURIComponent('https://code.claude.com/docs/zh-CN/quickstart?source=fast');
+    const response = await worker.fetch(
+      new Request(`https://fast.dxshelley.fun/?target=${target}`),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(
+      'https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?source=fast'
+    );
+  });
+
+  it('turns a registered WebAdapter target URL into its dedicated mirror URL', async () => {
+    const target = encodeURIComponent('https://ai.google.dev/gemini-api/docs?api=generate-content');
+    const response = await worker.fetch(
+      new Request(`https://fast.dxshelley.fun/?target=${target}`),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe(
+      'https://ai-google-dev-docs.fast.dxshelley.fun/gemini-api/docs?api=generate-content'
+    );
+  });
+
+  it('preserves every target query parameter submitted by the entry form', async () => {
+    const target = encodeURIComponent(
+      'https://code.claude.com/docs/zh-CN/quickstart?locale=zh-CN&source=fast'
+    );
+    const response = await worker.fetch(
+      new Request(`https://fast.dxshelley.fun/?target=${target}`),
+      {},
+      executionContext
+    );
+
+    expect(response.headers.get('Location')).toBe(
+      'https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?locale=zh-CN&source=fast'
+    );
+  });
+
+  it('renders a target URL entry form on the fast root path', async () => {
+    const response = await worker.fetch(
+      new Request('https://fast.dxshelley.fun/'),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/html');
+    expect(await response.text()).toContain('name="target"');
+  });
+
+  it('renders allowlisted shortcuts and keeps recent targets browser-local', async () => {
+    const response = await worker.fetch(
+      new Request('https://fast.dxshelley.fun/'),
+      {},
+      executionContext
+    );
+    const body = await response.text();
+
+    expect(body).toContain('code.claude.com');
+    expect(body).toContain('claude.com');
+    expect(body).toContain('localStorage');
+    expect(body).toContain('xget.fast.recent-targets.v1');
+    expect(body).toContain('最近访问');
+    expect(body).toContain('常用域名');
+    expect(response.headers.get('Content-Security-Policy')).toContain("script-src 'nonce-");
+  });
+
+  it('proxies every path below an allowlisted path proxy alias', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('quickstart'));
+    const response = await worker.fetch(
+      new Request('https://fast.dxshelley.fun/_/claude-code/docs/zh-CN/quickstart?source=fast'),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      'https://code.claude.com/docs/zh-CN/quickstart?source=fast'
+    );
+  });
+
+  it('proxies the configured site root through a path proxy alias', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('root'));
+    const response = await worker.fetch(
+      new Request('https://fast.dxshelley.fun/_/claude-code'),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://code.claude.com/');
+  });
+
+  it('proxies every path on an allowlisted isolated host', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('quickstart'));
+    const response = await worker.fetch(
+      new Request('https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?source=fast'),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      'https://code.claude.com/docs/zh-CN/quickstart?source=fast'
+    );
+  });
+
+  it('rejects an unconfigured target without fetching it', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const target = encodeURIComponent('https://example.com/private');
+    const response = await worker.fetch(
+      new Request(`https://fast.dxshelley.fun/?target=${target}`),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'https://user:password@code.claude.com/docs',
+    'https://code.claude.com.evil.example/docs'
+  ])('rejects unsafe target %s without fetching it', async targetValue => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const target = encodeURIComponent(targetValue);
+    const response = await worker.fetch(
+      new Request(`https://fast.dxshelley.fun/?target=${target}`),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown path proxy alias without fetching it', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const response = await worker.fetch(
+      new Request('https://fast.dxshelley.fun/_/untrusted/docs'),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(404);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('proxies GitHub search without a mirror-only shortcut route', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('search'));
     const response = await worker.fetch(

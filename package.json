@@ -42,6 +42,7 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
+    "test:workflows": "vitest run --config vitest.workflow.config.js",
     "type-check": "tsc --noEmit"
   },
   "simple-git-hooks": {

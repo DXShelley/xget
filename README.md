@@ -287,44 +287,44 @@ instance, simply replace the domain and add the platform prefix:
 
 ### Conversion Format
 
-| Platform               | Platform Prefix | Original URL Format                                                  | Accelerated URL Format                                                            |
-| ---------------------- | --------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| GitHub                 | `gh`            | `https://github.com/...`                                             | `https://git.dxshelley.fun/...`                                                    |
-| GitHub Gist            | `gist`          | `https://gist.github.com/...`                                        | `https://fast.dxshelley.fun/gist/...`                                                  |
-| GitLab                 | `gl`            | `https://gitlab.com/...`                                             | `https://fast.dxshelley.fun/gl/...`                                                    |
-| Gitea                  | `gitea`         | `https://gitea.com/...`                                              | `https://fast.dxshelley.fun/gitea/...`                                                 |
-| Codeberg               | `codeberg`      | `https://codeberg.org/...`                                           | `https://fast.dxshelley.fun/codeberg/...`                                              |
-| SourceForge            | `sf`            | `https://sourceforge.net/...`                                        | `https://fast.dxshelley.fun/sf/...`                                                    |
-| AOSP                   | `aosp`          | `https://android.googlesource.com/...`                               | `https://fast.dxshelley.fun/aosp/...`                                                  |
-| Hugging Face           | `hf`            | `https://huggingface.co/...`                                         | `https://fast.dxshelley.fun/hf/...`                                                    |
-| Civitai                | `civitai`       | `https://civitai.com/...`                                            | `https://fast.dxshelley.fun/civitai/...`                                               |
-| npm                    | `npm`           | `https://registry.npmjs.org/...`                                     | `https://fast.dxshelley.fun/npm/...`                                                   |
-| PyPI                   | `pypi`          | `https://pypi.org/...`                                               | `https://fast.dxshelley.fun/pypi/...`                                                  |
+| Platform               | Platform Prefix | Original URL Format                                                  | Accelerated URL Format                                                                      |
+| ---------------------- | --------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| GitHub                 | `gh`            | `https://github.com/...`                                             | `https://git.dxshelley.fun/...`                                                             |
+| GitHub Gist            | `gist`          | `https://gist.github.com/...`                                        | `https://fast.dxshelley.fun/gist/...`                                                       |
+| GitLab                 | `gl`            | `https://gitlab.com/...`                                             | `https://fast.dxshelley.fun/gl/...`                                                         |
+| Gitea                  | `gitea`         | `https://gitea.com/...`                                              | `https://fast.dxshelley.fun/gitea/...`                                                      |
+| Codeberg               | `codeberg`      | `https://codeberg.org/...`                                           | `https://fast.dxshelley.fun/codeberg/...`                                                   |
+| SourceForge            | `sf`            | `https://sourceforge.net/...`                                        | `https://fast.dxshelley.fun/sf/...`                                                         |
+| AOSP                   | `aosp`          | `https://android.googlesource.com/...`                               | `https://fast.dxshelley.fun/aosp/...`                                                       |
+| Hugging Face           | `hf`            | `https://huggingface.co/...`                                         | `https://fast.dxshelley.fun/hf/...`                                                         |
+| Civitai                | `civitai`       | `https://civitai.com/...`                                            | `https://fast.dxshelley.fun/civitai/...`                                                    |
+| npm                    | `npm`           | `https://registry.npmjs.org/...`                                     | `https://fast.dxshelley.fun/npm/...`                                                        |
+| PyPI                   | `pypi`          | `https://pypi.org/...`                                               | `https://fast.dxshelley.fun/pypi/...`                                                       |
 | conda                  | `conda`         | `https://repo.anaconda.com/...` and `https://conda.anaconda.org/...` | `https://fast.dxshelley.fun/conda/...` and `https://fast.dxshelley.fun/conda/community/...` |
-| Maven                  | `maven`         | `https://repo1.maven.org/...`                                        | `https://fast.dxshelley.fun/maven/...`                                                 |
-| Apache                 | `apache`        | `https://downloads.apache.org/...`                                   | `https://fast.dxshelley.fun/apache/...`                                                |
-| Gradle                 | `gradle`        | `https://plugins.gradle.org/...`                                     | `https://fast.dxshelley.fun/gradle/...`                                                |
-| Homebrew               | `homebrew`      | `https://github.com/Homebrew/...`                                    | `https://fast.dxshelley.fun/homebrew/...`                                              |
-| RubyGems               | `rubygems`      | `https://rubygems.org/...`                                           | `https://fast.dxshelley.fun/rubygems/...`                                              |
-| CRAN                   | `cran`          | `https://cran.r-project.org/...`                                     | `https://fast.dxshelley.fun/cran/...`                                                  |
-| CPAN                   | `cpan`          | `https://www.cpan.org/...`                                           | `https://fast.dxshelley.fun/cpan/...`                                                  |
-| CTAN                   | `ctan`          | `https://tug.ctan.org/...`                                           | `https://fast.dxshelley.fun/ctan/...`                                                  |
-| Go Modules             | `golang`        | `https://proxy.golang.org/...`                                       | `https://fast.dxshelley.fun/golang/...`                                                |
-| NuGet                  | `nuget`         | `https://api.nuget.org/...`                                          | `https://fast.dxshelley.fun/nuget/...`                                                 |
-| Rust Crates            | `crates`        | `https://crates.io/...`                                              | `https://fast.dxshelley.fun/crates/...`                                                |
-| Packagist              | `packagist`     | `https://repo.packagist.org/...`                                     | `https://fast.dxshelley.fun/packagist/...`                                             |
-| Flathub                | `flathub`       | `https://dl.flathub.org/...`                                         | `https://fast.dxshelley.fun/flathub/...`                                               |
-| Debian                 | `debian`        | `https://deb.debian.org/...`                                         | `https://fast.dxshelley.fun/debian/...`                                                |
-| Ubuntu                 | `ubuntu`        | `https://archive.ubuntu.com/...`                                     | `https://fast.dxshelley.fun/ubuntu/...`                                                |
-| Fedora                 | `fedora`        | `https://dl.fedoraproject.org/...`                                   | `https://fast.dxshelley.fun/fedora/...`                                                |
-| Rocky Linux            | `rocky`         | `https://download.rockylinux.org/...`                                | `https://fast.dxshelley.fun/rocky/...`                                                 |
-| openSUSE               | `opensuse`      | `https://download.opensuse.org/...`                                  | `https://fast.dxshelley.fun/opensuse/...`                                              |
-| Arch Linux             | `arch`          | `https://geo.mirror.pkgbuild.com/...`                                | `https://fast.dxshelley.fun/arch/...`                                                  |
-| arXiv                  | `arxiv`         | `https://arxiv.org/...`                                              | `https://fast.dxshelley.fun/arxiv/...`                                                 |
-| F-Droid                | `fdroid`        | `https://f-droid.org/...`                                            | `https://fast.dxshelley.fun/fdroid/...`                                                |
-| Jenkins Plugins        | `jenkins`       | `https://updates.jenkins.io/...`                                     | `https://fast.dxshelley.fun/jenkins/...`                                               |
-| Container Registries   | `cr`            | See [Container Registries](#container-registries)                    | See [Container Registries](#container-registries)                                 |
-| AI Inference Providers | `ip`            | See [AI Inference Providers](#ai-inference-providers)                | See [AI Inference Providers](#ai-inference-providers)                             |
+| Maven                  | `maven`         | `https://repo1.maven.org/...`                                        | `https://fast.dxshelley.fun/maven/...`                                                      |
+| Apache                 | `apache`        | `https://downloads.apache.org/...`                                   | `https://fast.dxshelley.fun/apache/...`                                                     |
+| Gradle                 | `gradle`        | `https://plugins.gradle.org/...`                                     | `https://fast.dxshelley.fun/gradle/...`                                                     |
+| Homebrew               | `homebrew`      | `https://github.com/Homebrew/...`                                    | `https://fast.dxshelley.fun/homebrew/...`                                                   |
+| RubyGems               | `rubygems`      | `https://rubygems.org/...`                                           | `https://fast.dxshelley.fun/rubygems/...`                                                   |
+| CRAN                   | `cran`          | `https://cran.r-project.org/...`                                     | `https://fast.dxshelley.fun/cran/...`                                                       |
+| CPAN                   | `cpan`          | `https://www.cpan.org/...`                                           | `https://fast.dxshelley.fun/cpan/...`                                                       |
+| CTAN                   | `ctan`          | `https://tug.ctan.org/...`                                           | `https://fast.dxshelley.fun/ctan/...`                                                       |
+| Go Modules             | `golang`        | `https://proxy.golang.org/...`                                       | `https://fast.dxshelley.fun/golang/...`                                                     |
+| NuGet                  | `nuget`         | `https://api.nuget.org/...`                                          | `https://fast.dxshelley.fun/nuget/...`                                                      |
+| Rust Crates            | `crates`        | `https://crates.io/...`                                              | `https://fast.dxshelley.fun/crates/...`                                                     |
+| Packagist              | `packagist`     | `https://repo.packagist.org/...`                                     | `https://fast.dxshelley.fun/packagist/...`                                                  |
+| Flathub                | `flathub`       | `https://dl.flathub.org/...`                                         | `https://fast.dxshelley.fun/flathub/...`                                                    |
+| Debian                 | `debian`        | `https://deb.debian.org/...`                                         | `https://fast.dxshelley.fun/debian/...`                                                     |
+| Ubuntu                 | `ubuntu`        | `https://archive.ubuntu.com/...`                                     | `https://fast.dxshelley.fun/ubuntu/...`                                                     |
+| Fedora                 | `fedora`        | `https://dl.fedoraproject.org/...`                                   | `https://fast.dxshelley.fun/fedora/...`                                                     |
+| Rocky Linux            | `rocky`         | `https://download.rockylinux.org/...`                                | `https://fast.dxshelley.fun/rocky/...`                                                      |
+| openSUSE               | `opensuse`      | `https://download.opensuse.org/...`                                  | `https://fast.dxshelley.fun/opensuse/...`                                                   |
+| Arch Linux             | `arch`          | `https://geo.mirror.pkgbuild.com/...`                                | `https://fast.dxshelley.fun/arch/...`                                                       |
+| arXiv                  | `arxiv`         | `https://arxiv.org/...`                                              | `https://fast.dxshelley.fun/arxiv/...`                                                      |
+| F-Droid                | `fdroid`        | `https://f-droid.org/...`                                            | `https://fast.dxshelley.fun/fdroid/...`                                                     |
+| Jenkins Plugins        | `jenkins`       | `https://updates.jenkins.io/...`                                     | `https://fast.dxshelley.fun/jenkins/...`                                                    |
+| Container Registries   | `cr`            | See [Container Registries](#container-registries)                    | See [Container Registries](#container-registries)                                           |
+| AI Inference Providers | `ip`            | See [AI Inference Providers](#ai-inference-providers)                | See [AI Inference Providers](#ai-inference-providers)                                       |
 
 ### Platform Conversion Examples
 
@@ -809,8 +809,8 @@ https://fast.dxshelley.fun/jenkins/download/plugins/maven-plugin/3.27/maven-plug
 Xget supports multiple container registries, using the `cr/[Registry Prefix]`
 format:
 
-| Container Registry           | Registry Prefix | Original URL Format                         | Accelerated URL Format                      |
-| ---------------------------- | --------------- | ------------------------------------------- | ------------------------------------------- |
+| Container Registry           | Registry Prefix | Original URL Format                         | Accelerated URL Format                           |
+| ---------------------------- | --------------- | ------------------------------------------- | ------------------------------------------------ |
 | Docker Hub                   | `docker`        | `https://registry-1.docker.io/...`          | `https://fast.dxshelley.fun/cr/docker/...`       |
 | Quay.io                      | `quay`          | `https://quay.io/...`                       | `https://fast.dxshelley.fun/cr/quay/...`         |
 | Google Container Registry    | `gcr`           | `https://gcr.io/...`                        | `https://fast.dxshelley.fun/cr/gcr/...`          |
@@ -863,8 +863,8 @@ For use cases, see
 Xget supports API acceleration for many mainstream AI inference providers, using
 the `ip/[AI Provider Prefix]` format:
 
-| AI Inference Provider | Provider Prefix | Original URL Format                             | Accelerated URL Format                       |
-| --------------------- | --------------- | ----------------------------------------------- | -------------------------------------------- |
+| AI Inference Provider | Provider Prefix | Original URL Format                             | Accelerated URL Format                            |
+| --------------------- | --------------- | ----------------------------------------------- | ------------------------------------------------- |
 | OpenAI                | `openai`        | `https://api.openai.com/...`                    | `https://fast.dxshelley.fun/ip/openai/...`        |
 | Anthropic             | `anthropic`     | `https://api.anthropic.com/...`                 | `https://fast.dxshelley.fun/ip/anthropic/...`     |
 | Gemini                | `gemini`        | `https://generativelanguage.googleapis.com/...` | `https://fast.dxshelley.fun/ip/gemini/...`        |
@@ -1952,7 +1952,8 @@ download_arxiv_paper("2301.07041", "attention_is_all_you_need.pdf")
 #### Configure F-Droid Client to Use Xget Mirror
 
 1. In F-Droid app, go to **Settings** → **Repositories**
-2. Click **+** and enter repository URL: `https://fast.dxshelley.fun/fdroid/repo`
+2. Click **+** and enter repository URL:
+   `https://fast.dxshelley.fun/fdroid/repo`
 3. Click **Add** then click **Add Mirror**
 
 #### Supported F-Droid Services
@@ -2909,7 +2910,7 @@ export const PLATFORM_CATALOG = {
   custom: 'https://example.com'
 };
 
-// src/routing/platform-transformers.js
+// src/platforms/path-transformers.js
 const PLATFORM_PATH_TRANSFORMERS = {
   custom: path => path.replace(/^\/custom\//, '/')
 };

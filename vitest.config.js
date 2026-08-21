@@ -8,7 +8,11 @@ export default defineConfig({
     })
   ],
   test: {
-    exclude: [...configDefaults.exclude, 'test/unit/commitlint-workflow.test.js'],
+    exclude: [
+      ...configDefaults.exclude,
+      'test/unit/commitlint-workflow.test.js',
+      'test/unit/workflow-deployment.test.js'
+    ],
     testTimeout: 60000,
     hookTimeout: 30000
   }

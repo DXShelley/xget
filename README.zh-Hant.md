@@ -253,44 +253,44 @@ classDiagram
 
 ### 轉換格式
 
-| 平台             | 平台前綴    | 原始 URL 格式                                                       | 加速 URL 格式                                                                    |
-| ---------------- | ----------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| GitHub           | `gh`        | `https://github.com/...`                                            | `https://git.dxshelley.fun/...`                                                   |
-| GitHub Gist      | `gist`      | `https://gist.github.com/...`                                       | `https://fast.dxshelley.fun/gist/...`                                                 |
-| GitLab           | `gl`        | `https://gitlab.com/...`                                            | `https://fast.dxshelley.fun/gl/...`                                                   |
-| Gitea            | `gitea`     | `https://gitea.com/...`                                             | `https://fast.dxshelley.fun/gitea/...`                                                |
-| Codeberg         | `codeberg`  | `https://codeberg.org/...`                                          | `https://fast.dxshelley.fun/codeberg/...`                                             |
-| SourceForge      | `sf`        | `https://sourceforge.net/...`                                       | `https://fast.dxshelley.fun/sf/...`                                                   |
-| AOSP             | `aosp`      | `https://android.googlesource.com/...`                              | `https://fast.dxshelley.fun/aosp/...`                                                 |
-| Hugging Face     | `hf`        | `https://huggingface.co/...`                                        | `https://fast.dxshelley.fun/hf/...`                                                   |
-| Civitai          | `civitai`   | `https://civitai.com/...`                                           | `https://fast.dxshelley.fun/civitai/...`                                              |
-| npm              | `npm`       | `https://registry.npmjs.org/...`                                    | `https://fast.dxshelley.fun/npm/...`                                                  |
-| PyPI             | `pypi`      | `https://pypi.org/...`                                              | `https://fast.dxshelley.fun/pypi/...`                                                 |
+| 平台             | 平台前綴    | 原始 URL 格式                                                       | 加速 URL 格式                                                                              |
+| ---------------- | ----------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| GitHub           | `gh`        | `https://github.com/...`                                            | `https://git.dxshelley.fun/...`                                                            |
+| GitHub Gist      | `gist`      | `https://gist.github.com/...`                                       | `https://fast.dxshelley.fun/gist/...`                                                      |
+| GitLab           | `gl`        | `https://gitlab.com/...`                                            | `https://fast.dxshelley.fun/gl/...`                                                        |
+| Gitea            | `gitea`     | `https://gitea.com/...`                                             | `https://fast.dxshelley.fun/gitea/...`                                                     |
+| Codeberg         | `codeberg`  | `https://codeberg.org/...`                                          | `https://fast.dxshelley.fun/codeberg/...`                                                  |
+| SourceForge      | `sf`        | `https://sourceforge.net/...`                                       | `https://fast.dxshelley.fun/sf/...`                                                        |
+| AOSP             | `aosp`      | `https://android.googlesource.com/...`                              | `https://fast.dxshelley.fun/aosp/...`                                                      |
+| Hugging Face     | `hf`        | `https://huggingface.co/...`                                        | `https://fast.dxshelley.fun/hf/...`                                                        |
+| Civitai          | `civitai`   | `https://civitai.com/...`                                           | `https://fast.dxshelley.fun/civitai/...`                                                   |
+| npm              | `npm`       | `https://registry.npmjs.org/...`                                    | `https://fast.dxshelley.fun/npm/...`                                                       |
+| PyPI             | `pypi`      | `https://pypi.org/...`                                              | `https://fast.dxshelley.fun/pypi/...`                                                      |
 | conda            | `conda`     | `https://repo.anaconda.com/...` 和 `https://conda.anaconda.org/...` | `https://fast.dxshelley.fun/conda/...` 和 `https://fast.dxshelley.fun/conda/community/...` |
-| Maven            | `maven`     | `https://repo1.maven.org/...`                                       | `https://fast.dxshelley.fun/maven/...`                                                |
-| Apache           | `apache`    | `https://downloads.apache.org/...`                                  | `https://fast.dxshelley.fun/apache/...`                                               |
-| Gradle           | `gradle`    | `https://plugins.gradle.org/...`                                    | `https://fast.dxshelley.fun/gradle/...`                                               |
-| Homebrew         | `homebrew`  | `https://github.com/Homebrew/...`                                   | `https://fast.dxshelley.fun/homebrew/...`                                             |
-| RubyGems         | `rubygems`  | `https://rubygems.org/...`                                          | `https://fast.dxshelley.fun/rubygems/...`                                             |
-| CRAN             | `cran`      | `https://cran.r-project.org/...`                                    | `https://fast.dxshelley.fun/cran/...`                                                 |
-| CPAN             | `cpan`      | `https://www.cpan.org/...`                                          | `https://fast.dxshelley.fun/cpan/...`                                                 |
-| CTAN             | `ctan`      | `https://tug.ctan.org/...`                                          | `https://fast.dxshelley.fun/ctan/...`                                                 |
-| Go 模組          | `golang`    | `https://proxy.golang.org/...`                                      | `https://fast.dxshelley.fun/golang/...`                                               |
-| NuGet            | `nuget`     | `https://api.nuget.org/...`                                         | `https://fast.dxshelley.fun/nuget/...`                                                |
-| Rust Crates      | `crates`    | `https://crates.io/...`                                             | `https://fast.dxshelley.fun/crates/...`                                               |
-| Packagist        | `packagist` | `https://repo.packagist.org/...`                                    | `https://fast.dxshelley.fun/packagist/...`                                            |
-| Flathub          | `flathub`   | `https://dl.flathub.org/...`                                        | `https://fast.dxshelley.fun/flathub/...`                                              |
-| Debian           | `debian`    | `https://deb.debian.org/...`                                        | `https://fast.dxshelley.fun/debian/...`                                               |
-| Ubuntu           | `ubuntu`    | `https://archive.ubuntu.com/...`                                    | `https://fast.dxshelley.fun/ubuntu/...`                                               |
-| Fedora           | `fedora`    | `https://dl.fedoraproject.org/...`                                  | `https://fast.dxshelley.fun/fedora/...`                                               |
-| Rocky Linux      | `rocky`     | `https://download.rockylinux.org/...`                               | `https://fast.dxshelley.fun/rocky/...`                                                |
-| openSUSE         | `opensuse`  | `https://download.opensuse.org/...`                                 | `https://fast.dxshelley.fun/opensuse/...`                                             |
-| Arch Linux       | `arch`      | `https://geo.mirror.pkgbuild.com/...`                               | `https://fast.dxshelley.fun/arch/...`                                                 |
-| arXiv            | `arxiv`     | `https://arxiv.org/...`                                             | `https://fast.dxshelley.fun/arxiv/...`                                                |
-| F-Droid          | `fdroid`    | `https://f-droid.org/...`                                           | `https://fast.dxshelley.fun/fdroid/...`                                               |
-| Jenkins 外掛程式 | `jenkins`   | `https://updates.jenkins.io/...`                                    | `https://fast.dxshelley.fun/jenkins/...`                                              |
-| 容器註冊表       | `cr`        | 見[容器註冊表](#容器註冊表)                                         | 見[容器註冊表](#容器註冊表)                                                      |
-| AI 推理供應商    | `ip`        | 見 [AI 推理供應商](#ai-推理供應商)                                  | 見 [AI 推理供應商](#ai-推理供應商)                                               |
+| Maven            | `maven`     | `https://repo1.maven.org/...`                                       | `https://fast.dxshelley.fun/maven/...`                                                     |
+| Apache           | `apache`    | `https://downloads.apache.org/...`                                  | `https://fast.dxshelley.fun/apache/...`                                                    |
+| Gradle           | `gradle`    | `https://plugins.gradle.org/...`                                    | `https://fast.dxshelley.fun/gradle/...`                                                    |
+| Homebrew         | `homebrew`  | `https://github.com/Homebrew/...`                                   | `https://fast.dxshelley.fun/homebrew/...`                                                  |
+| RubyGems         | `rubygems`  | `https://rubygems.org/...`                                          | `https://fast.dxshelley.fun/rubygems/...`                                                  |
+| CRAN             | `cran`      | `https://cran.r-project.org/...`                                    | `https://fast.dxshelley.fun/cran/...`                                                      |
+| CPAN             | `cpan`      | `https://www.cpan.org/...`                                          | `https://fast.dxshelley.fun/cpan/...`                                                      |
+| CTAN             | `ctan`      | `https://tug.ctan.org/...`                                          | `https://fast.dxshelley.fun/ctan/...`                                                      |
+| Go 模組          | `golang`    | `https://proxy.golang.org/...`                                      | `https://fast.dxshelley.fun/golang/...`                                                    |
+| NuGet            | `nuget`     | `https://api.nuget.org/...`                                         | `https://fast.dxshelley.fun/nuget/...`                                                     |
+| Rust Crates      | `crates`    | `https://crates.io/...`                                             | `https://fast.dxshelley.fun/crates/...`                                                    |
+| Packagist        | `packagist` | `https://repo.packagist.org/...`                                    | `https://fast.dxshelley.fun/packagist/...`                                                 |
+| Flathub          | `flathub`   | `https://dl.flathub.org/...`                                        | `https://fast.dxshelley.fun/flathub/...`                                                   |
+| Debian           | `debian`    | `https://deb.debian.org/...`                                        | `https://fast.dxshelley.fun/debian/...`                                                    |
+| Ubuntu           | `ubuntu`    | `https://archive.ubuntu.com/...`                                    | `https://fast.dxshelley.fun/ubuntu/...`                                                    |
+| Fedora           | `fedora`    | `https://dl.fedoraproject.org/...`                                  | `https://fast.dxshelley.fun/fedora/...`                                                    |
+| Rocky Linux      | `rocky`     | `https://download.rockylinux.org/...`                               | `https://fast.dxshelley.fun/rocky/...`                                                     |
+| openSUSE         | `opensuse`  | `https://download.opensuse.org/...`                                 | `https://fast.dxshelley.fun/opensuse/...`                                                  |
+| Arch Linux       | `arch`      | `https://geo.mirror.pkgbuild.com/...`                               | `https://fast.dxshelley.fun/arch/...`                                                      |
+| arXiv            | `arxiv`     | `https://arxiv.org/...`                                             | `https://fast.dxshelley.fun/arxiv/...`                                                     |
+| F-Droid          | `fdroid`    | `https://f-droid.org/...`                                           | `https://fast.dxshelley.fun/fdroid/...`                                                    |
+| Jenkins 外掛程式 | `jenkins`   | `https://updates.jenkins.io/...`                                    | `https://fast.dxshelley.fun/jenkins/...`                                                   |
+| 容器註冊表       | `cr`        | 見[容器註冊表](#容器註冊表)                                         | 見[容器註冊表](#容器註冊表)                                                                |
+| AI 推理供應商    | `ip`        | 見 [AI 推理供應商](#ai-推理供應商)                                  | 見 [AI 推理供應商](#ai-推理供應商)                                                         |
 
 ### 各平台轉換範例
 
@@ -774,8 +774,8 @@ https://fast.dxshelley.fun/jenkins/download/plugins/maven-plugin/3.27/maven-plug
 
 Xget 支援多個容器註冊表，使用 `cr/[容器註冊表前綴]` 格式：
 
-| 容器註冊表           | 容器註冊表前綴 | 原始 URL 格式                               | 加速 URL 格式                               |
-| -------------------- | -------------- | ------------------------------------------- | ------------------------------------------- |
+| 容器註冊表           | 容器註冊表前綴 | 原始 URL 格式                               | 加速 URL 格式                                    |
+| -------------------- | -------------- | ------------------------------------------- | ------------------------------------------------ |
 | Docker Hub           | `docker`       | `https://registry-1.docker.io/...`          | `https://fast.dxshelley.fun/cr/docker/...`       |
 | Quay.io              | `quay`         | `https://quay.io/...`                       | `https://fast.dxshelley.fun/cr/quay/...`         |
 | Google 容器註冊表    | `gcr`          | `https://gcr.io/...`                        | `https://fast.dxshelley.fun/cr/gcr/...`          |
@@ -826,8 +826,8 @@ https://fast.dxshelley.fun/cr/gcr/v2/distroless/base/manifests/latest
 
 Xget 支援眾多主流 AI 推理供應商的 API 加速，使用 `ip/[AI 推理供應商前綴]` 格式：
 
-| AI 推理供應商  | AI 推理供應商前綴 | 原始 URL 格式                                   | 加速 URL 格式                                |
-| -------------- | ----------------- | ----------------------------------------------- | -------------------------------------------- |
+| AI 推理供應商  | AI 推理供應商前綴 | 原始 URL 格式                                   | 加速 URL 格式                                     |
+| -------------- | ----------------- | ----------------------------------------------- | ------------------------------------------------- |
 | OpenAI         | `openai`          | `https://api.openai.com/...`                    | `https://fast.dxshelley.fun/ip/openai/...`        |
 | Anthropic      | `anthropic`       | `https://api.anthropic.com/...`                 | `https://fast.dxshelley.fun/ip/anthropic/...`     |
 | Gemini         | `gemini`          | `https://generativelanguage.googleapis.com/...` | `https://fast.dxshelley.fun/ip/gemini/...`        |
@@ -2821,7 +2821,7 @@ export const PLATFORM_CATALOG = {
   custom: 'https://example.com'
 };
 
-// src/routing/platform-transformers.js
+// src/platforms/path-transformers.js
 const PLATFORM_PATH_TRANSFORMERS = {
   custom: path => path.replace(/^\/custom\//, '/')
 };

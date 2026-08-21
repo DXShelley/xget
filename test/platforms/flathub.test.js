@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PLATFORM_CATALOG as PLATFORMS } from '../../src/config/platform-catalog.js';
-import { transformPath } from '../../src/routing/platform-transformers.js';
+import { transformPlatformPath as transformPath } from '../../src/platforms/path-transformers.js';
 
 describe('Flathub Platform Configuration', () => {
   it('should have Flathub platform configured', () => {
