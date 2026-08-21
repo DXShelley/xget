@@ -6,6 +6,7 @@ import {
   resolveSiteByAlias,
   resolveSiteByProxyHost
 } from './site-registry.js';
+import { handleClaudeCodeDocsRequest } from '../claude-code-docs/handle-request.js';
 import { createErrorResponse } from '../utils/security.js';
 
 const FAST_PROXY_HOST = 'fast.dxshelley.fun';
@@ -67,11 +68,18 @@ export async function handleFastRoute(request, url) {
     const site = resolveSiteByAlias(match[1]);
     if (!site) return createErrorResponse('Unknown proxy site', 404);
     const targetUrl = new URL(`${match[2] || '/'}${url.search}`, site.upstreamOrigin);
+    const claudeCodeDocsResponse = await handleClaudeCodeDocsRequest({ request, site, targetUrl });
+    if (claudeCodeDocsResponse) return claudeCodeDocsResponse;
     return await handleConfiguredTargetRequest(request, targetUrl);
   }
 
   const isolatedSite = resolveSiteByProxyHost(url.hostname);
-  return isolatedSite
-    ? await handleConfiguredTargetRequest(request, createConfiguredTargetUrl(isolatedSite, url))
-    : null;
+  if (!isolatedSite) return null;
+  const targetUrl = createConfiguredTargetUrl(isolatedSite, url);
+  const claudeCodeDocsResponse = await handleClaudeCodeDocsRequest({
+    request,
+    site: isolatedSite,
+    targetUrl
+  });
+  return claudeCodeDocsResponse || (await handleConfiguredTargetRequest(request, targetUrl));
 }
