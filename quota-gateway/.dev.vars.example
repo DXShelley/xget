@@ -1,0 +1,5 @@
+# Generate a high-entropy token. Never commit the real .dev.vars file.
+QUOTA_GATEWAY_API_TOKEN=replace-with-a-long-random-secret
+
+# Optional JSON override. Every called resource must be explicitly listed.
+# FREE_ONLY_POLICY={"resources":{"r2.storage.bytes":{"scope":"current","limit":8000000000}}}

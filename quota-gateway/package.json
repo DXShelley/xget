@@ -1,0 +1,13 @@
+{
+  "name": "shotsync-quota-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy --config wrangler.toml",
+    "deploy:dry-run": "wrangler deploy --dry-run --config wrangler.toml",
+    "dev": "wrangler dev --local --config wrangler.toml",
+    "format": "prettier --write \"src/**/*.js\" \"test/**/*.js\" \"*.js\" \"*.md\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"test/**/*.js\" \"*.js\" \"*.md\"",
+    "test": "vitest run --config vitest.config.js"
+  }
+}

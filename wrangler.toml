@@ -27,10 +27,28 @@ enabled = true
 persist = true
 head_sampling_rate = 1
 
+[[durable_objects.bindings]]
+name = "QUOTA_GATE"
+class_name = "QuotaGate"
+script_name = "quota-gateway"
+
+[vars]
+QUOTA_GATE_NAME = "account-free-20260824"
+QUOTA_PROFILE = "account"
+QUOTA_ENFORCEMENT_MODE = "hourly"
+
 [env.git]
 name = "xget-git"
 workers_dev = false
 routes = [{ pattern = "git.dxshelley.fun", custom_domain = true }]
 
+[[env.git.durable_objects.bindings]]
+name = "QUOTA_GATE"
+class_name = "QuotaGate"
+script_name = "quota-gateway"
+
 [env.git.vars]
 GITHUB_WEB_HOST = "git.dxshelley.fun"
+QUOTA_GATE_NAME = "account-free-20260824"
+QUOTA_PROFILE = "account"
+QUOTA_ENFORCEMENT_MODE = "hourly"

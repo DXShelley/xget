@@ -25,6 +25,7 @@ import { PerformanceMonitor, addPerformanceHeaders } from '../utils/performance.
 import { addCorsHeaders, addSecurityHeaders, createErrorResponse } from '../utils/security.js';
 import { getAllowedMethods, isProtocolRequest, validateRequest } from '../utils/validation.js';
 import { createRequestContext } from './request-context.js';
+import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
 
 /**
  * Dispatches routes that own a fixed browser-facing host before platform routing.
@@ -60,7 +61,10 @@ export async function handleRequest(request, env, ctx) {
   const { config, isCorsPreflight, isDocker, url } = requestContext;
 
   try {
-    if (isCorsPreflight) {
+    const quotaResponse = await reserveWorkerRequest(requestContext.env);
+    if (quotaResponse) {
+      response = quotaResponse;
+    } else if (isCorsPreflight) {
       const requestedMethod = request.headers.get('Access-Control-Request-Method') || '';
       const allowedMethods = getAllowedMethods(
         new Request(request.url, { method: requestedMethod || 'GET' }),
