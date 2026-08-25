@@ -1,0 +1,40 @@
+#:schema ../node_modules/wrangler/config-schema.json
+name = "quota-gateway"
+main = "src/index.js"
+compatibility_date = "2026-08-24"
+workers_dev = true
+
+[vars]
+QUOTA_GATE_NAME = "account-free-20260824"
+QUOTA_PROFILE = "account"
+R2_BUCKET_NAME = "shotsync"
+FREE_ONLY_POLICIES = '''{"profiles":{"account":{"resources":{"worker.requests":{"limit":50000,"scope":"daily"},"r2.storage.bytes":{"limit":8000000000,"scope":"current"},"r2.class_a":{"limit":800000,"scope":"monthly"},"r2.class_b":{"limit":8000000,"scope":"monthly"}}}}}'''
+
+[triggers]
+crons = ["0 * * * *"]
+
+# Keep logs disabled by default so observability is an explicit capacity decision.
+[observability]
+enabled = false
+
+# Create this bucket in the Dashboard only after enabling R2, using Standard storage.
+[[r2_buckets]]
+binding = "SHOTS_BUCKET"
+bucket_name = "shotsync"
+
+[[durable_objects.bindings]]
+name = "QUOTA_GATE"
+class_name = "QuotaGate"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["QuotaGate"]
+
+# Change namespace_id if another Worker in this Cloudflare account uses it.
+[[ratelimits]]
+name = "REQUEST_RATE_LIMITER"
+namespace_id = "390001"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60

@@ -44,6 +44,32 @@ describe('Worker regression coverage', () => {
     expect(body).not.toContain('Failed after');
   });
 
+  it('does not proxy upstream when the shared quota gate rejects a request', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('must not run'));
+    const response = await worker.fetch(
+      new Request('https://example.com/gh/user/repo/file.txt'),
+      {
+        QUOTA_ENFORCEMENT_MODE: 'request',
+        QUOTA_GATE: {
+          get: () => ({
+            fetch: async () =>
+              new Response(
+                JSON.stringify({ allowed: false, reason: 'quota-exhausted', status: 429 }),
+                {
+                  status: 429
+                }
+              )
+          }),
+          idFromName: () => 'global-id'
+        }
+      },
+      executionContext
+    );
+
+    expect(response.status).toBe(429);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('clears timeout handles when upstream fetch rejects', async () => {
     const timeoutToken = { id: 'timeout-token' };
     const setTimeoutSpy = vi.fn(() => timeoutToken);
