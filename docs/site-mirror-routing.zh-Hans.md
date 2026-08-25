@@ -6,6 +6,7 @@
 | ------------------------------------- | ---------------- | --------------------- |
 | `git.dxshelley.fun`                   | `github.com`     | `GitHubAdapter`       |
 | `fast.dxshelley.fun`                  | 平台目录与入口页 | `XgetPlatformAdapter` |
+| `docker.fast.dxshelley.fun`           | Docker Hub       | `DockerHubMirror`     |
 | `fast.dxshelley.fun/_/<alias>/<path>` | 固定已登记站点   | `ConfiguredAdapter`   |
 | `<alias>.fast.dxshelley.fun/<path>`   | 固定已登记站点   | 站点专属适配器        |
 
@@ -19,6 +20,12 @@
 URL；Worker 会校验其 Origin 后跳转至规范 URL。`?target=`
 仅是兼容入口，用户无需手工 URL 编码。已登记的专属 `WebAdapter`
 目标会直接跳转到其固定镜像 Host；它们不会回退为通用配置站点代理。
+
+`docker.fast.dxshelley.fun` 是 Docker Hub 的 Registry
+API 专用入口。它接受 Docker 客户端固定使用的 `/v2/...`
+路径，并在 Worker 内部映射到 `/cr/docker/v2/...`；因此可以直接用于 Docker 的
+`registry-mirrors` 配置。该域名由既有 `*.fast.dxshelley.fun`
+路由覆盖，仍需确认通配 DNS 与边缘证书覆盖该二级通配域名。
 
 ## 路由分派架构
 

@@ -23,6 +23,30 @@
 import { SORTED_PLATFORMS } from '../routing/platform-index.js';
 import { createErrorResponse } from '../utils/security.js';
 
+export const DOCKER_HUB_MIRROR_HOST = 'docker.fast.dxshelley.fun';
+
+/**
+ * Maps Docker's fixed Registry API paths on the dedicated mirror host to the
+ * existing Docker Hub platform route. Keep the version probe local so Docker
+ * can discover the Registry API without an upstream round trip.
+ * @param {URL} url
+ * @returns {URL} The original URL or its Docker Hub platform-route equivalent.
+ */
+export function normalizeDockerHubMirrorUrl(url) {
+  if (
+    url.hostname !== DOCKER_HUB_MIRROR_HOST ||
+    url.pathname === '/v2' ||
+    url.pathname === '/v2/' ||
+    !url.pathname.startsWith('/v2/')
+  ) {
+    return url;
+  }
+
+  const normalizedUrl = new URL(url);
+  normalizedUrl.pathname = `/cr/docker${url.pathname}`;
+  return normalizedUrl;
+}
+
 /**
  * Parses Docker/OCI registry WWW-Authenticate header.
  *
@@ -263,7 +287,12 @@ function resolveDockerAuthTarget(url, platforms) {
  * @returns {Response} Unauthorized response with WWW-Authenticate header
  */
 export function responseUnauthorized(url, platform) {
-  const realmPath = platform ? `/cr/${platform.slice(3)}/v2/auth` : '/v2/auth';
+  const realmPath =
+    url.hostname === DOCKER_HUB_MIRROR_HOST && platform === 'cr-docker'
+      ? '/v2/auth'
+      : platform
+        ? `/cr/${platform.slice(3)}/v2/auth`
+        : '/v2/auth';
   const headers = new Headers();
   headers.set('Content-Type', 'application/json');
   headers.set('WWW-Authenticate', `Bearer realm="${url.origin}${realmPath}",service="Xget"`);

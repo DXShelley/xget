@@ -4,6 +4,7 @@ import { PLATFORM_CATALOG } from '../../src/config/platform-catalog.js';
 import {
   filterPlatformTextResponse,
   isOriginBoundPlatformResponse,
+  rewriteNpmRegistryStream,
   shouldFilterPlatformTextResponse,
   shouldVaryPlatformCacheByOrigin
 } from '../../src/platforms/response-filters.js';
@@ -46,5 +47,22 @@ describe('Platform module boundaries', () => {
       true
     );
     expect(isOriginBoundPlatformResponse('pypi')).toBe(true);
+  });
+
+  it('rewrites npm registry URLs across streamed response chunks', async () => {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode('{"tarball":"https://registry.npm'));
+        controller.enqueue(encoder.encode('js.org/npm/-/npm.tgz"}'));
+        controller.close();
+      }
+    });
+
+    const response = new Response(rewriteNpmRegistryStream(body, 'https://fast.dxshelley.fun'));
+
+    await expect(response.text()).resolves.toBe(
+      '{"tarball":"https://fast.dxshelley.fun/npm/npm/-/npm.tgz"}'
+    );
   });
 });

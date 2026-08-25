@@ -4,6 +4,7 @@
 
 const FLATHUB_REPO_BASE_URL_PATTERN = /https:\/\/(?:dl\.)?flathub\.org\/repo\//g;
 const FLATPAK_REFERENCE_FILE_PATTERN = /\.(flatpakrepo|flatpakref)$/i;
+const NPM_REGISTRY_ORIGIN = 'https://registry.npmjs.org/';
 
 /**
  * Checks whether a path names a Flatpak descriptor.
@@ -46,6 +47,56 @@ export function filterPlatformTextResponse(platform, requestPath, originalText, 
     return originalText.replace(FLATHUB_REPO_BASE_URL_PATTERN, `${origin}/flathub/repo/`);
   }
   return originalText;
+}
+
+/**
+ * Rewrites npm tarball origins without buffering the full registry metadata.
+ * @param {ReadableStream<Uint8Array>} body
+ * @param {string} origin
+ * @returns {ReadableStream<Uint8Array>} Stream with rewritten registry origins.
+ */
+export function rewriteNpmRegistryStream(body, origin) {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const replacement = `${origin}/npm/`;
+  let remainder = '';
+
+  /**
+   * Rewrites complete origins and retains only the suffix that can span chunks.
+   * @param {string} text Decoded response text.
+   * @param {{ enqueue: (chunk: Uint8Array) => void }} controller Stream controller.
+   * @returns {void}
+   */
+  const emitRewritten = (text, controller) => {
+    let cursor = 0;
+    let matchIndex = text.indexOf(NPM_REGISTRY_ORIGIN, cursor);
+
+    while (matchIndex !== -1) {
+      controller.enqueue(encoder.encode(text.slice(cursor, matchIndex)));
+      controller.enqueue(encoder.encode(replacement));
+      cursor = matchIndex + NPM_REGISTRY_ORIGIN.length;
+      matchIndex = text.indexOf(NPM_REGISTRY_ORIGIN, cursor);
+    }
+
+    const unmatched = text.slice(cursor);
+    const emitLength = Math.max(0, unmatched.length - NPM_REGISTRY_ORIGIN.length + 1);
+    if (emitLength) {
+      controller.enqueue(encoder.encode(unmatched.slice(0, emitLength)));
+    }
+    remainder = unmatched.slice(emitLength);
+  };
+
+  return body.pipeThrough(
+    new TransformStream({
+      transform(chunk, controller) {
+        emitRewritten(remainder + decoder.decode(chunk, { stream: true }), controller);
+      },
+      flush(controller) {
+        const text = remainder + decoder.decode();
+        controller.enqueue(encoder.encode(text.replaceAll(NPM_REGISTRY_ORIGIN, replacement)));
+      }
+    })
+  );
 }
 
 /**

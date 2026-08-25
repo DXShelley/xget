@@ -6,6 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 routes = [
   { pattern = "fast.dxshelley.fun", custom_domain = true },
+  # Includes docker.fast.dxshelley.fun, the Docker Hub Registry API mirror.
   { pattern = "*.fast.dxshelley.fun/*", zone_name = "dxshelley.fun" }
 ]
 
