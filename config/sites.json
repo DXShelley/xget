@@ -85,6 +85,12 @@
     "upstreamOrigin": "https://www.google.com",
     "adapter": "configured",
     "allowedMethods": ["GET", "HEAD"],
+    "pathProxyRules": [
+      {
+        "pathPrefix": "/recaptcha/",
+        "proxyOrigin": "https://www.recaptcha.net"
+      }
+    ],
     "proxyPolicy": {
       "paths": "all",
       "timeoutSeconds": 20,

@@ -161,6 +161,7 @@ describe('site registry', () => {
     );
 
     const headers = new Headers(fetchSpy.mock.calls.at(-1)?.[1]?.headers);
+    expect(fetchSpy.mock.calls.at(-1)?.[0]).toBe('https://www.google.com/search?q=computer');
     for (const name of [
       'CF-Connecting-IP',
       'Forwarded',
@@ -171,6 +172,17 @@ describe('site registry', () => {
     ]) {
       expect(headers.get(name)).toBeNull();
     }
+  });
+
+  it('routes Google reCAPTCHA paths through the fixed reCAPTCHA origin only', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('upstream'));
+    await handleConfiguredSiteRequest(
+      new Request('https://google-public.fast.dxshelley.fun/recaptcha/api.js?render=explicit')
+    );
+
+    expect(fetchSpy.mock.calls.at(-1)?.[0]).toBe(
+      'https://www.recaptcha.net/recaptcha/api.js?render=explicit'
+    );
   });
 
   it('keeps client identity headers for configured sites without the opt-in policy', async () => {
