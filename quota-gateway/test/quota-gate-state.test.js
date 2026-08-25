@@ -210,4 +210,58 @@ describe('QuotaGate state policy', () => {
     await expect(response.json()).resolves.toMatchObject({ attempted: false });
     expect(request).not.toHaveBeenCalled();
   });
+
+  it('rolls back a failed metered operation by its reservation id', async () => {
+    const storage = {
+      get: async () => storage.value,
+      put: async (_key, value) => {
+        storage.value = value;
+      }
+    };
+    const gate = new QuotaGate(
+      { storage },
+      {
+        FREE_ONLY_POLICIES: JSON.stringify({
+          profiles: {
+            account: {
+              resources: {
+                'r2.class_a': { limit: 2, scope: 'monthly' },
+                'r2.storage.bytes': { limit: 100, scope: 'current' }
+              }
+            }
+          }
+        }),
+        QUOTA_PROFILE: 'account'
+      }
+    );
+    const reserveResponse = await gate.fetch(
+      new Request('https://quota-gate/reserve', {
+        body: JSON.stringify({
+          day: '2026-08-24',
+          deltas: [
+            { amount: 1, resource: 'r2.class_a' },
+            { amount: 80, resource: 'r2.storage.bytes' }
+          ],
+          id: 'failed-put',
+          period: '2026-08',
+          profile: 'account'
+        }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST'
+      })
+    );
+    expect(reserveResponse.status).toBe(201);
+
+    const releaseResponse = await gate.fetch(
+      new Request('https://quota-gate/release', {
+        body: JSON.stringify({ id: 'failed-put' }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST'
+      })
+    );
+
+    expect(releaseResponse.status).toBe(200);
+    expect(storage.value.usage.current['r2.storage.bytes']).toBe(0);
+    expect(storage.value.usage.monthly['r2.class_a']).toBe(0);
+  });
 });

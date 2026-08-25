@@ -83,16 +83,35 @@ async function putObject(request, env, key) {
     return json({ error: 'Unsupported content type.' }, 415);
   }
 
-  const reservation = await reserve(env, [
-    { amount: contentLength.value, resource: 'r2.storage.bytes' },
-    { amount: 1, resource: 'r2.class_a' },
+  const headReservation = await reserve(env, [
+    { amount: 1, resource: 'r2.class_b' },
     { amount: 1, resource: 'worker.requests' }
   ]);
-  if (!reservation.allowed) {
-    return quotaDenied(reservation);
+  if (!headReservation.result.allowed) {
+    return quotaDenied(headReservation.result);
   }
 
-  await env.SHOTS_BUCKET.put(key, request.body, { httpMetadata: { contentType } });
+  const existing = await env.SHOTS_BUCKET.head(key);
+  const storageIncrease = Math.max(0, contentLength.value - (existing?.size || 0));
+  const writeDeltas = [{ amount: 1, resource: 'r2.class_a' }];
+  if (storageIncrease > 0) {
+    writeDeltas.unshift({ amount: storageIncrease, resource: 'r2.storage.bytes' });
+  }
+  const writeReservation = await reserve(env, writeDeltas);
+  if (!writeReservation.result.allowed) {
+    return quotaDenied(writeReservation.result);
+  }
+
+  try {
+    await env.SHOTS_BUCKET.put(key, request.body, { httpMetadata: { contentType } });
+  } catch (error) {
+    await releaseReservation(env, writeReservation.id);
+    throw error;
+  }
+
+  if (existing && existing.size > contentLength.value) {
+    await quotaRequest(env, '/release-storage', { amount: existing.size - contentLength.value });
+  }
   return json({ key, stored: true }, 201);
 }
 
@@ -170,18 +189,29 @@ async function handleAdmin(request, url, env) {
 /**
  * @param {GatewayEnv} env
  * @param {Array<{ resource: string, amount: number }>} deltas
- * @returns {Promise<{ allowed: boolean, status: number, reason?: string, resource?: string }>}
+ * @returns {Promise<{ id: string, result: { allowed: boolean, status: number, reason?: string, resource?: string }}>}
  */
 async function reserve(env, deltas) {
   const clock = utcClock();
+  const id = crypto.randomUUID();
   const response = await quotaRequest(env, '/reserve', {
     day: clock.day,
     deltas,
-    id: crypto.randomUUID(),
+    id,
     period: clock.period,
     profile: env.QUOTA_PROFILE || 'default'
   });
-  return response.json();
+  return { id, result: await response.json() };
+}
+
+/**
+ * Rolls back a reservation whose metered operation did not occur.
+ * @param {GatewayEnv} env
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
+async function releaseReservation(env, id) {
+  await quotaRequest(env, '/release', { id });
 }
 
 /**

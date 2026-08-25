@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { createState, releaseStorage, reserve, setKillSwitch } from '../src/quota-engine.js';
+import {
+  createState,
+  releaseReservation,
+  releaseStorage,
+  reserve,
+  setKillSwitch
+} from '../src/quota-engine.js';
 
 const policy = {
   resources: {
@@ -118,5 +124,21 @@ describe('quota engine', () => {
     const released = releaseStorage(state, 25);
 
     expect(released.usage.current['r2.storage.bytes']).toBe(55);
+  });
+
+  it('rolls back only the reserved resources for an operation that did not run', () => {
+    const reserved = reserve(
+      createState(policy, '2026-08', '2026-08-24'),
+      request('failed-put', [
+        { resource: 'r2.storage.bytes', amount: 80 },
+        { resource: 'r2.class_a', amount: 1 }
+      ])
+    ).state;
+
+    const released = releaseReservation(reserved, 'failed-put');
+
+    expect(released.usage.current['r2.storage.bytes']).toBe(0);
+    expect(released.usage.monthly['r2.class_a']).toBe(0);
+    expect(released.reservations).toEqual({});
   });
 });

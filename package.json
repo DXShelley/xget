@@ -27,9 +27,10 @@
   "scripts": {
     "commitlint": "commitlint --last --verbose",
     "commitmsg": "commitlint --edit",
-    "deploy": "npm run deploy:fast && npm run deploy:git",
+    "deploy": "npm run deploy:fast && npm run deploy:git && npm run deploy:quota",
     "deploy:fast": "wrangler deploy --env \"\"",
     "deploy:git": "wrangler deploy --env git",
+    "deploy:quota": "npm --prefix quota-gateway run deploy",
     "dev": "wrangler dev",
     "format": "prettier --write src/ test/ *.js *.json",
     "format:check": "prettier --check src/ test/ *.js *.json",

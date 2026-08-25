@@ -3,6 +3,7 @@ import { fetchCloudflareUsage } from './cloudflare-analytics.js';
 import {
   createState,
   recordReconciliationFailure,
+  releaseReservation,
   reconcileUsage,
   releaseStorage,
   reserve,
@@ -47,6 +48,19 @@ export class QuotaGate {
         const state = await this.update(async current => ({
           allowed: true,
           state: releaseStorage(current, body.amount),
+          status: 200
+        }));
+        return json({ usage: state.state.usage }, 200);
+      }
+
+      if (request.method === 'POST' && url.pathname === '/release') {
+        const body = await request.json();
+        if (typeof body.id !== 'string' || !body.id) {
+          return json({ error: 'id is required.' }, 400);
+        }
+        const state = await this.update(async current => ({
+          allowed: true,
+          state: releaseReservation(current, body.id),
           status: 200
         }));
         return json({ usage: state.state.usage }, 200);
