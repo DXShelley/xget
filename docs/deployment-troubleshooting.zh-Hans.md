@@ -91,7 +91,7 @@ main 分支 push
   -> CI completed
   -> Workers workflow
   -> deploy job
-  -> wrangler deploy
+  -> xget-fast、xget-git、quota-gateway 依次部署
 ```
 
 `workers.yml` 的自动部署条件等价于：
@@ -149,6 +149,12 @@ Worker 工作流从以下 Secrets 读取凭证：
   Workers 和 Pages 页面或账户信息中查看。
 
 Token 应只保存为 GitHub Actions Secret，不要提交到代码、日志或 `wrangler.toml`。
+
+`quota-gateway` 复用 `CLOUDFLARE_API_TOKEN` 和
+`CLOUDFLARE_ACCOUNT_ID` 完成部署。其运行时的 `CLOUDFLARE_ACCOUNT_ID`
+还必须通过 `wrangler secret put` 写为 Worker Secret，供 Analytics 查询使用；两个位置的值均为同一账户 ID。
+`QUOTA_GATEWAY_API_TOKEN` 与 `CLOUDFLARE_ANALYTICS_API_TOKEN` 仅作为
+Worker Secret，不能写入 GitHub Actions Secret 或仓库。
 
 ### Codecov Secret
 

@@ -76,12 +76,14 @@ flowchart TB
 | ----------- | -------------------------------------------- | ----------------------------------- | --------------------- |
 | `xget-fast` | `fast.dxshelley.fun`、`*.fast.dxshelley.fun` | 通用平台前缀、配置站点和 Web 适配器 | `npm run deploy:fast` |
 | `xget-git`  | `git.dxshelley.fun`                          | GitHub 全站透明镜像                 | `npm run deploy:git`  |
+| `quota-gateway` | `door.dxshelley.fun` | 账户共享免费额度校准与 Durable Object 账本 | `npm run deploy:quota` |
 
 `wrangler.toml` 以默认环境定义 `xget-fast`，以 `env.git` 定义
-`xget-git`。`npm run deploy` 必须顺序部署两个 Worker。
+`xget-git`；`quota-gateway/wrangler.toml` 定义独立的限额 Worker。`npm run deploy`
+必须顺序部署三个 Worker。
 
 GitHub Actions 的 `workers.yml` 是唯一自动部署工作流：主分支的 CI 成功后执行
-`npm run deploy`。其他平台的同步、Pages、Netlify、Vercel 和镜像发布工作流只保留手动触发，不能重新引入自动
+`npm run deploy`，依次发布 `xget-fast`、`xget-git` 和 `quota-gateway`。其他平台的同步、Pages、Netlify、Vercel 和镜像发布工作流只保留手动触发，不能重新引入自动
 `workflow_run`，除非明确恢复该平台的自动发布策略。
 
 ## 4. 适配器架构

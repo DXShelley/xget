@@ -84,6 +84,9 @@ jobs:
         env:
           CI: true
 
+      - name: Run quota gateway tests
+        run: npm --prefix quota-gateway test
+
       - name: Verify deployment workflow policy
         run: npm run test:workflows
 

@@ -13,12 +13,15 @@ describe('Package manifest', () => {
     expect(typedDependencies?.xget).toBeUndefined();
   });
 
-  it('exposes separate deployment commands for Xget and GitHub mirror workers', () => {
+  it('deploys Xget, GitHub mirror, and quota gateway workers together', () => {
     const require = createRequire(import.meta.url);
     const packageJson = require('../../package.json');
 
     expect(packageJson.scripts['deploy:fast']).toBe('wrangler deploy --env ""');
     expect(packageJson.scripts['deploy:git']).toBe('wrangler deploy --env git');
-    expect(packageJson.scripts.deploy).toBe('npm run deploy:fast && npm run deploy:git');
+    expect(packageJson.scripts['deploy:quota']).toBe('npm --prefix quota-gateway run deploy');
+    expect(packageJson.scripts.deploy).toBe(
+      'npm run deploy:fast && npm run deploy:git && npm run deploy:quota'
+    );
   });
 });

@@ -95,6 +95,31 @@ export function releaseStorage(previousState, amount) {
 }
 
 /**
+ * Rolls back a previously accepted reservation that did not reach its metered operation.
+ * @param {QuotaState} previousState
+ * @param {string} id
+ * @returns {QuotaState}
+ */
+export function releaseReservation(previousState, id) {
+  const reservation = previousState.reservations[id];
+  if (!reservation) {
+    return previousState;
+  }
+
+  const state = structuredClone(previousState);
+  for (const delta of reservation.deltas) {
+    const rule = state.policy.resources[delta.resource];
+    if (!rule) {
+      throw new Error(`Cannot release unregistered resource ${delta.resource}.`);
+    }
+    const usage = state.usage[rule.scope];
+    usage[delta.resource] = Math.max(0, (usage[delta.resource] || 0) - delta.amount);
+  }
+  delete state.reservations[id];
+  return state;
+}
+
+/**
  * Updates the explicit account-wide emergency stop.
  * @param {QuotaState} previousState
  * @param {boolean} enabled

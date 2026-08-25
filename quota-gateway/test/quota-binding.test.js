@@ -78,4 +78,45 @@ describe('QuotaGate binding', () => {
     );
     expect(waitUntil).toHaveBeenCalledOnce();
   });
+
+  it('charges replacement uploads only for net new storage', async () => {
+    const calls = [];
+    const quotaGateFetch = vi.fn(async (input, init) => {
+      calls.push({ input, init });
+      return new Response(JSON.stringify({ allowed: true, status: 201 }), { status: 201 });
+    });
+    const put = vi.fn().mockResolvedValue(undefined);
+    const env = {
+      QUOTA_GATE: { get: () => ({ fetch: quotaGateFetch }), idFromName: () => 'quota-id' },
+      QUOTA_GATEWAY_API_TOKEN: 'test-token',
+      QUOTA_PROFILE: 'account',
+      REQUEST_RATE_LIMITER: { limit: async () => ({ success: true }) },
+      SHOTS_BUCKET: { head: async () => ({ size: 64 }), put }
+    };
+
+    const response = await worker.fetch(
+      new Request('https://quota.example/v1/objects/screenshots/a.png', {
+        body: 'x'.repeat(80),
+        headers: {
+          Authorization: 'Bearer test-token',
+          'Content-Length': '80',
+          'Content-Type': 'image/png'
+        },
+        method: 'PUT'
+      }),
+      env
+    );
+
+    expect(response.status).toBe(201);
+    expect(put).toHaveBeenCalledOnce();
+    expect(calls).toHaveLength(2);
+    expect(JSON.parse(calls[0].init.body).deltas).toEqual([
+      { amount: 1, resource: 'r2.class_b' },
+      { amount: 1, resource: 'worker.requests' }
+    ]);
+    expect(JSON.parse(calls[1].init.body).deltas).toEqual([
+      { amount: 16, resource: 'r2.storage.bytes' },
+      { amount: 1, resource: 'r2.class_a' }
+    ]);
+  });
 });
