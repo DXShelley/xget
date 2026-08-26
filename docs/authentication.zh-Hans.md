@@ -53,10 +53,11 @@ git config --global credential.helper osxkeychain
 git clone https://git.dxshelley.fun/owner/repo.git
 ```
 
-用户名可以使用 `xget`。浏览器登录后，向 `/__xget/auth/git-token`
-发送 POST，即可获得一个有效期 90 天的 Git Access
-Token；浏览器 Cookie 不能直接用于 Git 命令行。管理员轮换 `XGET_SESSION_SECRET`
-会同时使 Git Token 失效。
+用户名可以使用任意非空值。最简单的首次使用方式是直接输入
+`XGET_LOGIN_SECRET`；该方式适合少量用户，管理员应至少每 90 天轮换一次登录密钥。更推荐浏览器登录后，向
+`/__xget/auth/git-token` 发送 POST，获得一个自动在 90 天后失效的 Git Access
+Token；管理员轮换 `XGET_SESSION_SECRET` 会立即使签发的 Git
+Token 失效。浏览器 Cookie 不能直接用于 Git 命令行。
 
 ## Docker pull
 

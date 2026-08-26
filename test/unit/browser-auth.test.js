@@ -171,4 +171,14 @@ describe('browser authentication', () => {
       fetchSpy.mockRestore();
     }
   });
+
+  it('accepts the configured login secret for the simple first-use flow', async () => {
+    const request = new Request('https://git.example/user/repo.git/info/refs', {
+      headers: { Authorization: `Basic ${btoa('yuzq:login-secret')}` }
+    });
+    expect(await validateGitCredential(request, env)).toMatchObject({
+      authMethod: 'git-basic',
+      id: 'git:yuzq'
+    });
+  });
 });

@@ -65,12 +65,20 @@ export async function validateGitCredential(request, env) {
     const password = separator >= 0 ? decoded.slice(separator + 1) : '';
     if (!username || !password) return null;
     const claims = await validateScopedToken(password, env, 'git:read');
-    if (!claims) return null;
-    return {
-      authMethod: 'git-basic',
-      expiresAt: new Date(claims.exp * 1000).toISOString(),
-      id: `git:${claims.sub}`
-    };
+    if (claims) {
+      return {
+        authMethod: 'git-basic',
+        expiresAt: new Date(claims.exp * 1000).toISOString(),
+        id: `git:${claims.sub}`
+      };
+    }
+    // Keep the first-use flow simple for small private deployments. Operators
+    // should prefer the signed token returned by /__xget/auth/git-token.
+    const loginSecret = typeof env.XGET_LOGIN_SECRET === 'string' ? env.XGET_LOGIN_SECRET : '';
+    if (loginSecret && (await constantTimeEqual(password, loginSecret))) {
+      return { authMethod: 'git-basic', expiresAt: '', id: `git:${username}` };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -80,7 +88,7 @@ export async function validateGitCredential(request, env) {
 export async function issueScopedToken(env, subject, scopes, ttlSeconds) {
   const secret = getSecret(env);
   if (!secret) return new Response('Authentication service unavailable', { status: 503 });
-  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   const payload = toBase64Url(encoder.encode(JSON.stringify({ exp, scopes, sub: subject })));
   const token = `${payload}.${await sign(payload, secret)}`;
   return json({ expiresAt: new Date(exp * 1000).toISOString(), token });
