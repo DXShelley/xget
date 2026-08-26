@@ -34,6 +34,7 @@ import { getRequestTraits } from '../utils/validation.js';
  *   isGitLFS: boolean,
  *   isHF: boolean,
  *   request: Request,
+ *   principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *   url: URL
  * }} Request context with parsed config, URL, and protocol traits.
  */
