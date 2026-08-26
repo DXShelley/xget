@@ -3,6 +3,7 @@ import {
   gitAuthenticationChallenge,
   handleBrowserAuth,
   validateBrowserSession,
+  validateDockerCredential,
   validateGitCredential
 } from '../../src/auth/browser.js';
 import { handleRequest } from '../../src/app/handle-request.js';
@@ -179,6 +180,40 @@ describe('browser authentication', () => {
     expect(await validateGitCredential(request, env)).toMatchObject({
       authMethod: 'git-basic',
       id: 'git:yuzq'
+    });
+  });
+
+  it('accepts the Docker access token in both Basic and Bearer forms', async () => {
+    const browserLogin = await handleBrowserAuth(
+      new Request('https://git.example/__xget/auth/login', {
+        body: new URLSearchParams({ secret: 'login-secret' }),
+        method: 'POST'
+      }),
+      env
+    );
+    if (!browserLogin) throw new Error('Expected browser login response');
+    const cookie = browserLogin.headers.get('Set-Cookie');
+    if (!cookie) throw new Error('Expected browser session cookie');
+    const tokenResponse = await handleBrowserAuth(
+      new Request('https://git.example/__xget/auth/git-token', {
+        headers: { Cookie: cookie.split(';')[0] },
+        method: 'POST'
+      }),
+      env
+    );
+    if (!tokenResponse) throw new Error('Expected access token response');
+    const { token } = await tokenResponse.json();
+    const basic = new Request('https://docker.example/v2/', {
+      headers: { Authorization: `Basic ${btoa(`xget:${token}`)}` }
+    });
+    const bearer = new Request('https://docker.example/v2/', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    expect(await validateDockerCredential(basic, env)).toMatchObject({
+      authMethod: 'docker-bearer'
+    });
+    expect(await validateDockerCredential(bearer, env)).toMatchObject({
+      authMethod: 'docker-bearer'
     });
   });
 });

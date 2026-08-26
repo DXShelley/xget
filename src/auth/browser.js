@@ -120,8 +120,18 @@ export async function validateScopedToken(value, env, scope) {
 /** Validates a Docker Registry Bearer credential. @param {Request} request @param {Record<string, unknown>} env @returns {Promise<{id: string, authMethod: string, expiresAt: string} | null>} */
 export async function validateDockerCredential(request, env) {
   const value = request.headers.get('Authorization') || '';
-  if (!value.startsWith('Bearer ')) return null;
-  const claims = await validateScopedToken(value.slice(7), env, 'docker:pull');
+  let token = '';
+  if (value.startsWith('Bearer ')) token = value.slice(7);
+  if (value.startsWith('Basic ')) {
+    try {
+      const decoded = atob(value.slice(6));
+      token = decoded.slice(decoded.indexOf(':') + 1);
+    } catch {
+      return null;
+    }
+  }
+  if (!token) return null;
+  const claims = await validateScopedToken(token, env, 'docker:pull');
   return claims
     ? {
         authMethod: 'docker-bearer',
