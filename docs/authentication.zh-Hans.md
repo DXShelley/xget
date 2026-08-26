@@ -71,11 +71,27 @@ docker login docker.fast.dxshelley.fun
 # Username: xget
 # Password: Access secret 或上一步获得的 Access Token
 docker pull docker.fast.dxshelley.fun/library/alpine:latest
+docker pull docker.fast.dxshelley.fun/library/nginx:latest
 ```
 
-Docker 客户端之后会自动使用短期 Bearer token。当前只支持公开镜像的
-`pull`，不支持 `push` 或上游私有仓库凭据转发。xget Bearer
-token 不会转发到 Docker Hub。
+Docker 客户端会将登录凭据保存到本地 Docker 配置，后续 `pull` 会自动用该凭据换取短期
+Bearer token，不需要每次重新登录。使用浏览器签发的 Access Token 时，Token 有效期为 90
+天；直接使用 `XGET_LOGIN_SECRET` 时，有效期由管理员轮换该 Secret 控制。当前只支持公开镜像的
+`pull`，不支持 `push` 或上游私有仓库凭据转发。xget Bearer token 不会转发到 Docker Hub。
+
+Docker Hub 官方镜像需要显式使用 `library` 命名空间，例如 `library/alpine` 和
+`library/nginx`。带有其他命名空间的路径（例如 `nginx/nginx`）表示 Docker Hub 上的独立
+`nginx/nginx` 仓库，不等同于官方 `nginx` 镜像；如果该仓库不存在，Docker CLI 可能会显示
+`Login prior to pull`，这不代表本地 90 天登录态失效。
+
+Ubuntu 等没有 Docker credential helper 的系统，通常会将凭据写入
+`~/.docker/config.json`，并显示 unencrypted warning。这不会影响后续使用，但应限制该文件
+权限；生产环境建议安装并配置 Docker credential helper。确认当前登录信息：
+
+```bash
+docker login docker.fast.dxshelley.fun
+docker pull docker.fast.dxshelley.fun/library/alpine:latest
+```
 
 如果 macOS Docker CLI 报错
 `error saving credentials: User interaction is not allowed. (-25308)`，这是本机

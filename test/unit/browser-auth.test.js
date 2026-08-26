@@ -7,6 +7,8 @@ import {
   validateGitCredential
 } from '../../src/auth/browser.js';
 import { handleRequest } from '../../src/app/handle-request.js';
+import { CONFIG } from '../../src/config/index.js';
+import { handleDockerAuth } from '../../src/protocols/docker.js';
 
 const env = {
   XGET_AUTH_REQUIRED: 'true',
@@ -225,5 +227,31 @@ describe('browser authentication', () => {
       authMethod: 'docker-basic',
       id: 'docker:basic'
     });
+  });
+
+  it('reuses one Docker login credential across multiple repositories', async () => {
+    const repositoryPaths = ['library/alpine', 'library/nginx', 'example/worker'];
+
+    for (const repositoryPath of repositoryPaths) {
+      const response = await handleDockerAuth(
+        new Request(
+          `https://docker.example/v2/auth?service=xget&scope=repository:${repositoryPath}:pull`,
+          { headers: { Authorization: `Basic ${btoa('xget:login-secret')}` } }
+        ),
+        new URL('https://docker.example/v2/auth'),
+        CONFIG,
+        env
+      );
+      expect(response.status).toBe(200);
+      const { token } = await response.json();
+      expect(
+        await validateDockerCredential(
+          new Request(`https://docker.example/v2/${repositoryPath}/manifests/latest`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          env
+        )
+      ).toMatchObject({ authMethod: 'docker-bearer' });
+    }
   });
 });
