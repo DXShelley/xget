@@ -51,9 +51,10 @@ function normalizeGithubReferer(value, requestUrl, upstreamHost) {
  * Copies GitHub Web request headers and target-host-scoped credentials.
  * @param {Request} request
  * @param {string} [upstreamHost]
+ * @param {{ stripAuthorization?: boolean }} [options]
  * @returns {Headers} Sanitized navigation headers.
  */
-export function getGithubRequestHeaders(request, upstreamHost = 'github.com') {
+export function getGithubRequestHeaders(request, upstreamHost = 'github.com', options = {}) {
   const headers = new Headers();
 
   for (const [key, value] of request.headers.entries()) {
@@ -76,8 +77,10 @@ export function getGithubRequestHeaders(request, upstreamHost = 'github.com') {
 
   const cookie = getGithubCookieHeader(request.headers.get('Cookie'), upstreamHost);
   if (cookie) headers.set('Cookie', cookie);
-  const authorization = request.headers.get('Authorization');
-  if (authorization) headers.set('Authorization', authorization);
+  if (!options.stripAuthorization) {
+    const authorization = request.headers.get('Authorization');
+    if (authorization) headers.set('Authorization', authorization);
+  }
   const origin = request.headers.get('Origin');
   if (origin) headers.set('Origin', `https://${upstreamHost}`);
 
@@ -153,12 +156,18 @@ function getGithubCacheKey(targetUrl, request) {
 
 /**
  * Fetches a GitHub Web resource and forwards bodies for non-GET browser requests.
- * @param {{ request: Request, targetUrl: string, config: { MAX_RETRIES: number, RETRY_DELAY_MS: number, TIMEOUT_SECONDS: number, CACHE_DURATION?: number }, forwardBody?: boolean }} options
+ * @param {{ request: Request, targetUrl: string, config: { MAX_RETRIES: number, RETRY_DELAY_MS: number, TIMEOUT_SECONDS: number, CACHE_DURATION?: number }, forwardBody?: boolean, stripAuthorization?: boolean }} options
  * @returns {Promise<{ response: Response, responseGeneratedLocally: boolean }>} Upstream result.
  */
-export async function fetchGithubWeb({ request, targetUrl, config, forwardBody = false }) {
+export async function fetchGithubWeb({
+  request,
+  targetUrl,
+  config,
+  forwardBody = false,
+  stripAuthorization = false
+}) {
   const upstreamHost = new URL(targetUrl).hostname;
-  const headers = getGithubRequestHeaders(request, upstreamHost);
+  const headers = getGithubRequestHeaders(request, upstreamHost, { stripAuthorization });
   const canUseSharedCache =
     request.method === 'GET' &&
     !request.headers.has('X-Fetch-Nonce') &&
