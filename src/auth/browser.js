@@ -20,6 +20,11 @@ export async function handleBrowserAuth(request, env) {
     const principal = await validateBrowserSession(request, env);
     return json(principal ? { authenticated: true, principal } : { authenticated: false });
   }
+  if (url.pathname === '/__xget/auth/git-token' && request.method === 'POST') {
+    const principal = await validateBrowserSession(request, env);
+    if (!principal) return new Response('Authentication required', { status: 401 });
+    return issueGitToken(env, principal.id);
+  }
   return null;
 }
 
@@ -44,6 +49,58 @@ export async function validateBrowserSession(request, env) {
   } catch {
     return null;
   }
+}
+
+/** Validates the Basic credential used by Git Smart HTTP. @param {Request} request @param {Record<string, unknown>} env @returns {Promise<{id: string, authMethod: string, expiresAt: string} | null>} */
+export async function validateGitCredential(request, env) {
+  if (String(env.XGET_AUTH_REQUIRED || '').toLowerCase() !== 'true') {
+    return { authMethod: 'compatibility', expiresAt: '', id: 'anonymous' };
+  }
+  const value = request.headers.get('Authorization') || '';
+  if (!value.startsWith('Basic ')) return null;
+  try {
+    const decoded = new TextDecoder().decode(fromBase64Url(value.slice(6).replace(/=/g, '')));
+    const separator = decoded.indexOf(':');
+    const username = separator >= 0 ? decoded.slice(0, separator) : '';
+    const password = separator >= 0 ? decoded.slice(separator + 1) : '';
+    if (!username || !password) return null;
+    const [payload, suppliedSignature] = password.split('.');
+    if (
+      !payload ||
+      !suppliedSignature ||
+      !(await constantTimeEqual(suppliedSignature, await sign(payload, getSecret(env))))
+    )
+      return null;
+    const claims = JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
+    if (claims.exp <= Math.floor(Date.now() / 1000) || claims.scope !== 'git:read') return null;
+    return {
+      authMethod: 'git-basic',
+      expiresAt: new Date(claims.exp * 1000).toISOString(),
+      id: `git:${claims.sub}`
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Issues a 90-day Git credential for a logged-in browser user. @param {Record<string, unknown>} env @param {string} subject @returns {Promise<Response>} */
+async function issueGitToken(env, subject) {
+  const secret = getSecret(env);
+  if (!secret) return new Response('Authentication service unavailable', { status: 503 });
+  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
+  const payload = toBase64Url(
+    encoder.encode(JSON.stringify({ exp, scope: 'git:read', sub: subject }))
+  );
+  const token = `${payload}.${await sign(payload, secret)}`;
+  return json({ expiresAt: new Date(exp * 1000).toISOString(), token });
+}
+
+/** Creates the Git Smart HTTP challenge. @returns {Response} */
+export function gitAuthenticationChallenge() {
+  return new Response('Git authentication required', {
+    headers: { 'Cache-Control': 'no-store', 'WWW-Authenticate': 'Basic realm="xget git"' },
+    status: 401
+  });
 }
 
 /** @param {Request} request @param {Record<string, unknown>} env @returns {Promise<Response>} */

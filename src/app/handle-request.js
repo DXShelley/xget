@@ -26,7 +26,12 @@ import { addCorsHeaders, addSecurityHeaders, createErrorResponse } from '../util
 import { getAllowedMethods, isProtocolRequest, validateRequest } from '../utils/validation.js';
 import { createRequestContext } from './request-context.js';
 import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
-import { handleBrowserAuth, validateBrowserSession } from '../auth/browser.js';
+import {
+  gitAuthenticationChallenge,
+  handleBrowserAuth,
+  validateBrowserSession,
+  validateGitCredential
+} from '../auth/browser.js';
 
 /**
  * Dispatches routes that own a fixed browser-facing host before platform routing.
@@ -64,7 +69,11 @@ export async function handleRequest(request, env, ctx) {
   try {
     const authEndpoint = new URL(request.url).pathname.startsWith('/__xget/auth/');
     const authResponse = await handleBrowserAuth(request, requestContext.env);
-    const principal = await validateBrowserSession(request, requestContext.env);
+    const browserPrincipal = await validateBrowserSession(request, requestContext.env);
+    const gitPrincipal = requestContext.isGit
+      ? await validateGitCredential(request, requestContext.env)
+      : null;
+    const principal = requestContext.isGit ? gitPrincipal : browserPrincipal;
     const loginRedirect =
       !authResponse &&
       !principal &&
@@ -80,7 +89,13 @@ export async function handleRequest(request, env, ctx) {
           })
         : null;
 
-    const terminalAuthResponse = authResponse || loginRedirect;
+    const gitAuthResponse =
+      requestContext.isGit &&
+      !gitPrincipal &&
+      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
+        ? gitAuthenticationChallenge()
+        : null;
+    const terminalAuthResponse = authResponse || loginRedirect || gitAuthResponse;
     if (terminalAuthResponse) {
       response = terminalAuthResponse;
     } else {

@@ -11,6 +11,8 @@ Hub 或其他上游。
 ```bash
 npx wrangler secret put XGET_SESSION_SECRET
 npx wrangler secret put XGET_LOGIN_SECRET
+npx wrangler secret put XGET_SESSION_SECRET --env git
+npx wrangler secret put XGET_LOGIN_SECRET --env git
 ```
 
 生产配置使用 `XGET_AUTH_REQUIRED=true`。轮换 `XGET_SESSION_SECRET`
@@ -41,7 +43,19 @@ curl -i -X POST https://fast.dxshelley.fun/__xget/auth/logout
 `Secure`、`HttpOnly`、`SameSite=Lax` 和
 `Path=/`。认证请求和认证后的代理请求不得进入共享缓存。
 
-## 当前范围
+## Git clone
 
-本阶段只实现浏览器访问认证。Git Smart HTTP、`git clone` 和 Docker
-Registry 认证使用各自协议的认证流程，不能把浏览器 Cookie 手工复制到命令行工具中。
+Git Smart HTTP 使用标准 Basic challenge。首次执行 `git clone` 时输入用户名和 Git
+Access Token，之后由 Git credential helper 保存凭据：
+
+```bash
+git config --global credential.helper osxkeychain
+git clone https://git.dxshelley.fun/owner/repo.git
+```
+
+用户名可以使用 `xget`。浏览器登录后，向 `/__xget/auth/git-token`
+发送 POST，即可获得一个有效期 90 天的 Git Access
+Token；浏览器 Cookie 不能直接用于 Git 命令行。管理员轮换 `XGET_SESSION_SECRET`
+会同时使 Git Token 失效。
+
+Docker Registry 认证尚未启用，后续会实现标准 Bearer challenge。

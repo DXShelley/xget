@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { handleBrowserAuth, validateBrowserSession } from '../../src/auth/browser.js';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  gitAuthenticationChallenge,
+  handleBrowserAuth,
+  validateBrowserSession,
+  validateGitCredential
+} from '../../src/auth/browser.js';
 import { handleRequest } from '../../src/app/handle-request.js';
 
 const env = {
@@ -93,5 +98,77 @@ describe('browser authentication', () => {
       /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
     );
     expect(response.status).not.toBe(302);
+  });
+
+  it('issues a 90-day Git credential and validates Git Basic credentials', async () => {
+    const browserLogin = await handleBrowserAuth(
+      new Request('https://git.example/__xget/auth/login', {
+        body: new URLSearchParams({ secret: 'login-secret' }),
+        method: 'POST'
+      }),
+      env
+    );
+    if (!browserLogin) throw new Error('Expected browser login response');
+    const browserCookie = browserLogin.headers.get('Set-Cookie');
+    if (!browserCookie) throw new Error('Expected browser session cookie');
+    const tokenResponse = await handleBrowserAuth(
+      new Request('https://git.example/__xget/auth/git-token', {
+        headers: { Cookie: browserCookie.split(';')[0] },
+        method: 'POST'
+      }),
+      env
+    );
+    if (!tokenResponse) throw new Error('Expected Git token response');
+    const { token } = await tokenResponse.json();
+    const request = new Request('https://git.example/user/repo.git/info/refs', {
+      headers: { Authorization: `Basic ${btoa(`xget:${token}`)}` }
+    });
+    expect(await validateGitCredential(request, env)).toMatchObject({
+      authMethod: 'git-basic',
+      id: 'git:browser-user'
+    });
+    expect(await validateGitCredential(new Request(request.url), env)).toBeNull();
+    const challenge = gitAuthenticationChallenge();
+    expect(challenge.status).toBe(401);
+    expect(challenge.headers.get('WWW-Authenticate')).toContain('Basic');
+  });
+
+  it('passes an authenticated Git request through the main handler', async () => {
+    const browserLogin = await handleBrowserAuth(
+      new Request('https://git.example/__xget/auth/login', {
+        body: new URLSearchParams({ secret: 'login-secret' }),
+        method: 'POST'
+      }),
+      env
+    );
+    if (!browserLogin) throw new Error('Expected browser login response');
+    const browserCookie = browserLogin.headers.get('Set-Cookie');
+    if (!browserCookie) throw new Error('Expected browser session cookie');
+    const tokenResponse = await handleBrowserAuth(
+      new Request('https://git.example/__xget/auth/git-token', {
+        headers: { Cookie: browserCookie.split(';')[0] },
+        method: 'POST'
+      }),
+      env
+    );
+    if (!tokenResponse) throw new Error('Expected Git token response');
+    const { token } = await tokenResponse.json();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('refs'));
+    try {
+      const response = await handleRequest(
+        new Request('https://git.dxshelley.fun/user/repo.git/info/refs', {
+          headers: {
+            Authorization: `Basic ${btoa(`xget:${token}`)}`,
+            'User-Agent': 'git/2.40.0'
+          }
+        }),
+        env,
+        /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+      );
+      expect(response.status).not.toBe(401);
+      expect(fetchSpy).toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });
