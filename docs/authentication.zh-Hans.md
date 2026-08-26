@@ -76,3 +76,19 @@ docker pull docker.fast.dxshelley.fun/library/alpine:latest
 Docker 客户端之后会自动使用短期 Bearer token。当前只支持公开镜像的
 `pull`，不支持 `push` 或上游私有仓库凭据转发。xget Bearer
 token 不会转发到 Docker Hub。
+
+如果 macOS Docker CLI 报错
+`error saving credentials: User interaction is not allowed. (-25308)`，这是本机
+Keychain 无法在当前终端会话中保存凭据，不是 xget 服务端认证失败。可使用临时配置目录绕过
+Keychain 完成登录和拉取：
+
+```bash
+export DOCKER_CONFIG="$(mktemp -d)"
+printf '%s\n' '<XGET_LOGIN_SECRET>' | \
+  docker login docker.fast.dxshelley.fun --username xget --password-stdin
+docker pull docker.fast.dxshelley.fun/library/alpine:latest
+```
+
+临时目录中的凭据只对当前 shell 有效。若希望持久保存，请在本机交互式桌面终端解锁登录
+Keychain 后重新执行 `docker login`，或按 Docker Desktop 的凭据存储配置处理；不要把登录密钥
+直接写入脚本、镜像或仓库。
