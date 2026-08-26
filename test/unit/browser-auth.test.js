@@ -216,4 +216,14 @@ describe('browser authentication', () => {
       authMethod: 'docker-bearer'
     });
   });
+
+  it('accepts the configured login secret for Docker first-use login', async () => {
+    const request = new Request('https://docker.example/v2/', {
+      headers: { Authorization: `Basic ${btoa('xget:login-secret')}` }
+    });
+    expect(await validateDockerCredential(request, env)).toMatchObject({
+      authMethod: 'docker-basic',
+      id: 'docker:basic'
+    });
+  });
 });

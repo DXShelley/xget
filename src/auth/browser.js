@@ -132,12 +132,16 @@ export async function validateDockerCredential(request, env) {
   }
   if (!token) return null;
   const claims = await validateScopedToken(token, env, 'docker:pull');
-  return claims
-    ? {
-        authMethod: 'docker-bearer',
-        expiresAt: new Date(claims.exp * 1000).toISOString(),
-        id: `docker:${claims.sub}`
-      }
+  if (claims) {
+    return {
+      authMethod: 'docker-bearer',
+      expiresAt: new Date(claims.exp * 1000).toISOString(),
+      id: `docker:${claims.sub}`
+    };
+  }
+  const loginSecret = typeof env.XGET_LOGIN_SECRET === 'string' ? env.XGET_LOGIN_SECRET : '';
+  return loginSecret && (await constantTimeEqual(token, loginSecret))
+    ? { authMethod: 'docker-basic', expiresAt: '', id: 'docker:basic' }
     : null;
 }
 

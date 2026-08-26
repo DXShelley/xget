@@ -61,13 +61,15 @@ Token 失效。浏览器 Cookie 不能直接用于 Git 命令行。
 
 ## Docker pull
 
-Docker Registry 使用标准 Bearer challenge。先在浏览器登录，然后调用
-`/__xget/auth/git-token` 获取 90 天 Access Token，并使用该 token 登录 Docker：
+Docker Registry 使用标准 Bearer
+challenge。简单首次使用时，可以直接使用登录页的 Access
+secret 登录；更推荐先在浏览器登录，然后调用 `/__xget/auth/git-token`
+获取 90 天 Access Token：
 
 ```bash
 docker login docker.fast.dxshelley.fun
 # Username: xget
-# Password: 上一步获得的 Access Token
+# Password: Access secret 或上一步获得的 Access Token
 docker pull docker.fast.dxshelley.fun/library/alpine:latest
 ```
 
