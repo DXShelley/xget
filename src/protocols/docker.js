@@ -22,7 +22,7 @@
 
 import { SORTED_PLATFORMS } from '../routing/platform-index.js';
 import { createErrorResponse } from '../utils/security.js';
-import { issueScopedToken, validateScopedToken } from '../auth/browser.js';
+import { issueScopedToken, validateDockerCredential } from '../auth/browser.js';
 
 export const DOCKER_HUB_MIRROR_HOST = 'docker.fast.dxshelley.fun';
 
@@ -333,16 +333,9 @@ export async function handleDockerAuth(
   const authorization = request.headers.get('Authorization') || '';
   if (String(env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true') {
     if (!authorization.startsWith('Basic ')) return responseUnauthorized(url, '');
-    let password;
-    try {
-      const decoded = atob(authorization.slice(6));
-      password = decoded.slice(decoded.indexOf(':') + 1);
-    } catch {
-      return responseUnauthorized(url, '');
-    }
-    const claims = await validateScopedToken(password, env, 'docker:pull');
-    if (!claims) return responseUnauthorized(url, '');
-    return issueScopedToken(env, claims.sub, ['docker:pull'], 15 * 60);
+    const principal = await validateDockerCredential(request, env);
+    if (!principal) return responseUnauthorized(url, '');
+    return issueScopedToken(env, principal.id, ['docker:pull'], 15 * 60);
   }
 
   let target;

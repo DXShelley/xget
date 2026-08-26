@@ -141,4 +141,21 @@ describe('Docker helper coverage', () => {
     expect(response.status).toBe(401);
     expect(await response.text()).toBe('missing-authenticate');
   });
+
+  it('exchanges the simple login secret for a Docker bearer token', async () => {
+    const response = await handleDockerAuth(
+      new Request('https://docker.example/v2/auth', {
+        headers: { Authorization: `Basic ${btoa('xget:login-secret')}` }
+      }),
+      new URL('https://docker.example/v2/auth'),
+      CONFIG,
+      {
+        XGET_AUTH_REQUIRED: 'true',
+        XGET_LOGIN_SECRET: 'login-secret',
+        XGET_SESSION_SECRET: 'session-secret'
+      }
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()).token).toContain('.');
+  });
 });
