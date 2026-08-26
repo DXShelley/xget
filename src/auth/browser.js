@@ -23,7 +23,7 @@ export async function handleBrowserAuth(request, env) {
   if (url.pathname === '/__xget/auth/git-token' && request.method === 'POST') {
     const principal = await validateBrowserSession(request, env);
     if (!principal) return new Response('Authentication required', { status: 401 });
-    return issueGitToken(env, principal.id);
+    return issueScopedToken(env, principal.id, ['git:read', 'docker:pull'], SESSION_TTL_SECONDS);
   }
   return null;
 }
@@ -64,15 +64,8 @@ export async function validateGitCredential(request, env) {
     const username = separator >= 0 ? decoded.slice(0, separator) : '';
     const password = separator >= 0 ? decoded.slice(separator + 1) : '';
     if (!username || !password) return null;
-    const [payload, suppliedSignature] = password.split('.');
-    if (
-      !payload ||
-      !suppliedSignature ||
-      !(await constantTimeEqual(suppliedSignature, await sign(payload, getSecret(env))))
-    )
-      return null;
-    const claims = JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
-    if (claims.exp <= Math.floor(Date.now() / 1000) || claims.scope !== 'git:read') return null;
+    const claims = await validateScopedToken(password, env, 'git:read');
+    if (!claims) return null;
     return {
       authMethod: 'git-basic',
       expiresAt: new Date(claims.exp * 1000).toISOString(),
@@ -83,16 +76,51 @@ export async function validateGitCredential(request, env) {
   }
 }
 
-/** Issues a 90-day Git credential for a logged-in browser user. @param {Record<string, unknown>} env @param {string} subject @returns {Promise<Response>} */
-async function issueGitToken(env, subject) {
+/** Issues a signed scoped credential. @param {Record<string, unknown>} env @param {string} subject @param {string[]} scopes @param {number} ttlSeconds @returns {Promise<Response>} */
+export async function issueScopedToken(env, subject, scopes, ttlSeconds) {
   const secret = getSecret(env);
   if (!secret) return new Response('Authentication service unavailable', { status: 503 });
   const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
-  const payload = toBase64Url(
-    encoder.encode(JSON.stringify({ exp, scope: 'git:read', sub: subject }))
-  );
+  const payload = toBase64Url(encoder.encode(JSON.stringify({ exp, scopes, sub: subject })));
   const token = `${payload}.${await sign(payload, secret)}`;
   return json({ expiresAt: new Date(exp * 1000).toISOString(), token });
+}
+
+/** Validates a signed scoped credential. @param {string} value @param {Record<string, unknown>} env @param {string} scope @returns {Promise<{sub: string, exp: number} | null>} */
+export async function validateScopedToken(value, env, scope) {
+  const [payload, suppliedSignature] = value.split('.');
+  if (
+    !payload ||
+    !suppliedSignature ||
+    !(await constantTimeEqual(suppliedSignature, await sign(payload, getSecret(env))))
+  )
+    return null;
+  try {
+    const claims = JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
+    if (
+      claims.exp <= Math.floor(Date.now() / 1000) ||
+      !claims.scopes?.includes(scope) ||
+      typeof claims.sub !== 'string'
+    )
+      return null;
+    return claims;
+  } catch {
+    return null;
+  }
+}
+
+/** Validates a Docker Registry Bearer credential. @param {Request} request @param {Record<string, unknown>} env @returns {Promise<{id: string, authMethod: string, expiresAt: string} | null>} */
+export async function validateDockerCredential(request, env) {
+  const value = request.headers.get('Authorization') || '';
+  if (!value.startsWith('Bearer ')) return null;
+  const claims = await validateScopedToken(value.slice(7), env, 'docker:pull');
+  return claims
+    ? {
+        authMethod: 'docker-bearer',
+        expiresAt: new Date(claims.exp * 1000).toISOString(),
+        id: `docker:${claims.sub}`
+      }
+    : null;
 }
 
 /** Creates the Git Smart HTTP challenge. @returns {Response} */

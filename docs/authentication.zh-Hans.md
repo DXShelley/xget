@@ -58,4 +58,18 @@ git clone https://git.dxshelley.fun/owner/repo.git
 Token；浏览器 Cookie 不能直接用于 Git 命令行。管理员轮换 `XGET_SESSION_SECRET`
 会同时使 Git Token 失效。
 
-Docker Registry 认证尚未启用，后续会实现标准 Bearer challenge。
+## Docker pull
+
+Docker Registry 使用标准 Bearer challenge。先在浏览器登录，然后调用
+`/__xget/auth/git-token` 获取 90 天 Access Token，并使用该 token 登录 Docker：
+
+```bash
+docker login docker.fast.dxshelley.fun
+# Username: xget
+# Password: 上一步获得的 Access Token
+docker pull docker.fast.dxshelley.fun/library/alpine:latest
+```
+
+Docker 客户端之后会自动使用短期 Bearer token。当前只支持公开镜像的
+`pull`，不支持 `push` 或上游私有仓库凭据转发。xget Bearer
+token 不会转发到 Docker Hub。
