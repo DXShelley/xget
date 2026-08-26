@@ -29,6 +29,7 @@ import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
 import {
   gitAuthenticationChallenge,
   handleBrowserAuth,
+  validateDockerCredential,
   validateBrowserSession,
   validateGitCredential
 } from '../auth/browser.js';
@@ -73,7 +74,14 @@ export async function handleRequest(request, env, ctx) {
     const gitPrincipal = requestContext.isGit
       ? await validateGitCredential(request, requestContext.env)
       : null;
-    const principal = requestContext.isGit ? gitPrincipal : browserPrincipal;
+    const dockerPrincipal = requestContext.isDocker
+      ? await validateDockerCredential(request, requestContext.env)
+      : null;
+    const principal = requestContext.isGit
+      ? gitPrincipal
+      : requestContext.isDocker
+        ? dockerPrincipal
+        : browserPrincipal;
     const loginRedirect =
       !authResponse &&
       !principal &&
@@ -95,7 +103,22 @@ export async function handleRequest(request, env, ctx) {
       String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
         ? gitAuthenticationChallenge()
         : null;
-    const terminalAuthResponse = authResponse || loginRedirect || gitAuthResponse;
+    const dockerAuthResponse =
+      requestContext.isDocker &&
+      !requestContext.url.pathname.includes('/v2/auth') &&
+      !dockerPrincipal &&
+      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
+        ? new Response('Docker authentication required', {
+            headers: {
+              'Cache-Control': 'no-store',
+              'Docker-Distribution-Api-Version': 'registry/2.0',
+              'WWW-Authenticate': `Bearer realm="${url.origin}${url.pathname.startsWith('/cr/') ? `/cr/${url.pathname.split('/')[2]}/v2/auth` : '/v2/auth'}",service="xget"`
+            },
+            status: 401
+          })
+        : null;
+    const terminalAuthResponse =
+      authResponse || loginRedirect || gitAuthResponse || dockerAuthResponse;
     if (terminalAuthResponse) {
       response = terminalAuthResponse;
     } else {
@@ -174,7 +197,7 @@ export async function handleRequest(request, env, ctx) {
                   isDocker &&
                   (url.pathname === '/v2/auth' || /^\/cr\/[^/]+\/v2\/auth\/?$/.test(url.pathname))
                 ) {
-                  response = await handleDockerAuth(request, url, config);
+                  response = await handleDockerAuth(request, url, config, requestContext.env);
                 } else {
                   const resolvedTarget = resolveTarget(url, effectivePath, config.PLATFORMS);
 

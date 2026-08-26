@@ -22,6 +22,7 @@
 
 import { SORTED_PLATFORMS } from '../routing/platform-index.js';
 import { createErrorResponse } from '../utils/security.js';
+import { issueScopedToken, validateScopedToken } from '../auth/browser.js';
 
 export const DOCKER_HUB_MIRROR_HOST = 'docker.fast.dxshelley.fun';
 
@@ -320,45 +321,51 @@ export function responseUnauthorized(url, platform) {
  * @param {Request} request - The incoming request
  * @param {URL} url - The parsed URL
  * @param {import('../config/index.js').ApplicationConfig} config - App configuration
+ * @param {Record<string, unknown>} env - Runtime authentication secrets
  * @returns {Promise<Response>} The response (token or error)
  */
-export async function handleDockerAuth(request, url, config) {
+export async function handleDockerAuth(
+  request,
+  url,
+  config,
+  /** @type {Record<string, unknown>} */ env = {}
+) {
+  const authorization = request.headers.get('Authorization') || '';
+  if (String(env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true') {
+    if (!authorization.startsWith('Basic ')) return responseUnauthorized(url, '');
+    let password;
+    try {
+      const decoded = atob(authorization.slice(6));
+      password = decoded.slice(decoded.indexOf(':') + 1);
+    } catch {
+      return responseUnauthorized(url, '');
+    }
+    const claims = await validateScopedToken(password, env, 'docker:pull');
+    if (!claims) return responseUnauthorized(url, '');
+    return issueScopedToken(env, claims.sub, ['docker:pull'], 15 * 60);
+  }
+
   let target;
   try {
     target = resolveDockerAuthTarget(url, config.PLATFORMS);
   } catch (error) {
-    // Log internal error details server-side without exposing them to the client
     console.error('Failed to resolve Docker auth target:', error);
-    // Return a generic error response to avoid leaking implementation details
     return createErrorResponse('Invalid Docker authentication request', 400);
   }
-
   const upstreamUrl = config.PLATFORMS[target.platformKey];
-  const authorization = request.headers.get('Authorization');
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), config.TIMEOUT_SECONDS * 1000);
-
   try {
-    // Fetch the upstream root (v2) to get the proper realm and service.
-    const v2Url = new URL(`${upstreamUrl}/v2/`);
-    const v2Resp = await fetch(v2Url.toString(), {
+    const v2Resp = await fetch(new URL(`${upstreamUrl}/v2/`).toString(), {
       method: 'GET',
       redirect: 'follow',
       signal: controller.signal
     });
-
-    if (v2Resp.status !== 401) {
-      return v2Resp;
-    }
-
+    if (v2Resp.status !== 401) return v2Resp;
     const authenticateStr = v2Resp.headers.get('WWW-Authenticate');
-    if (authenticateStr === null) {
-      return v2Resp;
-    }
-
-    const wwwAuthenticate = parseAuthenticate(authenticateStr);
+    if (authenticateStr === null) return v2Resp;
     return await fetchToken(
-      wwwAuthenticate,
+      parseAuthenticate(authenticateStr),
       target.upstreamScope,
       authorization || '',
       controller.signal
@@ -367,11 +374,7 @@ export async function handleDockerAuth(request, url, config) {
     if (error instanceof Error && error.name === 'AbortError') {
       return createErrorResponse('Docker authentication timeout', 408);
     }
-
-    console.error(
-      'Docker authentication upstream request failed:',
-      error instanceof Error ? error.message : 'unknown error'
-    );
+    console.error('Docker authentication upstream request failed:', error);
     return createErrorResponse('Docker authentication failed', 502);
   } finally {
     clearTimeout(timeoutId);
