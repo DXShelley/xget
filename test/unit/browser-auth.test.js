@@ -92,6 +92,29 @@ describe('browser authentication', () => {
     expect(response.headers.get('Location')).toContain('/__xget/auth/login');
   });
 
+  it('allows AI inference proxy requests without browser authentication', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+    try {
+      const response = await handleRequest(
+        new Request('https://fast.example/ip/openai/v1/chat/completions', {
+          body: '{}',
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST'
+        }),
+        env,
+        /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+      );
+
+      expect(response.status).toBe(200);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.openai.com/v1/chat/completions',
+        expect.any(Object)
+      );
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
   it('does not turn protocol requests into browser redirects', async () => {
     const response = await handleRequest(
       new Request('https://fast.example/cr/docker/v2/library/alpine/manifests/latest', {
