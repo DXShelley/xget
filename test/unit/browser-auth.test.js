@@ -1,4 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../src/auth/browser.js', async importOriginal => {
+  const actual = /** @type {typeof import('../../src/auth/browser.js')} */ (await importOriginal());
+  return {
+    ...actual,
+    validateBrowserSession: vi.fn(actual.validateBrowserSession)
+  };
+});
+
 import {
   gitAuthenticationChallenge,
   handleBrowserAuth,
@@ -103,6 +112,9 @@ describe('browser authentication', () => {
     'allows %s inference proxy requests without browser authentication',
     async (_, path, target) => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+      /** @type {{ mockClear: () => void }} */ (
+        /** @type {unknown} */ (validateBrowserSession)
+      ).mockClear();
       try {
         const response = await handleRequest(
           new Request(`https://fast.example/ip/${path}`, {
@@ -122,6 +134,7 @@ describe('browser authentication', () => {
         expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Authorization')).toBe(
           'Bearer provider-api-key'
         );
+        expect(validateBrowserSession).not.toHaveBeenCalled();
       } finally {
         fetchSpy.mockRestore();
       }

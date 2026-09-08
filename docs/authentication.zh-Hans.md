@@ -1,7 +1,9 @@
 # xget 认证使用说明
 
-生产环境的 xget 代理默认要求登录。首次访问代理域名时会跳转到登录页，输入管理员分发的访问密钥后，Worker 会写入一个安全 Cookie。Cookie 有效期为 90 天，不能被 JavaScript 读取，也不会转发给 GitHub、Docker
+生产环境的 xget 普通代理默认要求登录。首次访问代理域名时会跳转到登录页，输入管理员分发的访问密钥后，Worker 会写入一个安全 Cookie。Cookie 有效期为 90 天，不能被 JavaScript 读取，也不会转发给 GitHub、Docker
 Hub 或其他上游。
+
+AI 推理接口 `/ip/*` 是例外：OpenAI、Gemini、Anthropic 等模型 API 请求不要求 xget 浏览器登录，直接进入上游代理流程。调用方仍必须提供对应模型厂商的 API key；请求中的 `Authorization`、`x-api-key` 等认证请求头会按协议转发给上游，不会被 xget 登录 Cookie 替代。
 
 ## 部署配置
 
