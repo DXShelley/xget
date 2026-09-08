@@ -92,28 +92,41 @@ describe('browser authentication', () => {
     expect(response.headers.get('Location')).toContain('/__xget/auth/login');
   });
 
-  it('allows AI inference proxy requests without browser authentication', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
-    try {
-      const response = await handleRequest(
-        new Request('https://fast.example/ip/openai/v1/chat/completions', {
-          body: '{}',
-          headers: { 'Content-Type': 'application/json' },
-          method: 'POST'
-        }),
-        env,
-        /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
-      );
+  it.each([
+    ['OpenAI', 'openai/v1/chat/completions', 'https://api.openai.com/v1/chat/completions'],
+    [
+      'Gemini',
+      'gemini/v1beta/models/gemini-2.5-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+    ]
+  ])(
+    'allows %s inference proxy requests without browser authentication',
+    async (_, path, target) => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+      try {
+        const response = await handleRequest(
+          new Request(`https://fast.example/ip/${path}`, {
+            body: '{}',
+            headers: {
+              Authorization: 'Bearer provider-api-key',
+              'Content-Type': 'application/json'
+            },
+            method: 'POST'
+          }),
+          env,
+          /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+        );
 
-      expect(response.status).toBe(200);
-      expect(fetchSpy).toHaveBeenCalledWith(
-        'https://api.openai.com/v1/chat/completions',
-        expect.any(Object)
-      );
-    } finally {
-      fetchSpy.mockRestore();
+        expect(response.status).toBe(200);
+        expect(fetchSpy).toHaveBeenCalledWith(target, expect.any(Object));
+        expect(new Headers(fetchSpy.mock.calls[0][1]?.headers).get('Authorization')).toBe(
+          'Bearer provider-api-key'
+        );
+      } finally {
+        fetchSpy.mockRestore();
+      }
     }
-  });
+  );
 
   it('does not turn protocol requests into browser redirects', async () => {
     const response = await handleRequest(

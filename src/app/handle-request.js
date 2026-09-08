@@ -70,7 +70,9 @@ export async function handleRequest(request, env, ctx) {
   try {
     const authEndpoint = new URL(request.url).pathname.startsWith('/__xget/auth/');
     const authResponse = await handleBrowserAuth(request, requestContext.env);
-    const browserPrincipal = await validateBrowserSession(request, requestContext.env);
+    const browserPrincipal = requestContext.isAI
+      ? null
+      : await validateBrowserSession(request, requestContext.env);
     const gitPrincipal = requestContext.isGit
       ? await validateGitCredential(request, requestContext.env)
       : null;
