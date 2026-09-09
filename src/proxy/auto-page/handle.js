@@ -57,7 +57,8 @@ export async function registerPage(target, map) {
   if (!previous) {
     const stub = map.get(map.idFromName(label));
     const stored = await stub.fetch('https://mapping/', { method: 'PUT', body: target.origin });
-    if (!stored.ok) throw new Error('Page mapping unavailable');
+    if (!stored.ok)
+      throw new Error(stored.status === 409 ? 'Site label collision' : 'Page mapping unavailable');
     rememberOrigin(cache, label, target.origin);
   }
   return new URL(siteUrl(target, `https://${label}${PAGE_SUFFIX}`));
@@ -118,7 +119,16 @@ export async function handleAutoPage(request, env) {
     } catch {
       return new Response('Invalid public page target', { status: 400 });
     }
-    return Response.redirect(await registerPage(target, map), 302);
+    try {
+      return Response.redirect(await registerPage(target, map), 302);
+    } catch (error) {
+      return new Response(
+        error instanceof Error && error.message === 'Site label collision'
+          ? 'Generated page host already maps to a different site'
+          : 'Page mapping unavailable',
+        { status: error instanceof Error && error.message === 'Site label collision' ? 409 : 503 }
+      );
+    }
   }
   const label = url.hostname.slice(0, -PAGE_SUFFIX.length);
   const legacy = /-(?:[a-f0-9]{32}|[a-z2-7]{8})$/.test(label);

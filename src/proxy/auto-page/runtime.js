@@ -32,9 +32,30 @@ export const PAGE_RUNTIME = String.raw`(() => {
   }
   document.addEventListener('click', event => {
     const anchor = event.target.closest && event.target.closest('a[href],area[href]');
-    if (!anchor || anchor.getAttribute('href').startsWith('#')) return;
+    if (
+      !anchor ||
+      anchor.getAttribute('href').startsWith('#') ||
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      anchor.hasAttribute('download') ||
+      (anchor.target && anchor.target !== '_self')
+    )
+      return;
     const target = new URL(anchor.href, base);
-    if (target.origin === location.origin || target.hostname === 'fast.dxshelley.fun') return;
+    if (target.origin === location.origin) return;
+    if (target.hostname === 'fast.dxshelley.fun') {
+      if (target.pathname === '/' && target.searchParams.has('target')) {
+        // Framework handlers may retain the upstream URL and otherwise override this rewritten href.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        location.assign(target.href);
+      }
+      return;
+    }
     if (target.origin === location.origin && target.pathname.startsWith(prefix)) {
       const rest = target.pathname.slice(prefix.length);
       const slash = rest.indexOf('/');

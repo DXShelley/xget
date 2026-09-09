@@ -338,7 +338,8 @@ https://developers-openai-com.fast.dxshelley.fun/codex/changelog
 label 允许的 63 个字符。截断位置是分隔符时，保留前缀、分隔符和后续首字符，保证生成 Host 可被自动路由识别。例如
 `developers.openai.com` 对应
 `developers-openai-com`。路径、查询参数和片段不参与站点标识，直接保留在代理 URL 中，因此同站点的页面共享一个生成域名，可以直接站内跳转、复用连接，并将 Durable
-Object 映射压缩为每个 origin 一条。映射仍保存原始 origin，并且不可覆盖；少数 hostname 在点号替换后得到相同站点标识时，后续冲突请求会被拒绝。
+Object 映射压缩为每个 origin 一条。映射仍保存原始 origin，并且不可覆盖；少数 hostname 在点号替换后得到相同站点标识时，后续入口请求返回
+`409 Conflict`，不会覆盖先前站点。
 
 上游重定向到 `https://learn.chatgpt.com/docs/changelog` 时，会自动登记并跳转到
 `learn-chatgpt-com.fast.dxshelley.fun/docs/changelog`。域名映射通过 Durable
@@ -369,6 +370,8 @@ Object 事务即时保存，不会等待 KV 跨区域传播；已存在的映射
   处理静态导入和字符串形式的动态导入。前置运行时处理常见动态
   `fetch`、XHR、资源属性赋值和 GET 表单。
 - 同站页面导航、HTTP 重定向和 Refresh 直接保留生成域名与路径；跨站导航才返回入口登记新站点。
+- 对已改写为入口 `?target=`
+  的跨站链接，前置运行时会在捕获阶段阻止页面框架使用其保留的原始 URL 覆盖导航；普通点击继续进入代理入口，带修饰键、新窗口和下载链接保留浏览器默认行为。
 - 原 CSP、SRI 及不适用于重写内容的响应长度/摘要会被移除或替换；新页面 CSP 将资源和连接限制到当前代理域名，禁止 Service
   Worker 和对象嵌入。
 - 开启此模式后，入口域名上未匹配平台的资源路径返回 404，不再兜底跳转到

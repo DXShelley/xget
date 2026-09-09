@@ -206,6 +206,17 @@ describe('automatic public pages', () => {
     );
   });
 
+  it('returns a conflict response when the entry hits a readable-label collision', async () => {
+    const env = environment();
+    await registerPage(new URL('https://a.b.example/docs'), env.PAGE_MAP);
+    const response = await handleAutoPage(
+      new Request('https://fast.dxshelley.fun/?target=https%3A%2F%2Fa-b.example%2Fdocs'),
+      env
+    );
+    expect(response?.status).toBe(409);
+    expect(await response?.text()).toBe('Generated page host already maps to a different site');
+  });
+
   it('serves a direct label that happens to end in the legacy hash shape', async () => {
     const env = environment();
     const mirror = await registerPage(new URL('https://foo.abcdefgh/docs'), env.PAGE_MAP);
