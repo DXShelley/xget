@@ -173,6 +173,26 @@ describe('Worker regression coverage', () => {
     expect(await response.text()).toBe('{}');
   });
 
+  it('routes dedicated Docker Hub mirror requests through the Docker Hub upstream', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{"schemaVersion":2}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/vnd.oci.image.manifest.v1+json' }
+      })
+    );
+
+    const response = await worker.fetch(
+      new Request('https://docker.fast.dxshelley.fun/v2/nginx/manifests/latest'),
+      { MAX_RETRIES: '1', RETRY_DELAY_MS: '0', TIMEOUT_SECONDS: '5' },
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(String(fetchSpy.mock.calls[0][0])).toBe(
+      'https://registry-1.docker.io/v2/library/nginx/manifests/latest'
+    );
+  });
+
   it('redirects unknown platforms and bare platform prefixes to the homepage', async () => {
     const unknownPlatform = await worker.fetch(
       new Request('https://example.com/not-a-platform/resource'),

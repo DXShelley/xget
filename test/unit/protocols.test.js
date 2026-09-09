@@ -6,7 +6,9 @@ import {
   fetchToken,
   getScopeFromUrl,
   handleDockerAuth,
-  readRegistryTokenResponse
+  normalizeDockerHubMirrorUrl,
+  readRegistryTokenResponse,
+  responseUnauthorized
 } from '../../src/protocols/docker.js';
 import { isDockerRequest } from '../../src/utils/validation.js';
 
@@ -47,6 +49,27 @@ describe('Docker Authentication', () => {
     const url = new URL('https://example.com/cr/docker/v2/nginx/manifests/latest');
 
     expect(getScopeFromUrl(url, url.pathname, 'cr-docker')).toBe('repository:library/nginx:pull');
+  });
+
+  it('maps Docker Hub mirror API paths while preserving the version probe', () => {
+    const probe = normalizeDockerHubMirrorUrl(new URL('https://docker.fast.dxshelley.fun/v2/'));
+    const manifest = normalizeDockerHubMirrorUrl(
+      new URL('https://docker.fast.dxshelley.fun/v2/nginx/manifests/latest')
+    );
+
+    expect(probe.pathname).toBe('/v2/');
+    expect(manifest.pathname).toBe('/cr/docker/v2/nginx/manifests/latest');
+  });
+
+  it('keeps Docker Hub mirror authentication on the dedicated host', () => {
+    const response = responseUnauthorized(
+      new URL('https://docker.fast.dxshelley.fun/cr/docker/v2/nginx/manifests/latest'),
+      'cr-docker'
+    );
+
+    expect(response.headers.get('WWW-Authenticate')).toContain(
+      'realm="https://docker.fast.dxshelley.fun/v2/auth"'
+    );
   });
 
   it('normalizes Docker Hub official image scopes during auth proxying', async () => {
@@ -379,7 +402,7 @@ describe('Protocol Header Configuration', () => {
     });
   });
 
-  it('updates Content-Length after rewriting npm metadata', async () => {
+  it('removes Content-Length when streaming rewritten npm metadata', async () => {
     const upstreamBody = JSON.stringify({
       dist: {
         tarball: 'https://registry.npmjs.org/pkg/-/pkg-1.0.0.tgz'
@@ -404,8 +427,6 @@ describe('Protocol Header Configuration', () => {
     const body = await response.text();
 
     expect(body).toContain('https://example.com/npm/pkg/-/pkg-1.0.0.tgz');
-    expect(response.headers.get('Content-Length')).toBe(
-      String(new TextEncoder().encode(body).byteLength)
-    );
+    expect(response.headers.get('Content-Length')).toBeNull();
   });
 });

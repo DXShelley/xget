@@ -26,6 +26,13 @@ import { addCorsHeaders, addSecurityHeaders, createErrorResponse } from '../util
 import { getAllowedMethods, isProtocolRequest, validateRequest } from '../utils/validation.js';
 import { createRequestContext } from './request-context.js';
 import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
+import {
+  gitAuthenticationChallenge,
+  handleBrowserAuth,
+  validateDockerCredential,
+  validateBrowserSession,
+  validateGitCredential
+} from '../auth/browser.js';
 
 /**
  * Dispatches routes that own a fixed browser-facing host before platform routing.
@@ -42,7 +49,7 @@ export async function handleApplicationRoute({ request, url, env, config }) {
   const configuredResponse = await handleConfiguredSiteRequest(request);
   if (configuredResponse) return { response: configuredResponse, isProxiedResponse: true };
 
-  const fastRouteResponse = await handleFastRoute(request, url);
+  const fastRouteResponse = await handleFastRoute(request, url, config);
   return fastRouteResponse ? { response: fastRouteResponse, isProxiedResponse: true } : null;
 }
 
@@ -61,143 +68,202 @@ export async function handleRequest(request, env, ctx) {
   const { config, isCorsPreflight, isDocker, url } = requestContext;
 
   try {
-    const quotaResponse = await reserveWorkerRequest(requestContext.env);
-    if (quotaResponse) {
-      response = quotaResponse;
-    } else if (isCorsPreflight) {
-      const requestedMethod = request.headers.get('Access-Control-Request-Method') || '';
-      const allowedMethods = getAllowedMethods(
-        new Request(request.url, { method: requestedMethod || 'GET' }),
-        url,
-        config
-      );
+    const authEndpoint = new URL(request.url).pathname.startsWith('/__xget/auth/');
+    const authResponse = await handleBrowserAuth(request, requestContext.env);
+    const browserPrincipal = requestContext.isAI
+      ? null
+      : await validateBrowserSession(request, requestContext.env);
+    const gitPrincipal = requestContext.isGit
+      ? await validateGitCredential(request, requestContext.env)
+      : null;
+    const dockerPrincipal = requestContext.isDocker
+      ? await validateDockerCredential(request, requestContext.env)
+      : null;
+    const principal = requestContext.isGit
+      ? gitPrincipal
+      : requestContext.isDocker
+        ? dockerPrincipal
+        : browserPrincipal;
+    const loginRedirect =
+      !authResponse &&
+      !principal &&
+      !authEndpoint &&
+      request.method !== 'OPTIONS' &&
+      !requestContext.isAI &&
+      !isProtocolRequest(requestContext) &&
+      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
+        ? new Response('Authentication required', {
+            headers: {
+              Location: `/__xget/auth/login?return_to=${encodeURIComponent(url.pathname + url.search)}`
+            },
+            status: 302
+          })
+        : null;
 
-      if (!allowedMethods.includes(requestedMethod)) {
-        response = createErrorResponse('Method not allowed', 405);
-      } else {
-        const headers = addCorsHeaders(new Headers(), request, config);
-        if (!headers.has('Access-Control-Allow-Origin')) {
-          response = createErrorResponse('Origin not allowed', 403);
-        } else {
-          headers.set('Access-Control-Allow-Methods', allowedMethods.join(', '));
-          headers.set('Access-Control-Max-Age', '86400');
-          addSecurityHeaders(headers);
-          response = new Response(null, { status: 204, headers });
-        }
-      }
+    const gitAuthResponse =
+      requestContext.isGit &&
+      !gitPrincipal &&
+      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
+        ? gitAuthenticationChallenge()
+        : null;
+    const dockerAuthResponse =
+      requestContext.isDocker &&
+      !requestContext.url.pathname.includes('/v2/auth') &&
+      !dockerPrincipal &&
+      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
+        ? new Response('Docker authentication required', {
+            headers: {
+              'Cache-Control': 'no-store',
+              'Docker-Distribution-Api-Version': 'registry/2.0',
+              'WWW-Authenticate': `Bearer realm="${url.origin}${url.pathname.startsWith('/cr/') ? `/cr/${url.pathname.split('/')[2]}/v2/auth` : '/v2/auth'}",service="xget"`
+            },
+            status: 401
+          })
+        : null;
+    const terminalAuthResponse =
+      authResponse || loginRedirect || gitAuthResponse || dockerAuthResponse;
+    if (terminalAuthResponse) {
+      response = terminalAuthResponse;
     } else {
-      const applicationRoute = await handleApplicationRoute({
-        request,
-        url,
-        env: requestContext.env,
-        config
-      });
-      if (applicationRoute) {
-        const { response: applicationResponse, isProxiedResponse: applicationResponseIsProxied } =
-          applicationRoute;
-        response = applicationResponse;
-        isProxiedResponse = applicationResponseIsProxied;
-      } else {
-        // Handle Docker API version check
-        if (isDocker && (url.pathname === '/v2/' || url.pathname === '/v2')) {
-          const headers = new Headers({
-            'Docker-Distribution-Api-Version': 'registry/2.0',
-            'Content-Type': 'application/json'
-          });
-          addSecurityHeaders(headers);
-          response = new Response('{}', { status: 200, headers });
-        }
-        // Redirect root path or invalid platforms to GitHub repository
-        else if (url.pathname === '/' || url.pathname === '') {
-          response = createHomepageRedirect();
+      requestContext.principal = principal;
+      const quotaResponse = await reserveWorkerRequest(requestContext.env);
+      if (quotaResponse) {
+        response = quotaResponse;
+      } else if (isCorsPreflight) {
+        const requestedMethod = request.headers.get('Access-Control-Request-Method') || '';
+        const allowedMethods = getAllowedMethods(
+          new Request(request.url, { method: requestedMethod || 'GET' }),
+          url,
+          config
+        );
+
+        if (!allowedMethods.includes(requestedMethod)) {
+          response = createErrorResponse('Method not allowed', 405);
         } else {
-          const validation = validateRequest(request, url, config, requestContext);
-          if (!validation.valid) {
-            response = createErrorResponse(
-              validation.error || 'Validation failed',
-              validation.status || 400
-            );
+          const headers = addCorsHeaders(new Headers(), request, config);
+          if (!headers.has('Access-Control-Allow-Origin')) {
+            response = createErrorResponse('Origin not allowed', 403);
           } else {
-            const normalizedPath = normalizeEffectivePath(url, isDocker);
-            let effectivePath = url.pathname;
-
-            if ('response' in normalizedPath) {
-              const { response: normalizedResponse } = normalizedPath;
-              response = normalizedResponse;
+            headers.set('Access-Control-Allow-Methods', allowedMethods.join(', '));
+            headers.set('Access-Control-Max-Age', '86400');
+            addSecurityHeaders(headers);
+            response = new Response(null, { status: 204, headers });
+          }
+        }
+      } else {
+        const applicationRoute = await handleApplicationRoute({
+          request,
+          url,
+          env: requestContext.env,
+          config
+        });
+        if (applicationRoute) {
+          const { response: applicationResponse, isProxiedResponse: applicationResponseIsProxied } =
+            applicationRoute;
+          response = applicationResponse;
+          isProxiedResponse = applicationResponseIsProxied;
+        } else {
+          // Handle Docker API version check
+          if (isDocker && (url.pathname === '/v2/' || url.pathname === '/v2')) {
+            const headers = new Headers({
+              'Docker-Distribution-Api-Version': 'registry/2.0',
+              'Content-Type': 'application/json'
+            });
+            addSecurityHeaders(headers);
+            response = new Response('{}', { status: 200, headers });
+          }
+          // Redirect root path or invalid platforms to GitHub repository
+          else if (url.pathname === '/' || url.pathname === '') {
+            response = createHomepageRedirect();
+          } else {
+            const validation = validateRequest(request, url, config, requestContext);
+            if (!validation.valid) {
+              response = createErrorResponse(
+                validation.error || 'Validation failed',
+                validation.status || 400
+              );
             } else {
-              const { effectivePath: normalizedEffectivePath } = normalizedPath;
-              effectivePath = normalizedEffectivePath;
-            }
+              const normalizedPath = normalizeEffectivePath(url, isDocker);
+              let effectivePath = url.pathname;
 
-            if (!response) {
-              // Handle Docker authentication explicitly
-              if (
-                isDocker &&
-                (url.pathname === '/v2/auth' || /^\/cr\/[^/]+\/v2\/auth\/?$/.test(url.pathname))
-              ) {
-                response = await handleDockerAuth(request, url, config);
+              if ('response' in normalizedPath) {
+                const { response: normalizedResponse } = normalizedPath;
+                response = normalizedResponse;
               } else {
-                const resolvedTarget = resolveTarget(url, effectivePath, config.PLATFORMS);
+                const { effectivePath: normalizedEffectivePath } = normalizedPath;
+                effectivePath = normalizedEffectivePath;
+              }
 
-                if ('response' in resolvedTarget) {
-                  const { response: targetResponse } = resolvedTarget;
-                  response = targetResponse;
+              if (!response) {
+                // Handle Docker authentication explicitly
+                if (
+                  isDocker &&
+                  (url.pathname === '/v2/auth' || /^\/cr\/[^/]+\/v2\/auth\/?$/.test(url.pathname))
+                ) {
+                  response = await handleDockerAuth(request, url, config, requestContext.env);
                 } else {
-                  isProxiedResponse = true;
-                  const { cacheTargetUrl, platform, targetUrl } = resolvedTarget;
-                  const authorization = request.headers.get('Authorization');
-                  const hasSensitiveHeaders = Boolean(
-                    authorization ||
-                    request.headers.get('Cookie') ||
-                    request.headers.get('Proxy-Authorization')
-                  );
-                  const canUseCache = request.method === 'GET' || request.method === 'HEAD';
-                  const shouldPassthroughRequest =
-                    isProtocolRequest(requestContext) || !canUseCache;
-                  const cache = getDefaultCache();
+                  const resolvedTarget = resolveTarget(url, effectivePath, config.PLATFORMS);
 
-                  response = await tryReadCachedResponse({
-                    cache,
-                    cacheTargetUrl,
-                    canUseCache,
-                    hasSensitiveHeaders,
-                    monitor,
-                    request,
-                    requestContext
-                  });
+                  if ('response' in resolvedTarget) {
+                    const { response: targetResponse } = resolvedTarget;
+                    response = targetResponse;
+                  } else {
+                    isProxiedResponse = true;
+                    const { cacheTargetUrl, platform, targetUrl } = resolvedTarget;
+                    const authorization = request.headers.get('Authorization');
+                    const hasSensitiveHeaders = Boolean(
+                      authorization ||
+                      request.headers.get('Cookie') ||
+                      request.headers.get('Proxy-Authorization')
+                    );
+                    const canUseCache = request.method === 'GET' || request.method === 'HEAD';
+                    const shouldPassthroughRequest =
+                      isProtocolRequest(requestContext) || !canUseCache;
+                    const cache = getDefaultCache();
 
-                  if (!response) {
-                    const {
-                      response: upstreamResponse,
-                      responseGeneratedLocally: upstreamResponseGeneratedLocally
-                    } = await fetchUpstreamResponse({
-                      authorization,
-                      canUseCache,
-                      config,
-                      effectivePath,
-                      monitor,
-                      platform,
-                      request,
-                      requestContext,
-                      shouldPassthroughRequest,
-                      targetUrl
-                    });
-                    response = await finalizeResponse({
+                    response = await tryReadCachedResponse({
                       cache,
                       cacheTargetUrl,
                       canUseCache,
-                      config,
-                      ctx,
-                      effectivePath,
                       hasSensitiveHeaders,
                       monitor,
-                      platform,
                       request,
-                      requestContext,
-                      response: upstreamResponse,
-                      responseGeneratedLocally: upstreamResponseGeneratedLocally,
-                      url
+                      requestContext
                     });
+
+                    if (!response) {
+                      const {
+                        response: upstreamResponse,
+                        responseGeneratedLocally: upstreamResponseGeneratedLocally
+                      } = await fetchUpstreamResponse({
+                        authorization,
+                        canUseCache,
+                        config,
+                        effectivePath,
+                        monitor,
+                        platform,
+                        request,
+                        requestContext,
+                        shouldPassthroughRequest,
+                        targetUrl
+                      });
+                      response = await finalizeResponse({
+                        cache,
+                        cacheTargetUrl,
+                        canUseCache,
+                        config,
+                        ctx,
+                        effectivePath,
+                        hasSensitiveHeaders,
+                        monitor,
+                        platform,
+                        request,
+                        requestContext,
+                        response: upstreamResponse,
+                        responseGeneratedLocally: upstreamResponseGeneratedLocally,
+                        url
+                      });
+                    }
                   }
                 }
               }

@@ -17,6 +17,7 @@
  */
 
 import { CONFIG, createConfig } from '../config/index.js';
+import { normalizeDockerHubMirrorUrl } from '../protocols/docker.js';
 import { getRequestTraits } from '../utils/validation.js';
 
 /**
@@ -33,13 +34,14 @@ import { getRequestTraits } from '../utils/validation.js';
  *   isGitLFS: boolean,
  *   isHF: boolean,
  *   request: Request,
+ *   principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *   url: URL
  * }} Request context with parsed config, URL, and protocol traits.
  */
 export function createRequestContext(request, env) {
   const runtimeEnv = env && typeof env === 'object' ? env : {};
   const config = env === undefined ? CONFIG : createConfig(runtimeEnv);
-  const url = new URL(request.url);
+  const url = normalizeDockerHubMirrorUrl(new URL(request.url));
   const traits = getRequestTraits(request, url);
 
   return {

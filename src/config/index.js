@@ -22,6 +22,19 @@ const DEFAULT_ALLOWED_METHODS = Object.freeze(['GET', 'HEAD']);
 const SUPPORTED_HTTP_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
+ * Parses a boolean environment override. Only an explicit true enables a feature.
+ * @param {unknown} value
+ * @returns {boolean} Whether the setting is enabled.
+ */
+function parseBoolean(value) {
+  return (
+    String(value || '')
+      .trim()
+      .toLowerCase() === 'true'
+  );
+}
+
+/**
  * Parses an integer environment override only when it is an actual bounded integer.
  * @param {unknown} value
  * @param {number} fallback
@@ -67,6 +80,7 @@ function parseAllowedMethods(value) {
  * @property {string[]} ALLOWED_METHODS - List of allowed HTTP methods for incoming requests
  * @property {string[]} ALLOWED_ORIGINS - List of allowed CORS origins (use ['*'] for all origins)
  * @property {number} MAX_PATH_LENGTH - Maximum allowed URL path length in characters
+ * @property {boolean} PROXY_TARGET_ALLOWLIST - Require `?target=` URLs to match configured sites
  * @example
  * // Default security config
  * const security = {
@@ -136,6 +150,7 @@ function parseAllowedMethods(value) {
  * - `ALLOWED_METHODS` - Comma-separated HTTP methods (default: 'GET,HEAD')
  * - `ALLOWED_ORIGINS` - Comma-separated CORS origins (default: '*')
  * - `MAX_PATH_LENGTH` - Override max path length (default: 2048)
+ * - `XGET_PROXY_TARGET_ALLOWLIST` - Require configured target origins for `?target=` (default: false)
  * @param {Record<string, unknown>} env - Environment variables from Cloudflare Workers env object
  * @returns {ApplicationConfig} Complete application configuration with applied overrides
  * @example
@@ -190,7 +205,8 @@ export function createConfig(env = {}) {
     SECURITY: {
       ALLOWED_METHODS: parseAllowedMethods(env.ALLOWED_METHODS),
       ALLOWED_ORIGINS: allowedOrigins.length ? allowedOrigins : ['*'],
-      MAX_PATH_LENGTH: parseBoundedInteger(env.MAX_PATH_LENGTH, 2048, 256, 8192)
+      MAX_PATH_LENGTH: parseBoundedInteger(env.MAX_PATH_LENGTH, 2048, 256, 8192),
+      PROXY_TARGET_ALLOWLIST: parseBoolean(env.XGET_PROXY_TARGET_ALLOWLIST)
     },
     PLATFORMS
   };

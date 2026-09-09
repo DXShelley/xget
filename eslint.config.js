@@ -33,6 +33,8 @@ export default [
         TransformStream: 'readonly',
         TextEncoder: 'readonly',
         TextDecoder: 'readonly',
+        atob: 'readonly',
+        btoa: 'readonly',
         performance: 'readonly',
         globalThis: 'readonly',
         process: 'readonly',

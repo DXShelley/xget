@@ -487,6 +487,19 @@ describe('GitHub Web routing', () => {
     expect(headers.get('If-None-Match')).toBe('W/"browser-cache-entry"');
   });
 
+  it('can strip proxy credentials before forwarding Git Smart HTTP to GitHub', () => {
+    const request = new Request(
+      'https://git.dxshelley.fun/Homebrew/brew.git/info/refs?service=git-upload-pack',
+      { headers: { Authorization: 'Basic eGdldDptYXNzMTIz' } }
+    );
+
+    const headers = getGithubRequestHeaders(request, 'github.com', {
+      stripAuthorization: true
+    });
+
+    expect(headers.get('Authorization')).toBeNull();
+  });
+
   it.each(['latest-commit', 'recently-touched-branches', 'branch-and-tag-count'])(
     'proxies GitHub repository metadata endpoint %s with HAR request context',
     endpoint => {
@@ -540,6 +553,29 @@ describe('GitHub Web routing', () => {
     expect(firstOptions.cf?.cacheEverything).toBe(false);
     expect(firstOptions.cf?.cacheTtl).toBe(0);
     expect(firstOptions.cf?.cacheKey).toBeUndefined();
+  });
+
+  it('does not forward Git Smart HTTP Basic credentials to GitHub', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const request = new Request(
+      'https://git.dxshelley.fun/Homebrew/brew.git/info/refs?service=git-upload-pack',
+      {
+        headers: {
+          Authorization: 'Basic eGdldDptYXNzMTIz',
+          'User-Agent': 'git/2.46.0'
+        }
+      }
+    );
+
+    await fetchGithubWeb({
+      request,
+      targetUrl: 'https://github.com/Homebrew/brew.git/info/refs?service=git-upload-pack',
+      config: { MAX_RETRIES: 1, RETRY_DELAY_MS: 0, TIMEOUT_SECONDS: 5 },
+      stripAuthorization: true
+    });
+
+    const [[, options]] = fetchSpy.mock.calls;
+    expect(new Headers(options?.headers).get('Authorization')).toBeNull();
   });
 
   it('uses manual redirects and retries transient GitHub failures', async () => {

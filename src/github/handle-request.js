@@ -3,6 +3,7 @@ import { classifyGithubWebRequest } from './routing.js';
 import { finalizeGithubWebResponse } from './response.js';
 import { createErrorResponse } from '../utils/security.js';
 import { validateRequest } from '../utils/validation.js';
+import { isGitRequest } from '../protocols/git.js';
 
 /**
  * Handles a public, anonymous GitHub Web request.
@@ -36,7 +37,8 @@ export async function handleGithubWebRequest({ request, url, env, config }) {
     request,
     targetUrl: route.upstreamUrl,
     config,
-    forwardBody: route.forwardBody
+    forwardBody: route.forwardBody,
+    stripAuthorization: isGitRequest(request, url)
   });
 
   return {

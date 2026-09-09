@@ -20,6 +20,7 @@ import {
   filterPlatformTextResponse,
   isFlatpakReferenceFilePath,
   isOriginBoundPlatformResponse,
+  rewriteNpmRegistryStream,
   shouldFilterPlatformTextResponse
 } from '../platforms/response-filters.js';
 import { addSecurityHeaders, createErrorResponse } from '../utils/security.js';
@@ -120,6 +121,7 @@ async function finalizeSuccessfulResponse({
   let responseBody = response.body;
   let rewrittenContentLength = null;
   let hasOriginBoundRewrite = false;
+  let hasStreamingRewrite = false;
 
   if (
     shouldFilterPlatformTextResponse(
@@ -128,25 +130,39 @@ async function finalizeSuccessfulResponse({
       response.headers.get('content-type') || ''
     )
   ) {
-    const originalText =
-      platform === 'flathub' && isFlatpakReferenceFilePath(effectivePath)
-        ? new TextDecoder().decode(await response.arrayBuffer())
-        : await response.text();
-    const rewrittenText = filterPlatformTextResponse(
-      platform,
-      effectivePath,
-      originalText,
-      url.origin
-    );
-    responseBody = rewrittenText;
-    rewrittenContentLength = new TextEncoder().encode(rewrittenText).byteLength;
-    hasOriginBoundRewrite = isOriginBoundPlatformResponse(platform);
+    if (platform === 'npm' && response.body) {
+      responseBody = rewriteNpmRegistryStream(response.body, url.origin);
+      hasStreamingRewrite = true;
+    } else {
+      const originalText =
+        platform === 'flathub' && isFlatpakReferenceFilePath(effectivePath)
+          ? new TextDecoder().decode(await response.arrayBuffer())
+          : await response.text();
+      const rewrittenText = filterPlatformTextResponse(
+        platform,
+        effectivePath,
+        originalText,
+        url.origin
+      );
+      responseBody = rewrittenText;
+      rewrittenContentLength = new TextEncoder().encode(rewrittenText).byteLength;
+      hasOriginBoundRewrite = isOriginBoundPlatformResponse(platform);
+    }
   }
 
   const headers = new Headers(response.headers);
 
   if (rewrittenContentLength !== null) {
     headers.set('Content-Length', String(rewrittenContentLength));
+  } else if (
+    platform === 'npm' &&
+    shouldFilterPlatformTextResponse(
+      platform,
+      effectivePath,
+      response.headers.get('content-type') || ''
+    )
+  ) {
+    headers.delete('Content-Length');
   }
 
   if (!isGit && !isGitLFS && !isDocker && !isAI && !isHF) {
@@ -166,7 +182,7 @@ async function finalizeSuccessfulResponse({
     headers.set('X-Content-Type-Options', 'nosniff');
     headers.set('Accept-Ranges', 'bytes');
 
-    if (!headers.has('Content-Length') && response.status === 200) {
+    if (!hasStreamingRewrite && !headers.has('Content-Length') && response.status === 200) {
       try {
         const contentLength = response.headers.get('Content-Length');
         if (contentLength) {

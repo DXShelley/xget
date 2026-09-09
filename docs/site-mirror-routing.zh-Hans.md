@@ -6,6 +6,7 @@
 | ------------------------------------- | ---------------- | --------------------- |
 | `git.dxshelley.fun`                   | `github.com`     | `GitHubAdapter`       |
 | `fast.dxshelley.fun`                  | 平台目录与入口页 | `XgetPlatformAdapter` |
+| `docker.fast.dxshelley.fun`           | Docker Hub       | `DockerHubMirror`     |
 | `fast.dxshelley.fun/_/<alias>/<path>` | 固定已登记站点   | `ConfiguredAdapter`   |
 | `<alias>.fast.dxshelley.fun/<path>`   | 固定已登记站点   | 站点专属适配器        |
 
@@ -16,9 +17,17 @@
 
 `fast.dxshelley.fun` 保留 Xget 的平台前缀路由，例如 `/npm/*`、`/pypi/*`、
 `/cr/*` 和 `/ip/*`，并提供已登记站点的统一入口。用户可在入口页粘贴普通 HTTPS
-URL；Worker 会校验其 Origin 后跳转至规范 URL。`?target=`
-仅是兼容入口，用户无需手工 URL 编码。已登记的专属 `WebAdapter`
+URL。默认情况下，`?target=`
+支持透明代理 HTTPS 目标，用户无需手工 URL 编码；目标必须使用 HTTPS，且不能包含用户名或密码。若配置
+`XGET_PROXY_TARGET_ALLOWLIST=true`，Worker 会校验其 Origin 后仅跳转至已登记站点，未登记目标返回
+`400 Invalid proxy target`。已登记的专属 `WebAdapter`
 目标会直接跳转到其固定镜像 Host；它们不会回退为通用配置站点代理。
+
+`docker.fast.dxshelley.fun` 是 Docker Hub 的 Registry
+API 专用入口。它接受 Docker 客户端固定使用的 `/v2/...`
+路径，并在 Worker 内部映射到 `/cr/docker/v2/...`；因此可以直接用于 Docker 的
+`registry-mirrors` 配置。该域名由既有 `*.fast.dxshelley.fun`
+路由覆盖，仍需确认通配 DNS 与边缘证书覆盖该二级通配域名。
 
 ## 路由分派架构
 
@@ -79,7 +88,9 @@ https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?locale=zh-CN&source
 https://fast.dxshelley.fun/_/claude-code/docs/zh-CN/quickstart
 ```
 
-已登记站点默认代理其上游 Origin 下的全部路径和 query，而非只允许某几个文档目录。未知 alias、非 HTTPS、带用户名密码的 URL，以及未登记 Origin 均被拒绝，不能作为通用开放代理使用。
+已登记站点默认代理其上游 Origin 下的全部路径和 query，而非只允许某几个文档目录。未知 alias 仍被拒绝。透明代理模式只接受 HTTPS 且不含用户名密码的 URL，并沿用全局 HTTP 方法、超时和重试配置；生产环境应结合
+`XGET_AUTH_REQUIRED=true` 使用。开启 `XGET_PROXY_TARGET_ALLOWLIST=true`
+后，未登记 Origin 会被拒绝。
 
 入口页列出已登记站点的快捷访问。提交成功时，最近八条已登记目标 URL 与域名频次仅保存在当前浏览器的
 `localStorage`；这些记录不发送到 Worker、不写入日志，也可在入口页立即清除。快捷入口和本机历史都必须再次通过同一份 Origin 白名单校验。
@@ -106,7 +117,8 @@ HTTP、LFS、上传和所有允许方法的请求体原样传递。
 
 ## 凭证、缓存与风控
 
-- `Authorization` 仅转发至该适配器的主上游 Origin；静态资源 Origin 一律移除该头。CSRF、`Origin`、`Referer`、Turbo、PJAX 与 React 请求头按固定上游语义映射。
+- `Authorization`
+  仅转发至该适配器的主上游 Origin；静态资源 Origin 一律移除该头。CSRF、`Origin`、`Referer`、Turbo、PJAX 与 React 请求头按固定上游语义映射。
 - 镜像 Cookie 按上游 Host 作用域回放；上游 `Set-Cookie`
   回写为镜像可用 Cookie，禁止跨站点混发。
 - 认证、写操作、上传、OAuth 与令牌请求使用 `no-store`，且不重试非幂等 body。
@@ -132,11 +144,11 @@ HTTP、LFS、上传和所有允许方法的请求体原样传递。
 `408`、`429`、`5xx` 故障，并使用受限超时；`POST` 不重试。配置站点响应统一为
 `Cache-Control: private, no-store`，避免跨用户缓存。
 
-Claude Code 文档是例外：`ClaudeCodeDocsAdapter` 只处理 `claude-code` 的
-`/docs` 路径。匿名 `GET` 成功后会在 Worker Cache 保存五分钟；若上游在重试后仍
-返回 `500`、`502`、`503`、`504` 或网络失败，才返回最近成功的同一镜像 URL 响应，
-并标记 `X-Xget-Cache: stale`。它不缓存 `POST`，不转发 Cookie 或 Authorization，
-也不接管 `code.claude.com` 的其他路径。
+Claude Code 文档是例外：`ClaudeCodeDocsAdapter` 只处理 `claude-code` 的 `/docs`
+路径。匿名 `GET` 成功后会在 Worker Cache 保存五分钟；若上游在重试后仍返回
+`500`、`502`、`503`、`504` 或网络失败，才返回最近成功的同一镜像 URL 响应，并标记
+`X-Xget-Cache: stale`。它不缓存 `POST`，不转发 Cookie 或 Authorization，也不接管
+`code.claude.com` 的其他路径。
 
 默认不向上游转发浏览器的 `Cookie`、`Authorization` 或
 `Proxy-Authorization`。同一固定上游 Origin 的 `Location`
@@ -184,12 +196,12 @@ Worker、复杂 CSP、动态模块加载和第三方资源域都必须通过该�
 `ConfiguredAdapter`。每个镜像 Host 只允许对应主站及表中精确列出的资源 Origin；未知 Host、后缀匹配和 API
 Origin 一律不会回源。
 
-| 适配器                   | 镜像 Host                               | 主上游 Origin                 | 附属资源 / 认证 Origin                                                                                                      |
-| ------------------------ | --------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `GeminiWebAdapter`       | `gemini.fast.dxshelley.fun`             | `https://gemini.google.com`   | `gstatic.com`、`www.gstatic.com`、`ssl.gstatic.com`、`googleusercontent.com`、`lh3.googleusercontent.com`                   |
-| `GeminiWebAdapter`       | `ai-studio.fast.dxshelley.fun`          | `https://aistudio.google.com` | `gstatic.com`、`www.gstatic.com`、`ssl.gstatic.com`、`googleusercontent.com`、`lh3.googleusercontent.com`                   |
-| `GoogleIdentityAdapter`  | `google-identity.fast.dxshelley.fun`    | `https://accounts.google.com` | `gstatic.com`、`www.gstatic.com`、`ssl.gstatic.com`、`googleusercontent.com`、`lh3.googleusercontent.com`                   |
-| `AIGoogleDocsWebAdapter` | `ai-google-dev-docs.fast.dxshelley.fun` | `https://ai.google.dev`       | 受信 Google 静态资源；Google 身份跳转由 `GoogleIdentityAdapter` 处理                                                        |
+| 适配器                   | 镜像 Host                               | 主上游 Origin                 | 附属资源 / 认证 Origin                                                                                    |
+| ------------------------ | --------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `GeminiWebAdapter`       | `gemini.fast.dxshelley.fun`             | `https://gemini.google.com`   | `gstatic.com`、`www.gstatic.com`、`ssl.gstatic.com`、`googleusercontent.com`、`lh3.googleusercontent.com` |
+| `GeminiWebAdapter`       | `ai-studio.fast.dxshelley.fun`          | `https://aistudio.google.com` | `gstatic.com`、`www.gstatic.com`、`ssl.gstatic.com`、`googleusercontent.com`、`lh3.googleusercontent.com` |
+| `GoogleIdentityAdapter`  | `google-identity.fast.dxshelley.fun`    | `https://accounts.google.com` | `gstatic.com`、`www.gstatic.com`、`ssl.gstatic.com`、`googleusercontent.com`、`lh3.googleusercontent.com` |
+| `AIGoogleDocsWebAdapter` | `ai-google-dev-docs.fast.dxshelley.fun` | `https://ai.google.dev`       | 受信 Google 静态资源；Google 身份跳转由 `GoogleIdentityAdapter` 处理                                      |
 
 适配器将镜像 Cookie 改写为按上游 Host 命名的 Cookie，并且仅在请求同一精确 Host 时回放。响应统一使用
 `Cache-Control: private, no-store`；同站跳转、受信资源 URL 和 CSP 会改写到镜像 Origin。未知资源 Host 不会被视为可代理目标。
