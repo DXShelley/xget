@@ -14,7 +14,7 @@ import { handleApplicationRoute } from './src/app/handle-request.js';
 import { CONFIG } from './src/config/index.js';
 import { rewriteHtml } from './src/proxy/auto-page/rewrite.js';
 export { PageMap } from './src/proxy/auto-page/map.js';
-const html = '<html><head><title>Public page proxy</title><link rel="stylesheet" href="/_astro/main.css"><script type="module" src="/_astro/app.js"></script></head><body><h1>Public page proxy</h1><p id="result">Loading</p><img id="picture" src="https://cdn.example/pixel.png"><a href="https://other.example/next">Next page</a><a id="framework-link" href="https://framework.example/">Try framework link</a><a id="resource-link">Open resource page</a><script>document.getElementById("resource-link").href = "/__xget/page-resource/aHR0cHM6Ly9jZG4uZXhhbXBsZQ/guide"; window.addEventListener("click", event => { if (event.target.closest("#framework-link")) { event.preventDefault(); location.assign("https://framework.example/original-framework-target"); } }, true);</script></body></html>';
+const html = '<html><head><title>Public page proxy</title><link rel="stylesheet" href="/_astro/main.css"><script type="module" src="/_astro/app.js"></script></head><body><h1>Public page proxy</h1><p id="result">Loading</p><img id="picture" src="https://cdn.example/pixel.png"><a href="https://other.example/next">Next page</a><a id="framework-link" href="https://framework.example/">Try framework link</a><a id="resource-link">Open resource page</a><script>document.getElementById("resource-link").href = "/__xget/page-resource/aHR0cHM6Ly9jZG4uZXhhbXBsZQ/guide?edition=2026#notes"; window.addEventListener("click", event => { if (event.target.closest("#framework-link")) { event.preventDefault(); location.assign("https://framework.example/original-framework-target"); } }, true);</script></body></html>';
 globalThis.fetch = async (input) => {
   const u = new URL(String(input));
   if (u.hostname === 'example.com' && u.pathname === '/docs/start') return new Response(null, { status: 302, headers: { Location: 'https://learn.chatgpt.com/docs/start' } });
@@ -109,7 +109,9 @@ try {
     await page.waitForURL(/^https:\/\/framework-example\.fast\.dxshelley\.fun\/$/);
     await page.goto('https://example-com.fast.dxshelley.fun/docs/start');
     await page.getByRole('link', { name: 'Open resource page' }).click();
-    await page.waitForURL(/^https:\/\/cdn-example\.fast\.dxshelley\.fun\/guide$/);
+    await page.waitForURL(
+      /^https:\/\/cdn-example\.fast\.dxshelley\.fun\/guide\?edition=2026#notes$/
+    );
   }
   const nativeContext = await browser.newContext({
     javaScriptEnabled: false,

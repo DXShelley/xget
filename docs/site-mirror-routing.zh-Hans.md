@@ -373,7 +373,9 @@ Object 事务即时保存，不会等待 KV 跨区域传播；已存在的映射
 - 对已改写为入口 `?target=` 的跨站链接，前置运行时会在 `window`
   捕获阶段阻止页面框架使用其保留的原始 URL 覆盖导航；普通点击继续进入代理入口，带修饰键、新窗口和下载链接保留浏览器默认行为。
 - 动态生成的 `__xget/page-resource/`
-  链接在点击时会解码回资源所属的上游 URL，并通过入口登记为页面导航；不会直接展示资源命名空间端点。
+  链接在点击时会解码回资源所属的上游 URL，并通过入口登记为页面导航；不会直接展示资源命名空间端点。例如，`/__xget/page-resource/aHR0cHM6Ly9jZG4uZXhhbXBsZQ/guide?edition=2026#notes`
+  会导航到
+  `https://cdn-example.fast.dxshelley.fun/guide?edition=2026#notes`；查询参数和片段会保留。
 - 原 CSP、SRI 及不适用于重写内容的响应长度/摘要会被移除或替换；新页面 CSP 将资源和连接限制到当前代理域名，禁止 Service
   Worker 和对象嵌入。
 - 开启此模式后，入口域名上未匹配平台的资源路径返回 404，不再兜底跳转到
