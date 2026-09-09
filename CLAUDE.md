@@ -60,6 +60,19 @@ npm run commitlint       # Validate the latest commit message
 - Apply this rule to every commit, including documentation-only changes, unless
   the user explicitly asks for a different workflow
 
+## Branch Workflow
+
+All development must follow this sequence:
+
+1. Switch to `dev` before making changes.
+2. Develop, run the required tests and checks, and commit the changes on `dev`.
+3. Merge `dev` into `main` only after the checks pass.
+4. Push both `main` and `dev` to the remote.
+5. Switch back to `dev` after pushing.
+
+Do not develop or commit directly on `main`. Keep `main` as the release branch
+and `dev` as the development branch.
+
 ### Testing Workflow
 
 - Tests use Vitest with `@cloudflare/vitest-pool-workers` for Workers-specific
