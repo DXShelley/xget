@@ -30,7 +30,7 @@ export const PAGE_RUNTIME = String.raw`(() => {
     const descriptor = Object.getOwnPropertyDescriptor(ctor.prototype, property);
     if (descriptor && descriptor.set) Object.defineProperty(ctor.prototype, property, { ...descriptor, set(value) { descriptor.set.call(this, map(value)); } });
   }
-  document.addEventListener('click', event => {
+  window.addEventListener('click', event => {
     const anchor = event.target.closest && event.target.closest('a[href],area[href]');
     if (
       !anchor ||

@@ -14,7 +14,7 @@ import { handleApplicationRoute } from './src/app/handle-request.js';
 import { CONFIG } from './src/config/index.js';
 import { rewriteHtml } from './src/proxy/auto-page/rewrite.js';
 export { PageMap } from './src/proxy/auto-page/map.js';
-const html = '<html><head><title>Public page proxy</title><link rel="stylesheet" href="/_astro/main.css"><script type="module" src="/_astro/app.js"></script></head><body><h1>Public page proxy</h1><p id="result">Loading</p><img id="picture" src="https://cdn.example/pixel.png"><a href="https://other.example/next">Next page</a><a id="framework-link" href="https://framework.example/">Try framework link</a><script>document.addEventListener("click", event => { if (event.target.closest("#framework-link")) { event.preventDefault(); location.assign("https://framework.example/original-framework-target"); } });</script></body></html>';
+const html = '<html><head><title>Public page proxy</title><link rel="stylesheet" href="/_astro/main.css"><script type="module" src="/_astro/app.js"></script></head><body><h1>Public page proxy</h1><p id="result">Loading</p><img id="picture" src="https://cdn.example/pixel.png"><a href="https://other.example/next">Next page</a><a id="framework-link" href="https://framework.example/">Try framework link</a><script>window.addEventListener("click", event => { if (event.target.closest("#framework-link")) { event.preventDefault(); location.assign("https://framework.example/original-framework-target"); } }, true);</script></body></html>';
 globalThis.fetch = async (input) => {
   const u = new URL(String(input));
   if (u.hostname === 'example.com' && u.pathname === '/docs/start') return new Response(null, { status: 302, headers: { Location: 'https://learn.chatgpt.com/docs/start' } });
