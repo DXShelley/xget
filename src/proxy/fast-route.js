@@ -1,4 +1,5 @@
 import { createProxyEntryResponse } from './entry-page.js';
+import { PAGE_SUFFIX } from './auto-page/urls.js';
 import { CONFIG } from '../config/index.js';
 import {
   handleConfiguredTargetRequest,
@@ -56,9 +57,10 @@ function createCanonicalProxyUrl(site, targetUrl) {
  * @param {Request} request
  * @param {URL} url
  * @param {import('../config/index.js').ApplicationConfig} config
+ * @param {boolean} automaticPages Whether automatic public page storage is configured.
  * @returns {Promise<Response | null>} A route response, or null for another router.
  */
-export async function handleFastRoute(request, url, config = CONFIG) {
+export async function handleFastRoute(request, url, config = CONFIG, automaticPages = false) {
   if (url.hostname === FAST_PROXY_HOST && url.pathname === '/favicon.ico') {
     return new Response(null, { status: 204 });
   }
@@ -66,10 +68,14 @@ export async function handleFastRoute(request, url, config = CONFIG) {
   if (url.hostname === FAST_PROXY_HOST && url.pathname === '/') {
     if (!url.searchParams.has('target')) {
       const sites = getBrowserSites();
-      return createProxyEntryResponse(
-        sites,
-        sites.map(site => createCanonicalProxyUrl(site, new URL(site.upstreamOrigin)).origin)
+      const formActionOrigins = sites.map(
+        site => createCanonicalProxyUrl(site, new URL(site.upstreamOrigin)).origin
       );
+      // Browsers also apply form-action to the generated host after an entry redirect.
+      if (automaticPages && !config.SECURITY.PROXY_TARGET_ALLOWLIST) {
+        formActionOrigins.push(`https://*${PAGE_SUFFIX}`);
+      }
+      return createProxyEntryResponse(sites, formActionOrigins);
     }
 
     const target = url.searchParams.get('target');

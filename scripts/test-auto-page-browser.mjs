@@ -10,12 +10,14 @@ const fixture = process.env.XGET_HTML_FIXTURE
   ? await readFile(process.env.XGET_HTML_FIXTURE, 'utf8')
   : '';
 const source = `
-import { handleAutoPage } from './src/proxy/auto-page/handle.js';
+import { handleApplicationRoute } from './src/app/handle-request.js';
+import { CONFIG } from './src/config/index.js';
 import { rewriteHtml } from './src/proxy/auto-page/rewrite.js';
 export { PageMap } from './src/proxy/auto-page/map.js';
 const html = '<html><head><title>Public page proxy</title><link rel="stylesheet" href="/_astro/main.css"><script type="module" src="/_astro/app.js"></script></head><body><h1>Public page proxy</h1><p id="result">Loading</p><img id="picture" src="https://cdn.example/pixel.png"><a href="https://other.example/next">Next page</a></body></html>';
 globalThis.fetch = async (input) => {
   const u = new URL(String(input));
+  if (u.hostname === 'example.com' && u.pathname === '/docs/start') return new Response(null, { status: 302, headers: { Location: 'https://learn.chatgpt.com/docs/start' } });
   if (u.pathname.endsWith('.png')) return new Response(Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII='), c => c.charCodeAt(0)), {headers:{'Content-Type':'image/png'}});
   if (u.pathname === '/_astro/main.css') return new Response('@import "./theme.css";body{font-family:system-ui;padding:32px}img{width:64px;height:64px}', {headers:{'Content-Type':'text/css'}});
   if (u.pathname === '/_astro/theme.css') return new Response('h1{color:rgb(20, 110, 60)}', {headers:{'Content-Type':'text/css'}});
@@ -28,7 +30,7 @@ globalThis.fetch = async (input) => {
 };
 export default {async fetch(request, env) {
   if(new URL(request.url).pathname === '/__fixture-check') return new Response(await rewriteHtml(${JSON.stringify(fixture)}, new URL('https://learn.chatgpt.com/docs/changelog'), 'https://fixture-0123456789abcdef0123456789abcdef.fast.dxshelley.fun'));
-  return await handleAutoPage(request, env) || new Response('Unknown test route', {status:404});
+  return (await handleApplicationRoute({ request, url: new URL(request.url), env, config: CONFIG }))?.response || new Response('Unknown test route', {status:404});
 }};
 `;
 const bundle = await build({
@@ -80,9 +82,11 @@ try {
     { width: 390, height: 844 }
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto('https://fast.dxshelley.fun/?target=https%3A%2F%2Fexample.com%2Fdocs%2Fstart', {
+    await page.goto('https://fast.dxshelley.fun/', {
       timeout: 30000
     });
+    await page.locator('#target').fill('https://example.com/docs/start');
+    await page.locator('#target-form button[type=submit]').click();
     await page.locator('#result').filter({ hasText: 'static dynamic fetch' }).waitFor();
     assert.equal(
       await page.locator('h1').evaluate(el => getComputedStyle(el).color),
@@ -100,6 +104,26 @@ try {
     await page.getByRole('link', { name: 'Next page' }).click();
     await page.getByRole('heading', { name: 'Next page' }).waitFor();
     assert.match(page.url(), /^https:\/\/other-example-[a-f0-9]{32}\.fast\.dxshelley\.fun\/$/);
+  }
+  const nativeContext = await browser.newContext({
+    javaScriptEnabled: false,
+    ignoreHTTPSErrors: true
+  });
+  try {
+    const nativePage = await nativeContext.newPage();
+    nativePage.setDefaultTimeout(10000);
+    nativePage.on('console', msg => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
+    await nativePage.goto('https://fast.dxshelley.fun/', { timeout: 30000 });
+    await nativePage.locator('#target').fill('https://example.com/docs/start');
+    await nativePage.locator('#target-form button[type=submit]').click();
+    await nativePage.waitForURL(
+      /^https:\/\/learn-chatgpt-com-[a-f0-9]{32}\.fast\.dxshelley\.fun\/$/
+    );
+    await nativePage.getByRole('heading', { name: 'Public page proxy' }).waitFor();
+  } finally {
+    await nativeContext.close();
   }
   if (fixture) {
     const rewritten = await (
@@ -130,8 +154,11 @@ try {
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
   console.log(
-    'Browser smoke passed: desktop/mobile CSS, imports, fetch, images, navigation; zero external requests or console errors.'
+    'Browser smoke passed: native forms with/without JavaScript, redirect chains, desktop/mobile CSS, imports, fetch, images, navigation; zero external requests or console errors.'
   );
+} catch (error) {
+  console.error('Browser errors:', errors);
+  throw error;
 } finally {
   await context.close();
   await browser.close();

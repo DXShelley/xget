@@ -54,7 +54,7 @@ export async function handleApplicationRoute({ request, url, env, config }) {
   const configuredResponse = await handleConfiguredSiteRequest(request);
   if (configuredResponse) return { response: configuredResponse, isProxiedResponse: true };
 
-  const fastRouteResponse = await handleFastRoute(request, url, config);
+  const fastRouteResponse = await handleFastRoute(request, url, config, Boolean(env.PAGE_MAP));
   if (fastRouteResponse) return { response: fastRouteResponse, isProxiedResponse: true };
   if (env.PAGE_MAP && url.hostname === 'fast.dxshelley.fun' && url.pathname !== '/') {
     const knownPlatform = Object.keys(config.PLATFORMS).some(key => {

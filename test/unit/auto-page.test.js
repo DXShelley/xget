@@ -10,7 +10,7 @@ import { handleAutoPage, registerPage } from '../../src/proxy/auto-page/handle.j
 import { env as bindings } from 'cloudflare:test';
 import { rewriteCss, rewriteModule, rewriteHtml } from '../../src/proxy/auto-page/rewrite.js';
 import { handleApplicationRoute, handleRequest } from '../../src/app/handle-request.js';
-import { CONFIG } from '../../src/config/index.js';
+import { CONFIG, createConfig } from '../../src/config/index.js';
 
 /**
  * Returns the actual Workers test storage namespace.
@@ -23,6 +23,33 @@ function environment() {
 
 describe('automatic public pages', () => {
   afterEach(() => vi.restoreAllMocks());
+
+  it.each([
+    { enabled: true, strict: false, allowed: true },
+    { enabled: false, strict: false, allowed: false },
+    { enabled: true, strict: true, allowed: false }
+  ])(
+    'scopes entry form redirects to enabled automatic page hosts: %o',
+    async ({ enabled, strict, allowed }) => {
+      const env = {
+        PAGE_MAP: enabled ? environment().PAGE_MAP : undefined,
+        XGET_PROXY_TARGET_ALLOWLIST: String(strict)
+      };
+      const url = new URL('https://fast.dxshelley.fun/');
+      const result = await handleApplicationRoute({
+        request: new Request(url),
+        url,
+        env,
+        config: createConfig(env)
+      });
+      const directives = result?.response.headers.get('Content-Security-Policy')?.split('; ') || [];
+      const form = directives.find(value => value.startsWith('form-action ')) || '';
+      expect(form.includes('https://*.fast.dxshelley.fun')).toBe(allowed);
+      expect(form).not.toContain('https://*.dxshelley.fun');
+      expect(directives).toContain("connect-src 'self'");
+      expect(directives).toContain("default-src 'none'");
+    }
+  );
 
   it('disables existing generated hosts when the strict target allowlist is enabled', async () => {
     const env = { ...environment(), XGET_PROXY_TARGET_ALLOWLIST: ' true ' };
