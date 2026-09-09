@@ -33,6 +33,9 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Install project dependencies
+        run: npm ci --ignore-scripts
+
       - name: Install Wrangler CLI
         run: npm install --global wrangler@${{ env.WRANGLER_VERSION }}
 

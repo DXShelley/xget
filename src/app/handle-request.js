@@ -13,6 +13,8 @@ import { handleGithubWebRequest } from '../github/handle-request.js';
 import { handleWebAdapterRequest } from '../web-adapters/handle-request.js';
 import { handleConfiguredSiteRequest } from '../proxy/handle-configured-site.js';
 import { handleFastRoute } from '../proxy/fast-route.js';
+import { handleAutoPage } from '../proxy/auto-page/handle.js';
+import { isPageHost } from '../proxy/auto-page/urls.js';
 import { finalizeResponse } from '../response/finalize-response.js';
 import {
   createHomepageRedirect,
@@ -40,6 +42,9 @@ import {
  * @returns {Promise<{ response: Response, isProxiedResponse: boolean } | null>} A handled application route, or null.
  */
 export async function handleApplicationRoute({ request, url, env, config }) {
+  const autoPage = await handleAutoPage(request, env);
+  if (autoPage) return { response: autoPage, isProxiedResponse: true };
+
   const webAdapterResponse = await handleWebAdapterRequest({ request, url });
   if (webAdapterResponse) return { response: webAdapterResponse, isProxiedResponse: true };
 
@@ -50,7 +55,21 @@ export async function handleApplicationRoute({ request, url, env, config }) {
   if (configuredResponse) return { response: configuredResponse, isProxiedResponse: true };
 
   const fastRouteResponse = await handleFastRoute(request, url, config);
-  return fastRouteResponse ? { response: fastRouteResponse, isProxiedResponse: true } : null;
+  if (fastRouteResponse) return { response: fastRouteResponse, isProxiedResponse: true };
+  if (env.PAGE_MAP && url.hostname === 'fast.dxshelley.fun' && url.pathname !== '/') {
+    const knownPlatform = Object.keys(config.PLATFORMS).some(key => {
+      const prefix = `/${key.replace(/-/g, '/')}`;
+      return url.pathname === prefix || url.pathname.startsWith(`${prefix}/`);
+    });
+    if (!knownPlatform)
+      return {
+        response: new Response('Unknown resource: open the page through ?target= first', {
+          status: 404
+        }),
+        isProxiedResponse: false
+      };
+  }
+  return null;
 }
 
 /**
@@ -68,11 +87,13 @@ export async function handleRequest(request, env, ctx) {
   const { config, isCorsPreflight, isDocker, url } = requestContext;
 
   try {
+    const publicPage = isPageHost(url.hostname);
     const authEndpoint = new URL(request.url).pathname.startsWith('/__xget/auth/');
-    const authResponse = await handleBrowserAuth(request, requestContext.env);
-    const browserPrincipal = requestContext.isAI
-      ? null
-      : await validateBrowserSession(request, requestContext.env);
+    const authResponse = publicPage ? null : await handleBrowserAuth(request, requestContext.env);
+    const browserPrincipal =
+      requestContext.isAI || publicPage
+        ? null
+        : await validateBrowserSession(request, requestContext.env);
     const gitPrincipal = requestContext.isGit
       ? await validateGitCredential(request, requestContext.env)
       : null;
@@ -90,6 +111,7 @@ export async function handleRequest(request, env, ctx) {
       !authEndpoint &&
       request.method !== 'OPTIONS' &&
       !requestContext.isAI &&
+      !publicPage &&
       !isProtocolRequest(requestContext) &&
       String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
         ? new Response('Authentication required', {

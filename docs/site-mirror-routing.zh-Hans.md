@@ -84,26 +84,32 @@ https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?locale=zh-CN&source
 
 ### 入口 CSP 与透明代理重定向
 
-入口页保留 `default-src 'none'`，使用 nonce 授权脚本，使用
-`connect-src 'self'` 允许同域连接，包括 Cloudflare 注入的 JavaScript 检测请求。
-`form-action` 只允许 `'self'` 和站点注册表生成的精确镜像 Origin，以支持表单跳转到已登记站点的隔离子域名；不使用域名通配符，也不允许任意上游 Origin。
-入口域名的 `/favicon.ico` 返回 `204`，不再落入未知平台路径的 GitHub 兜底跳转。
+入口页保留 `default-src 'none'`，使用 nonce 授权脚本，使用 `connect-src 'self'`
+允许同域连接，包括 Cloudflare 注入的 JavaScript 检测请求。 `form-action` 只允许
+`'self'`
+和站点注册表生成的精确镜像 Origin，以支持表单跳转到已登记站点的隔离子域名；不使用域名通配符，也不允许任意上游 Origin。入口域名的
+`/favicon.ico` 返回 `204`，不再落入未知平台路径的 GitHub 兜底跳转。
 
 透明代理使用 `redirect: 'manual'` 获取上游响应。对于带 `Location` 的
 `301`、`302`、`303`、`307`、`308` 响应：
 
-- 相对地址以当前上游 URL 为基准解析，绝对地址必须为 HTTPS，且不能包含用户名或密码；无效目标返回 `502 Invalid upstream redirect target`。
-- `Location` 改写为同域 `/?target=<编码后的下一跳 URL>`，保留原状态码；`307`/`308` 的方法和请求体重放由客户端按 HTTP 语义执行。
-- 删除该重定向响应的 `Refresh` 头，避免它绕过改写后的 `Location`；URL 锚点同时保留在浏览器跳转地址中。
+- 相对地址以当前上游 URL 为基准解析，绝对地址必须为 HTTPS，且不能包含用户名或密码；无效目标返回
+  `502 Invalid upstream redirect target`。
+- `Location` 改写为同域
+  `/?target=<编码后的下一跳 URL>`，保留原状态码；`307`/`308`
+  的方法和请求体重放由客户端按 HTTP 语义执行。
+- 删除该重定向响应的 `Refresh` 头，避免它绕过改写后的
+  `Location`；URL 锚点同时保留在浏览器跳转地址中。
 - 下一跳重新经过认证和目标路由。若命中已登记站点，仍跳转到该站点的专属镜像；透明代理不自动携带代理登录凭证到上游。
 
-已登记站点的规范镜像跳转对 `GET`/`HEAD` 使用 `302`，其他方法使用 `307`，
-避免透明代理的 `307`/`308` 链路在进入专属镜像时丢失方法或请求体。
-最终能否执行该方法仍由专属适配器的 HTTP 方法策略决定。
+已登记站点的规范镜像跳转对 `GET`/`HEAD` 使用 `302`，其他方法使用
+`307`，避免透明代理的 `307`/`308`
+链路在进入专属镜像时丢失方法或请求体。最终能否执行该方法仍由专属适配器的 HTTP 方法策略决定。
 
 镜像跳转和配置站点回源先固定 Origin，再分别设置 `pathname`、`search` 和必要的
-`hash`。目标路径即使以 `//` 开头，也只作为原域名下的路径处理，不得解释为新的主机。
-例如 `https://code.claude.com//outside.example/path` 仍跳转到
+`hash`。目标路径即使以 `//`
+开头，也只作为原域名下的路径处理，不得解释为新的主机。例如
+`https://code.claude.com//outside.example/path` 仍跳转到
 `https://claude-code.fast.dxshelley.fun//outside.example/path`；配置域名与
 `/_/<alias>/...` 入口同样必须保持固定上游 Origin。
 
@@ -114,9 +120,9 @@ https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?locale=zh-CN&source
 https://fast.dxshelley.fun/?target=https%3A%2F%2Flearn.chatgpt.com%2Fdocs%2Fchangelog
 ```
 
-这解决了入口表单因跨域上游跳转而触发 CSP 的问题，但不代表完整 Web 镜像能力。
-透明代理不改写任意 HTML 的相对资源、链接、`meta refresh` 或成功响应的 `Refresh`，也不保证第三方登录与人机验证可用；需要完整页面兼容时应使用专属站点适配器。
-循环重定向由客户端的跳转次数限制终止，Worker 不在单次请求中无限跟随上游跳转。
+这解决了入口表单因跨域上游跳转而触发 CSP 的问题，但不代表完整 Web 镜像能力。透明代理不改写任意 HTML 的相对资源、链接、`meta refresh`
+或成功响应的
+`Refresh`，也不保证第三方登录与人机验证可用；需要完整页面兼容时应使用专属站点适配器。循环重定向由客户端的跳转次数限制终止，Worker 不在单次请求中无限跟随上游跳转。
 
 回归检查：
 
@@ -311,6 +317,108 @@ SSL 未覆盖二级通配域名，应配置 Advanced Certificate 或自定义证
 6. 保留 Worker invocation logs 和 traces，并为 `4xx/5xx`
    比例、上游超时、Worker 异常、DNS/TLS 失败建立告警。日志字段不得包含 `target`
    的 query、Cookie、Authorization、token 或请求体。
+
+## 自动公开页面代理
+
+配置 `PAGE_MAP` Durable Object 后，`fast.dxshelley.fun/?target=<HTTPS URL>`
+自动创建页面域名，不需要为 `developers.openai.com`、`learn.chatgpt.com`
+或页面引用的每个 CDN 单独登记站点。此模式仅用于公开页面浏览，上游登录态不在支持范围内。未配置绑定的部署继续使用原有
+`?target=` 行为。
+
+设置 `XGET_PROXY_TARGET_ALLOWLIST=true`
+时，入口继续按原有白名单策略处理，自动生成的域名返回 403，包括此前已登记的页面。
+
+例如输入 `https://developers.openai.com/codex/changelog`，入口返回：
+
+```text
+https://developers-openai-com-<32字符哈希>.fast.dxshelley.fun/
+```
+
+站点标识仅取规范化后的 hostname，将 `.` 等分隔符转换为
+`-`，截取前 30 个字符，并去除首尾连字符。路径不进入可读标识，但参与
+`origin + pathname` 的 SHA-256 计算，取前 32 个十六进制字符（128 bit），以一个
+`-` 连接站点标识与哈希。整段最多 `30 + 1 + 32 = 63`
+个字符。相同站点的不同路径拥有不同哈希，查询参数和片段保留在地址中，不存入映射；相同页面的不同查询参数复用同一个域名。哈希不可逆，仍需保存原始网址映射；发生哈希碰撞时拒绝覆盖已有映射。
+
+上游重定向到 `https://learn.chatgpt.com/docs/changelog` 时，会自动登记并跳转到
+`learn-chatgpt-com-<32字符哈希>.fast.dxshelley.fun/`。域名映射通过 Durable
+Object 事务即时保存，不会等待 KV 跨区域传播；已存在的映射不可覆盖。
+
+### 资源处理
+
+页面资源使用同一生成域名下的独立路径：
+
+```text
+/__xget/page-resource/<上游 origin 的 base64url 编码>/<原始资源路径>?query
+```
+
+该路径同时保留资源自己的上游域名与目录，避免 `/_astro/`、`/images/`
+等地址丢失上下文，也保留 CSS 和模块中的相对目录关系。资源不逐个写入存储。
+
+- HTML 使用 Workers `HTMLRewriter`，处理 `src`、`srcset`、样式、链接、
+  `poster`、Astro 的 `component-url` / `renderer-url` 及 `<base>`。
+- CSS 使用 CSS Tree 和 CSS value parser；处理 `url()`、字体和 `@import`。
+- JavaScript 使用 `es-module-lexer`
+  处理静态导入和字符串形式的动态导入。前置运行时处理常见动态
+  `fetch`、XHR、资源属性赋值和 GET 表单。
+- 页面导航返回入口登记新页面；HTTP 重定向、Refresh 和常见动态链接继续经过代理。
+- 原 CSP、SRI 及不适用于重写内容的响应长度/摘要会被移除或替换；新页面 CSP 将资源和连接限制到当前代理域名，禁止 Service
+  Worker 和对象嵌入。
+- 开启此模式后，入口域名上未匹配平台的资源路径返回 404，不再兜底跳转到
+  `https://github.com/xixu-me/Xget`。生成域名没有映射时也返回 404。
+
+### 一次性部署配置
+
+`wrangler.toml` 已声明 `PAGE_MAP`、`PageMap` 的 SQLite migration，以及已有的
+`*.fast.dxshelley.fun/*` Worker
+route。生成域名严格按站点标识和 32 字符哈希识别，不会占用
+`docker`、`claude-code` 等固定子域名。部署前还需要：
+
+1. 在 `dxshelley.fun` Zone 添加开启代理的通配 DNS 记录，Name 为
+   `*.fast`，例如 CNAME 指向 `fast.dxshelley.fun`。如果此前已配置
+   `*.fast.dxshelley.fun`，可以直接复用，无需逐站创建记录。
+2. 确认边缘证书覆盖 `*.fast.dxshelley.fun`，并确保通配 route 指向
+   `xget-fast`。不要用覆盖全 Zone 的 `*dxshelley.fun/*`
+   route 代替，避免拦截其他业务域名。 `*.dxshelley.fun`
+   证书不能覆盖此层级，需要相应的 Advanced Certificate 或自定义证书。
+3. 执行 `npm run deploy:fast`
+   部署绑定和 migration，再验证入口返回的实际域名。路由、DNS 和 TLS 均需要上线核验；本地 dry-run 不会配置 DNS 或签发证书。
+
+入口沿用已有 Xget 认证；生成域名允许匿名浏览。上游仅收到 GET/HEAD 和有限的
+`Accept`、`Accept-Language`、`Range`、`If-Range`
+请求头。浏览器 Cookie、Authorization 和上游 Set-Cookie 不会透传，POST 等写入请求返回 405。
+
+### 兼容性范围与验证
+
+只接受无用户凭据、无非默认端口的 HTTPS 域名，拒绝 IP、常见本地域名和代理自身域名。这属于 URL 层校验，并非对每个域名执行 DNS 公网地址审计。入口应只用于可信公开网址。每次上游请求超时为 30 秒，需要改写的文本最多缓冲 4
+MiB；媒体响应流式传输并支持 Range。
+
+此功能不保证所有 Web 应用透明运行：登录、支付、WebSocket、Service
+Worker、动态拼接的跨域 `import()`、自定义 import
+map、`eval`、特殊前端路由及CSSOM/嵌套 `srcdoc`
+动态写入可能需要专用适配。未覆盖的跨域资源由 CSP 阻止，不会自动放开直连。上游反机器人挑战仍可能阻止匿名读取。
+
+回归与构建检查：
+
+```powershell
+node node_modules/vitest/vitest.mjs run test/unit/auto-page.test.js
+npm run type-check
+node node_modules/wrangler/bin/wrangler.js deploy --dry-run --outdir .wrangler/auto-page-build
+```
+
+浏览器冒烟脚本为 `scripts/test-auto-page-browser.mjs`，需要可解析的 `playwright`
+Node 包和已安装的 Chrome。可通过 `NODE_PATH` 指向现有 Playwright 安装目录，通过
+`CHROME_PATH`
+指定 Chrome。脚本启动独立临时 Profile，将测试域名映射到本地 Miniflare
+HTTPS 服务，并仅在该测试浏览器中忽略本地自签名证书错误；退出时关闭测试实例。可选
+`XGET_HTML_FIXTURE` 指向本地 HTML，附件只用于资源属性校验，不执行附件脚本。
+
+```powershell
+node scripts/test-auto-page-browser.mjs
+```
+
+脚本验证桌面/手机尺寸下的 CSS、模块、动态 fetch、图片和跨站导航；截图保存在
+`.wrangler/auto-page-qa/`。这些离线验证不代表线上 DNS、TLS 或上游反爬验证通过。
 
 ## 发布后验证
 

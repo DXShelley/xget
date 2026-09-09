@@ -1,6 +1,9 @@
 {
   "dependencies": {
-    "express": "^5.2.1"
+    "css-tree": "^3.1.0",
+    "es-module-lexer": "^2.0.0",
+    "express": "^5.2.1",
+    "postcss-value-parser": "^4.2.0"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.13.3",
@@ -8,6 +11,7 @@
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@eslint/js": "^10.0.1",
+    "@types/css-tree": "^3.2.0",
     "@vitest/coverage-istanbul": "^4.1.0",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
