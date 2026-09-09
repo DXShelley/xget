@@ -46,6 +46,23 @@ export const PAGE_RUNTIME = String.raw`(() => {
     )
       return;
     const target = new URL(anchor.href, base);
+    if (target.origin === location.origin && target.pathname.startsWith(prefix)) {
+      const rest = target.pathname.slice(prefix.length);
+      const slash = rest.indexOf('/');
+      if (slash < 1) return;
+      try {
+        const origin = atob(rest.slice(0, slash).replaceAll('-', '+').replaceAll('_', '/'));
+        const destination =
+          'https://fast.dxshelley.fun/?target=' +
+          encodeURIComponent(origin + rest.slice(slash) + target.search + target.hash);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        location.assign(destination);
+      } catch {
+        // Keep malformed internal resource URLs as ordinary links.
+      }
+      return;
+    }
     if (target.origin === location.origin) return;
     if (target.hostname === 'fast.dxshelley.fun') {
       if (target.pathname === '/' && target.searchParams.has('target')) {
@@ -56,12 +73,7 @@ export const PAGE_RUNTIME = String.raw`(() => {
       }
       return;
     }
-    if (target.origin === location.origin && target.pathname.startsWith(prefix)) {
-      const rest = target.pathname.slice(prefix.length);
-      const slash = rest.indexOf('/');
-      const origin = atob(rest.slice(0, slash).replaceAll('-', '+').replaceAll('_', '/'));
-      anchor.href = 'https://fast.dxshelley.fun/?target=' + encodeURIComponent(origin + rest.slice(slash) + target.search + target.hash);
-    } else if (target.protocol === 'https:' && target.origin !== location.origin) {
+    if (target.protocol === 'https:' && target.origin !== location.origin) {
       anchor.href = 'https://fast.dxshelley.fun/?target=' + encodeURIComponent(target.href);
     }
   }, true);
