@@ -82,6 +82,51 @@ https://code.claude.com/docs/zh-CN/quickstart?locale=zh-CN&source=fast
 https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?locale=zh-CN&source=fast
 ```
 
+### 入口 CSP 与透明代理重定向
+
+入口页保留 `default-src 'none'`，使用 nonce 授权脚本，使用
+`connect-src 'self'` 允许同域连接，包括 Cloudflare 注入的 JavaScript 检测请求。
+`form-action` 只允许 `'self'` 和站点注册表生成的精确镜像 Origin，以支持表单跳转到已登记站点的隔离子域名；不使用域名通配符，也不允许任意上游 Origin。
+入口域名的 `/favicon.ico` 返回 `204`，不再落入未知平台路径的 GitHub 兜底跳转。
+
+透明代理使用 `redirect: 'manual'` 获取上游响应。对于带 `Location` 的
+`301`、`302`、`303`、`307`、`308` 响应：
+
+- 相对地址以当前上游 URL 为基准解析，绝对地址必须为 HTTPS，且不能包含用户名或密码；无效目标返回 `502 Invalid upstream redirect target`。
+- `Location` 改写为同域 `/?target=<编码后的下一跳 URL>`，保留原状态码；`307`/`308` 的方法和请求体重放由客户端按 HTTP 语义执行。
+- 删除该重定向响应的 `Refresh` 头，避免它绕过改写后的 `Location`；URL 锚点同时保留在浏览器跳转地址中。
+- 下一跳重新经过认证和目标路由。若命中已登记站点，仍跳转到该站点的专属镜像；透明代理不自动携带代理登录凭证到上游。
+
+已登记站点的规范镜像跳转对 `GET`/`HEAD` 使用 `302`，其他方法使用 `307`，
+避免透明代理的 `307`/`308` 链路在进入专属镜像时丢失方法或请求体。
+最终能否执行该方法仍由专属适配器的 HTTP 方法策略决定。
+
+镜像跳转和配置站点回源先固定 Origin，再分别设置 `pathname`、`search` 和必要的
+`hash`。目标路径即使以 `//` 开头，也只作为原域名下的路径处理，不得解释为新的主机。
+例如 `https://code.claude.com//outside.example/path` 仍跳转到
+`https://claude-code.fast.dxshelley.fun//outside.example/path`；配置域名与
+`/_/<alias>/...` 入口同样必须保持固定上游 Origin。
+
+例如，上游 `https://developers.openai.com/codex/changelog` 若返回
+`308 Location: https://learn.chatgpt.com/docs/changelog`，浏览器收到的地址为：
+
+```text
+https://fast.dxshelley.fun/?target=https%3A%2F%2Flearn.chatgpt.com%2Fdocs%2Fchangelog
+```
+
+这解决了入口表单因跨域上游跳转而触发 CSP 的问题，但不代表完整 Web 镜像能力。
+透明代理不改写任意 HTML 的相对资源、链接、`meta refresh` 或成功响应的 `Refresh`，也不保证第三方登录与人机验证可用；需要完整页面兼容时应使用专属站点适配器。
+循环重定向由客户端的跳转次数限制终止，Worker 不在单次请求中无限跟随上游跳转。
+
+回归检查：
+
+```powershell
+npm run test:run -- test/unit/fast-route.test.js test/features/github-web.test.js test/unit/configured-response.test.js test/unit/browser-auth.test.js test/unit/pipeline-modules.test.js
+```
+
+发布后，在已登录浏览器中分别提交未登记 HTTPS 目标和已登记站点，检查每一跳
+`Location`、最终页面及控制台 CSP 报错；确认入口检测请求可连接同域，favicon 不再返回外域跳转。
+
 规范路径代理形式为 `/_/<alias>/<path>`。例如：
 
 ```text

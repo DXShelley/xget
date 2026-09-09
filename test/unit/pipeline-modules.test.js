@@ -117,7 +117,7 @@ describe('Pipeline modules', () => {
     expect(timeoutDelays.every(delay => delay <= 1000)).toBe(true);
   });
 
-  it('rewrites npm metadata and refreshes content length during response finalization', async () => {
+  it('streams rewritten npm metadata without retaining the upstream content length', async () => {
     const request = new Request('https://example.com/npm/pkg');
     const requestContext = createRequestContext(request, {});
     const upstreamBody = JSON.stringify({
@@ -151,9 +151,7 @@ describe('Pipeline modules', () => {
     const body = await response.text();
 
     expect(body).toContain('https://example.com/npm/pkg/-/pkg-1.0.0.tgz');
-    expect(response.headers.get('Content-Length')).toBe(
-      String(new TextEncoder().encode(body).byteLength)
-    );
+    expect(response.headers.has('Content-Length')).toBe(false);
   });
 
   it('preserves upstream CSP for proxied HTML responses', async () => {
