@@ -100,9 +100,10 @@ function rewriteSrcset(text, base, mirror) {
  * @param {string} text
  * @param {URL} target
  * @param {string} mirror
+ * @param {string} [siteOrigin] Origin represented by the generated page host.
  * @returns {Promise<string>} Rewritten document.
  */
-export async function rewriteHtml(text, target, mirror) {
+export async function rewriteHtml(text, target, mirror, siteOrigin = target.origin) {
   let base = target;
   let foundBase = false;
   await new HTMLRewriter()
@@ -133,7 +134,10 @@ export async function rewriteHtml(text, target, mirror) {
             element.getAttribute('content') || ''
           );
           if (match)
-            element.setAttribute('content', `${match[1]};url=${navigationUrl(match[2], base)}`);
+            element.setAttribute(
+              'content',
+              `${match[1]};url=${navigationUrl(match[2], base, mirror, siteOrigin)}`
+            );
           else element.remove();
         }
       }
@@ -179,7 +183,7 @@ export async function rewriteHtml(text, target, mirror) {
                 element.tagName === 'a' || element.tagName === 'area'
                   ? href.startsWith('#')
                     ? `${mirror}/${target.search}${href}`
-                    : navigationUrl(href, base)
+                    : navigationUrl(href, base, mirror, siteOrigin)
                   : resourceUrl(href, base, mirror)
               );
             } catch {
@@ -190,7 +194,7 @@ export async function rewriteHtml(text, target, mirror) {
         if (element.tagName === 'form') {
           const action = new URL(element.getAttribute('action') || target.href, base);
           element.setAttribute('data-upstream-action', action.href);
-          element.setAttribute('action', 'https://fast.dxshelley.fun/');
+          element.setAttribute('action', navigationUrl(action.href, base, mirror, siteOrigin));
         }
         const style = element.getAttribute('style');
         if (style) {

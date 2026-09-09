@@ -1,3 +1,5 @@
+import { resolveSite } from '../site-registry.js';
+
 export const RESOURCE_PREFIX = '/__xget/page-resource/';
 export const PAGE_SUFFIX = '.fast.dxshelley.fun';
 
@@ -32,36 +34,86 @@ export function publicTarget(value) {
  * @returns {boolean} Whether this is a generated page host.
  */
 export function isPageHost(hostname) {
+  const label = hostname.slice(0, -PAGE_SUFFIX.length);
   return (
     hostname.endsWith(PAGE_SUFFIX) &&
-    /^[a-z0-9](?:[a-z0-9-]{0,28}[a-z0-9])?-[a-f0-9]{32}$/.test(
-      hostname.slice(0, -PAGE_SUFFIX.length)
-    )
+    !resolveSite(hostname) &&
+    label.includes('-') &&
+    /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)
   );
 }
 
 /**
- * Names an immutable origin/path mapping, excluding query and fragment.
+ * Converts an upstream hostname into its readable generated DNS label.
  * @param {URL} target
  * @returns {Promise<string>} DNS label.
  */
 export async function pageLabel(target) {
-  const key = target.origin + target.pathname;
-  const bytes = new Uint8Array(
-    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key))
-  );
-  const hash = [...bytes]
-    .map(value => value.toString(16).padStart(2, '0'))
-    .join('')
-    .slice(0, 32);
-  const slug =
+  const raw = target.hostname.toLowerCase().replaceAll('.', '-');
+  const label = raw.slice(0, 63).replace(/-+$/, '');
+  if (label.includes('-')) return label;
+  const next = raw.slice(63).replace(/^-+/, '').slice(0, 1) || 'x';
+  return `${raw.slice(0, 61)}-${next}`;
+}
+
+/**
+ * Reproduces the former readable prefix for legacy hash-label migration.
+ * @param {URL} target
+ * @returns {string} Legacy label prefix.
+ */
+function legacySlug(target) {
+  return (
     target.hostname
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 30)
-      .replace(/-$/g, '') || 'page';
-  return `${slug}-${hash}`;
+      .replace(/-$/g, '') || 'page'
+  );
+}
+
+/**
+ * Verifies a legacy per-path label so existing bookmarked page hosts can redirect safely.
+ * @param {URL} target
+ * @param {string} label
+ * @returns {Promise<boolean>} Whether the label matches the old mapping format.
+ */
+export async function matchesLegacyLabel(target, label) {
+  const slug = legacySlug(target);
+  if (/^[a-z2-7]{8}$/.test(label.slice(slug.length + 1))) {
+    const bytes = new Uint8Array(
+      await crypto.subtle.digest('SHA-256', new TextEncoder().encode(target.origin))
+    );
+    const value = BigInt(
+      `0x${[...bytes.slice(0, 5)].map(byte => byte.toString(16).padStart(2, '0')).join('')}`
+    );
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
+    const hash = Array.from(
+      { length: 8 },
+      (_, index) => alphabet[Number((value >> BigInt(35 - index * 5)) & 31n)]
+    ).join('');
+    return label === `${slug}-${hash}`;
+  }
+  const bytes = new Uint8Array(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(target.origin + target.pathname))
+  );
+  const hash = [...bytes]
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32);
+  return label === `${slug}-${hash}`;
+}
+
+/**
+ * Preserves upstream paths on their site's generated proxy host.
+ * @param {URL} target
+ * @param {string} mirrorOrigin
+ * @returns {string} Same-site browser URL.
+ */
+export function siteUrl(target, mirrorOrigin) {
+  return target.pathname.startsWith('/__xget/')
+    ? resourceUrl(target.href, target, mirrorOrigin)
+    : `${mirrorOrigin}${target.pathname}${target.search}${target.hash}`;
 }
 
 /**
@@ -106,13 +158,16 @@ export function decodeResource(proxy) {
 }
 
 /**
- * Creates an entry navigation without persisting query parameters.
+ * Creates an entry navigation, directly retaining same-site navigation when possible.
  * @param {string} value
  * @param {URL} base
+ * @param {string} [mirrorOrigin]
+ * @param {string} [siteOrigin]
  * @returns {string} Entry URL.
  */
-export function navigationUrl(value, base) {
+export function navigationUrl(value, base, mirrorOrigin, siteOrigin = base.origin) {
   if (!value || value.startsWith('#') || /^(mailto:|tel:)/i.test(value)) return value;
   const target = publicTarget(new URL(value, base));
+  if (mirrorOrigin && target.origin === siteOrigin) return siteUrl(target, mirrorOrigin);
   return `https://fast.dxshelley.fun/?target=${encodeURIComponent(target.href)}`;
 }

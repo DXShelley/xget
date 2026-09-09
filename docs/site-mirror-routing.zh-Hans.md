@@ -331,17 +331,17 @@ SSL 未覆盖二级通配域名，应配置 Advanced Certificate 或自定义证
 例如输入 `https://developers.openai.com/codex/changelog`，入口返回：
 
 ```text
-https://developers-openai-com-<32字符哈希>.fast.dxshelley.fun/
+https://developers-openai-com.fast.dxshelley.fun/codex/changelog
 ```
 
-站点标识仅取规范化后的 hostname，将 `.` 等分隔符转换为
-`-`，截取前 30 个字符，并去除首尾连字符。路径不进入可读标识，但参与
-`origin + pathname` 的 SHA-256 计算，取前 32 个十六进制字符（128 bit），以一个
-`-` 连接站点标识与哈希。整段最多 `30 + 1 + 32 = 63`
-个字符。相同站点的不同路径拥有不同哈希，查询参数和片段保留在地址中，不存入映射；相同页面的不同查询参数复用同一个域名。哈希不可逆，仍需保存原始网址映射；发生哈希碰撞时拒绝覆盖已有映射。
+站点标识只取规范化后的 hostname，并将 `.` 替换为 `-`；最长保留 DNS
+label 允许的 63 个字符。截断位置是分隔符时，保留前缀、分隔符和后续首字符，保证生成 Host 可被自动路由识别。例如
+`developers.openai.com` 对应
+`developers-openai-com`。路径、查询参数和片段不参与站点标识，直接保留在代理 URL 中，因此同站点的页面共享一个生成域名，可以直接站内跳转、复用连接，并将 Durable
+Object 映射压缩为每个 origin 一条。映射仍保存原始 origin，并且不可覆盖；少数 hostname 在点号替换后得到相同站点标识时，后续冲突请求会被拒绝。
 
 上游重定向到 `https://learn.chatgpt.com/docs/changelog` 时，会自动登记并跳转到
-`learn-chatgpt-com-<32字符哈希>.fast.dxshelley.fun/`。域名映射通过 Durable
+`learn-chatgpt-com.fast.dxshelley.fun/docs/changelog`。域名映射通过 Durable
 Object 事务即时保存，不会等待 KV 跨区域传播；已存在的映射不可覆盖。
 
 ### 资源处理
@@ -359,7 +359,8 @@ Object 事务即时保存，不会等待 KV 跨区域传播；已存在的映射
 ```
 
 该路径同时保留资源自己的上游域名与目录，避免 `/_astro/`、`/images/`
-等地址丢失上下文，也保留 CSS 和模块中的相对目录关系。资源不逐个写入存储。
+等地址丢失上下文，也保留 CSS 和模块中的相对目录关系。相同上游 origin 的普通路径直接保留在生成域名下；仅跨域依赖及
+`/__xget/` 保留路径使用资源命名空间。资源不逐个写入存储。
 
 - HTML 使用 Workers `HTMLRewriter`，处理 `src`、`srcset`、样式、链接、
   `poster`、Astro 的 `component-url` / `renderer-url` 及 `<base>`。
@@ -367,7 +368,7 @@ Object 事务即时保存，不会等待 KV 跨区域传播；已存在的映射
 - JavaScript 使用 `es-module-lexer`
   处理静态导入和字符串形式的动态导入。前置运行时处理常见动态
   `fetch`、XHR、资源属性赋值和 GET 表单。
-- 页面导航返回入口登记新页面；HTTP 重定向、Refresh 和常见动态链接继续经过代理。
+- 同站页面导航、HTTP 重定向和 Refresh 直接保留生成域名与路径；跨站导航才返回入口登记新站点。
 - 原 CSP、SRI 及不适用于重写内容的响应长度/摘要会被移除或替换；新页面 CSP 将资源和连接限制到当前代理域名，禁止 Service
   Worker 和对象嵌入。
 - 开启此模式后，入口域名上未匹配平台的资源路径返回 404，不再兜底跳转到
@@ -377,7 +378,7 @@ Object 事务即时保存，不会等待 KV 跨区域传播；已存在的映射
 
 `wrangler.toml` 已声明 `PAGE_MAP`、`PageMap` 的 SQLite migration，以及已有的
 `*.fast.dxshelley.fun/*` Worker
-route。生成域名严格按站点标识和 32 字符哈希识别，不会占用
+route。生成域名严格按站点标识识别，并优先排除已登记的固定镜像 Host，不会占用
 `docker`、`claude-code` 等固定子域名。部署前还需要：
 
 1. 在 `dxshelley.fun` Zone 添加开启代理的通配 DNS 记录，Name 为
@@ -397,7 +398,9 @@ route。生成域名严格按站点标识和 32 字符哈希识别，不会占�
 ### 兼容性范围与验证
 
 只接受无用户凭据、无非默认端口的 HTTPS 域名，拒绝 IP、常见本地域名和代理自身域名。这属于 URL 层校验，并非对每个域名执行 DNS 公网地址审计。入口应只用于可信公开网址。每次上游请求超时为 30 秒，需要改写的文本最多缓冲 4
-MiB；媒体响应流式传输并支持 Range。
+MiB；媒体响应流式传输并支持 Range。Worker
+isolate 缓存最近 256 个已验证 origin 映射，缓存未命中时再读取 Durable
+Object；缓存不是正确性依赖。
 
 此功能不保证所有 Web 应用透明运行：登录、支付、WebSocket、Service
 Worker、动态拼接的跨域 `import()`、自定义 import

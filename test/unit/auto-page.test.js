@@ -81,17 +81,16 @@ describe('automatic public pages', () => {
     expect((await handleAutoPage(new Request(mirror), env))?.status).toBe(502);
   });
 
-  it('creates stable hostname labels with a 128-bit path hash, excluding query and fragment', async () => {
+  it('creates stable readable labels from the origin hostname, excluding path, query and fragment', async () => {
     const a = await pageLabel(new URL('https://developers.openai.com/codex/changelog?q=1'));
-    expect(a).toMatch(/^developers-openai-com-[a-f0-9]{32}$/);
+    expect(a).toBe('developers-openai-com');
     expect(a.length).toBeLessThanOrEqual(63);
     expect(
       await pageLabel(new URL('https://DEVELOPERS.OPENAI.COM:443/codex/changelog?q=2#section'))
     ).toBe(a);
     const other = await pageLabel(new URL('https://developers.openai.com/codex/overview'));
-    expect(other).toMatch(/^developers-openai-com-[a-f0-9]{32}$/);
-    expect(other).not.toBe(a);
-    expect(await pageLabel(new URL('https://a.example/a-b'))).not.toBe(
+    expect(other).toBe(a);
+    expect(await pageLabel(new URL('https://a.example/a-b'))).toBe(
       await pageLabel(new URL('https://a.example/a/b'))
     );
     expect(
@@ -99,13 +98,15 @@ describe('automatic public pages', () => {
     ).toBeLessThanOrEqual(63);
   });
 
-  it('caps the site identifier at 30 characters and trims a trailing separator', async () => {
-    const long = await pageLabel(new URL(`https://${'a'.repeat(50)}.example/docs`));
-    expect(long).toMatch(/^[a]{30}-[a-f0-9]{32}$/);
+  it('caps the site identifier at the DNS-label limit and trims a trailing separator', async () => {
+    const long = await pageLabel(
+      new URL(`https://${'a'.repeat(30)}.${'b'.repeat(30)}.example/docs`)
+    );
+    expect(long).toMatch(/^[a]{30}-[b]{30}-e$/);
     expect(long.length).toBe(63);
     expect(isPageHost(`${long}.fast.dxshelley.fun`)).toBe(true);
-    const trimmed = await pageLabel(new URL(`https://${'a'.repeat(29)}.example/docs`));
-    expect(trimmed).toMatch(/^[a]{29}-[a-f0-9]{32}$/);
+    const trimmed = await pageLabel(new URL(`https://${'a'.repeat(62)}.com/docs`));
+    expect(trimmed).toBe(`${'a'.repeat(61)}-c`);
   });
 
   it.each([
@@ -115,11 +116,11 @@ describe('automatic public pages', () => {
     'ai-studio.fast.dxshelley.fun',
     `site-${'a'.repeat(32)}.fast.dxshelley.fun.evil.example`,
     `site-${'a'.repeat(32)}.dxshelley.fun`,
+    'page.fast.dxshelley.fun',
     `site-${'a'.repeat(20)}-fast.dxshelley.fun`,
     `site-${'a'.repeat(64)}.fast.dxshelley.fun`,
     `${'a'.repeat(31)}-${'a'.repeat(32)}.fast.dxshelley.fun`,
-    `-site-${'a'.repeat(32)}.fast.dxshelley.fun`,
-    `site--${'a'.repeat(32)}.fast.dxshelley.fun`
+    `-site-${'a'.repeat(32)}.fast.dxshelley.fun`
   ])('does not classify fixed or malformed hosts as public page hosts: %s', hostname => {
     expect(isPageHost(hostname)).toBe(false);
   });
@@ -143,8 +144,8 @@ describe('automatic public pages', () => {
     const redirect = await handleAutoPage(entry, env);
     expect(redirect?.status).toBe(302);
     const mirror = new URL(redirect?.headers.get('Location') || '');
-    expect(mirror.hostname).toMatch(/^example-com-[a-f0-9]{32}\.fast\.dxshelley\.fun$/);
-    expect(mirror.pathname).toBe('/');
+    expect(mirror.hostname).toBe('example-com.fast.dxshelley.fun');
+    expect(mirror.pathname).toBe('/docs/start');
     expect(mirror.search).toBe('?q=1');
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
@@ -162,7 +163,7 @@ describe('automatic public pages', () => {
     expect(html).toContain(
       resourceUrl('../logo.png', new URL('https://example.com/docs/start'), mirror.origin)
     );
-    expect(html).toContain('https://fast.dxshelley.fun/?target=');
+    expect(html).toContain(`${mirror.origin}/next`);
     expect(html).toContain('/__xget/page-runtime.js');
     expect(fetchSpy.mock.calls[0][0]).toBe('https://example.com/docs/start?q=1');
   });
@@ -178,6 +179,65 @@ describe('automatic public pages', () => {
         )
       )?.status
     ).toBe(404);
+  });
+
+  it('reuses one generated host for every path of the same origin', async () => {
+    const env = environment();
+    const first = await registerPage(
+      new URL('https://developers.openai.com/codex/changelog?q=1'),
+      env.PAGE_MAP
+    );
+    const second = await registerPage(
+      new URL('https://developers.openai.com/codex/overview?q=2#part'),
+      env.PAGE_MAP
+    );
+    expect(second.origin).toBe(first.origin);
+    expect(first.pathname).toBe('/codex/changelog');
+    expect(second.pathname).toBe('/codex/overview');
+    expect(second.search).toBe('?q=2');
+    expect(second.hash).toBe('#part');
+  });
+
+  it('rejects origins whose readable hostname labels collide', async () => {
+    const env = environment();
+    await registerPage(new URL('https://a.b.example/docs'), env.PAGE_MAP);
+    await expect(registerPage(new URL('https://a-b.example/docs'), env.PAGE_MAP)).rejects.toThrow(
+      'Site label collision'
+    );
+  });
+
+  it('serves a direct label that happens to end in the legacy hash shape', async () => {
+    const env = environment();
+    const mirror = await registerPage(new URL('https://foo.abcdefgh/docs'), env.PAGE_MAP);
+    expect(mirror.hostname).toBe('foo-abcdefgh.fast.dxshelley.fun');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    expect(await (await handleAutoPage(new Request(mirror), env))?.text()).toBe('ok');
+  });
+
+  it('redirects a legacy per-path page host to its origin-scoped successor', async () => {
+    const env = environment();
+    const target = new URL('https://legacy.example/docs/start');
+    const bytes = new Uint8Array(
+      await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(target.origin + target.pathname)
+      )
+    );
+    const legacyHash = [...bytes]
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('')
+      .slice(0, 32);
+    const legacyLabel = `legacy-example-${legacyHash}`;
+    const stub = env.PAGE_MAP.get(env.PAGE_MAP.idFromName(legacyLabel));
+    await stub.fetch('https://mapping/', { method: 'PUT', body: target.href });
+    const response = await handleAutoPage(
+      new Request(`https://${legacyLabel}.fast.dxshelley.fun/?q=1`),
+      env
+    );
+    expect(response?.status).toBe(302);
+    expect(response?.headers.get('Location')).toMatch(
+      /^https:\/\/legacy-example\.fast\.dxshelley\.fun\/docs\/start\?q=1$/
+    );
   });
 
   it('persists immutable mappings and rejects concurrent conflicting registrations', async () => {
@@ -259,7 +319,7 @@ describe('automatic public pages', () => {
     );
     const document = await handleAutoPage(new Request(mirror), env);
     expect(document?.headers.get('Location')).toMatch(
-      /^https:\/\/learn-chatgpt-com-[a-f0-9]{32}\.fast\.dxshelley\.fun\/$/
+      /^https:\/\/learn-chatgpt-com\.fast\.dxshelley\.fun\/docs\/changelog$/
     );
     const resource = await handleAutoPage(
       new Request(resourceUrl('/a.js', new URL('https://example.com/'), mirror.origin)),

@@ -6,12 +6,42 @@ import {
   publicTarget,
   resourceUrl,
   decodeResource,
-  navigationUrl
+  navigationUrl,
+  siteUrl,
+  matchesLegacyLabel
 } from './urls.js';
 import { rewriteHtml, rewriteCss, rewriteModule } from './rewrite.js';
 import { PAGE_RUNTIME } from './runtime.js';
 
 /** @typedef {{ idFromName: (name: string) => unknown, get: (id: unknown) => { fetch: (input: string, init?: RequestInit) => Promise<Response> } }} MappingNamespace */
+
+/** @type {WeakMap<MappingNamespace, Map<string, string>>} */
+const originCaches = new WeakMap();
+
+/**
+ * Returns the immutable mapping cache attached to this storage binding.
+ * @param {MappingNamespace} namespace
+ * @returns {Map<string, string>} Site origin cache.
+ */
+function originCache(namespace) {
+  let cache = originCaches.get(namespace);
+  if (!cache) {
+    cache = new Map();
+    originCaches.set(namespace, cache);
+  }
+  return cache;
+}
+
+/**
+ * Retains at most 256 verified origins in a Worker isolate.
+ * @param {Map<string, string>} cache
+ * @param {string} label
+ * @param {string} origin
+ */
+function rememberOrigin(cache, label, origin) {
+  if (!cache.has(label) && cache.size >= 256) cache.delete(cache.keys().next().value || '');
+  cache.set(label, origin);
+}
 
 /**
  * Registers an immutable mapping before redirecting, avoiding eventual-consistency races.
@@ -21,16 +51,16 @@ import { PAGE_RUNTIME } from './runtime.js';
  */
 export async function registerPage(target, map) {
   const label = await pageLabel(target);
-  const stub = map.get(map.idFromName(label));
-  const stored = await stub.fetch('https://mapping/', {
-    method: 'PUT',
-    body: target.origin + target.pathname
-  });
-  if (!stored.ok) throw new Error('Page mapping unavailable');
-  const proxy = new URL(`https://${label}${PAGE_SUFFIX}/`);
-  proxy.search = target.search;
-  proxy.hash = target.hash;
-  return proxy;
+  const cache = originCache(map);
+  const previous = cache.get(label);
+  if (previous && previous !== target.origin) throw new Error('Site label collision');
+  if (!previous) {
+    const stub = map.get(map.idFromName(label));
+    const stored = await stub.fetch('https://mapping/', { method: 'PUT', body: target.origin });
+    if (!stored.ok) throw new Error('Page mapping unavailable');
+    rememberOrigin(cache, label, target.origin);
+  }
+  return new URL(siteUrl(target, `https://${label}${PAGE_SUFFIX}`));
 }
 
 /**
@@ -91,12 +121,27 @@ export async function handleAutoPage(request, env) {
     return Response.redirect(await registerPage(target, map), 302);
   }
   const label = url.hostname.slice(0, -PAGE_SUFFIX.length);
-  const stored = await map.get(map.idFromName(label)).fetch('https://mapping/');
-  if (!stored.ok) return new Response('Unknown public page', { status: 404 });
+  const legacy = /-(?:[a-f0-9]{32}|[a-z2-7]{8})$/.test(label);
+  const cache = originCache(map);
+  let storedTarget = legacy ? undefined : cache.get(label);
+  if (!storedTarget) {
+    const stored = await map.get(map.idFromName(label)).fetch('https://mapping/');
+    if (!stored.ok) return new Response('Unknown public page', { status: 404 });
+    storedTarget = await stored.text();
+  }
   let target;
   try {
-    target = publicTarget(await stored.text());
-    if ((await pageLabel(target)) !== label) throw new Error('Invalid mapping');
+    target = publicTarget(storedTarget);
+    const canonicalLabel = await pageLabel(target);
+    if (legacy && canonicalLabel !== label) {
+      if (!(await matchesLegacyLabel(target, label))) throw new Error('Invalid legacy mapping');
+      const destination = await registerPage(new URL(target.origin), map);
+      const pathname = url.pathname === '/' ? target.pathname : url.pathname;
+      return Response.redirect(`${destination.origin}${pathname}${url.search}`, 302);
+    }
+    if (target.origin !== storedTarget || canonicalLabel !== label)
+      throw new Error('Invalid mapping');
+    rememberOrigin(cache, label, storedTarget);
     if (url.pathname === '/__xget/page-runtime.js')
       return new Response(PAGE_RUNTIME, {
         headers: {
@@ -106,7 +151,7 @@ export async function handleAutoPage(request, env) {
       });
     if (url.pathname.startsWith(RESOURCE_PREFIX)) target = decodeResource(url);
     else {
-      if (url.pathname !== '/') target.pathname = url.pathname;
+      target.pathname = url.pathname;
       target.search = url.search;
     }
   } catch {
@@ -148,7 +193,9 @@ export async function handleAutoPage(request, env) {
         'Location',
         url.pathname.startsWith(RESOURCE_PREFIX)
           ? resourceUrl(next.href, target, url.origin)
-          : (await registerPage(next, map)).href
+          : next.origin === storedTarget
+            ? siteUrl(next, url.origin)
+            : (await registerPage(next, map)).href
       );
       resultHeaders.delete('Refresh');
       await upstream.body?.cancel();
@@ -158,7 +205,11 @@ export async function handleAutoPage(request, env) {
     const refresh = resultHeaders.get('Refresh');
     if (refresh) {
       const match = /^\s*([\d.]+)\s*;\s*url\s*=\s*['"]?(.*?)['"]?\s*$/i.exec(refresh);
-      if (match) resultHeaders.set('Refresh', `${match[1]};url=${navigationUrl(match[2], target)}`);
+      if (match)
+        resultHeaders.set(
+          'Refresh',
+          `${match[1]};url=${navigationUrl(match[2], target, url.origin, storedTarget)}`
+        );
       else resultHeaders.delete('Refresh');
     }
     const mime = resultHeaders.get('Content-Type') || '';
@@ -173,7 +224,7 @@ export async function handleAutoPage(request, env) {
     if (upstream.status === 200 && request.method !== 'HEAD' && (html || css || js)) {
       const text = await readText(upstream);
       const body = html
-        ? await rewriteHtml(text, target, url.origin)
+        ? await rewriteHtml(text, target, url.origin, storedTarget)
         : css
           ? rewriteCss(text, target, url.origin)
           : rewriteModule(text, target, url.origin);

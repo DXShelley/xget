@@ -103,7 +103,7 @@ try {
     await page.screenshot({ path: '.wrangler/auto-page-qa/' + viewport.width + '.png' });
     await page.getByRole('link', { name: 'Next page' }).click();
     await page.getByRole('heading', { name: 'Next page' }).waitFor();
-    assert.match(page.url(), /^https:\/\/other-example-[a-f0-9]{32}\.fast\.dxshelley\.fun\/$/);
+    assert.match(page.url(), /^https:\/\/other-example\.fast\.dxshelley\.fun\/next$/);
   }
   const nativeContext = await browser.newContext({
     javaScriptEnabled: false,
@@ -118,9 +118,7 @@ try {
     await nativePage.goto('https://fast.dxshelley.fun/', { timeout: 30000 });
     await nativePage.locator('#target').fill('https://example.com/docs/start');
     await nativePage.locator('#target-form button[type=submit]').click();
-    await nativePage.waitForURL(
-      /^https:\/\/learn-chatgpt-com-[a-f0-9]{32}\.fast\.dxshelley\.fun\/$/
-    );
+    await nativePage.waitForURL(/^https:\/\/learn-chatgpt-com\.fast\.dxshelley\.fun\/docs\/start$/);
     await nativePage.getByRole('heading', { name: 'Public page proxy' }).waitFor();
   } finally {
     await nativeContext.close();

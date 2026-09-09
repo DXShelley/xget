@@ -2,11 +2,13 @@
 export const PAGE_RUNTIME = String.raw`(() => {
   const script = document.currentScript;
   const base = script.dataset.upstream;
+  const siteOrigin = new URL(base).origin;
   const prefix = '/__xget/page-resource/';
   const map = value => {
     if (!value || /^(data:|blob:|#)/i.test(String(value))) return value;
     if (String(value).startsWith(prefix)) return location.origin + value;
     const url = new URL(String(value), base);
+    if (url.origin === siteOrigin && !url.pathname.startsWith('/__xget/')) return location.origin + url.pathname + url.search + url.hash;
     if (url.origin === location.origin) return url.href;
     if (url.protocol !== 'https:') throw new TypeError('Only public HTTPS resources are supported');
     const key = btoa(url.origin).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
@@ -32,7 +34,7 @@ export const PAGE_RUNTIME = String.raw`(() => {
     const anchor = event.target.closest && event.target.closest('a[href],area[href]');
     if (!anchor || anchor.getAttribute('href').startsWith('#')) return;
     const target = new URL(anchor.href, base);
-    if (target.hostname === 'fast.dxshelley.fun') return;
+    if (target.origin === location.origin || target.hostname === 'fast.dxshelley.fun') return;
     if (target.origin === location.origin && target.pathname.startsWith(prefix)) {
       const rest = target.pathname.slice(prefix.length);
       const slash = rest.indexOf('/');
@@ -48,6 +50,8 @@ export const PAGE_RUNTIME = String.raw`(() => {
     if (form.method.toLowerCase() !== 'get') return;
     const action = new URL(form.dataset.upstreamAction || base, base);
     action.search = new URLSearchParams(new FormData(form)).toString();
-    location.assign('https://fast.dxshelley.fun/?target=' + encodeURIComponent(action.href));
+    if (action.origin === siteOrigin && !action.pathname.startsWith('/__xget/')) {
+      location.assign(location.origin + action.pathname + '?' + action.searchParams.toString());
+    } else location.assign('https://fast.dxshelley.fun/?target=' + encodeURIComponent(action.href));
   });
 })();`;
