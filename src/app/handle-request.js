@@ -49,7 +49,7 @@ export async function handleApplicationRoute({ request, url, env, config }) {
   const configuredResponse = await handleConfiguredSiteRequest(request);
   if (configuredResponse) return { response: configuredResponse, isProxiedResponse: true };
 
-  const fastRouteResponse = await handleFastRoute(request, url);
+  const fastRouteResponse = await handleFastRoute(request, url, config);
   return fastRouteResponse ? { response: fastRouteResponse, isProxiedResponse: true } : null;
 }
 

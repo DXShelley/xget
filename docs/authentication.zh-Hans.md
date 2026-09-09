@@ -3,7 +3,10 @@
 生产环境的 xget 普通代理默认要求登录。首次访问代理域名时会跳转到登录页，输入管理员分发的访问密钥后，Worker 会写入一个安全 Cookie。Cookie 有效期为 90 天，不能被 JavaScript 读取，也不会转发给 GitHub、Docker
 Hub 或其他上游。
 
-AI 推理接口 `/ip/*` 是例外：OpenAI、Gemini、Anthropic 等模型 API 请求不要求 xget 浏览器登录，直接进入上游代理流程。调用方仍必须提供对应模型厂商的 API key；请求中的 `Authorization`、`x-api-key` 等认证请求头会按协议转发给上游，不会被 xget 登录 Cookie 替代。
+AI 推理接口 `/ip/*`
+是例外：OpenAI、Gemini、Anthropic 等模型 API 请求不要求 xget 浏览器登录，直接进入上游代理流程。调用方仍必须提供对应模型厂商的 API
+key；请求中的 `Authorization`、`x-api-key`
+等认证请求头会按协议转发给上游，不会被 xget 登录 Cookie 替代。
 
 ## 部署配置
 
@@ -17,8 +20,11 @@ npx wrangler secret put XGET_SESSION_SECRET --env git
 npx wrangler secret put XGET_LOGIN_SECRET --env git
 ```
 
-生产配置使用 `XGET_AUTH_REQUIRED=true`。轮换 `XGET_SESSION_SECRET`
-会立即使已有登录 Cookie 全部失效；轮换 `XGET_LOGIN_SECRET` 会立即更换登录密钥。
+生产配置使用 `XGET_AUTH_REQUIRED=true`。如果需要将 `?target=`
+限制为配置站点，额外设置
+`XGET_PROXY_TARGET_ALLOWLIST=true`；该开关默认关闭，以便认证后的请求使用 HTTPS 透明代理。轮换
+`XGET_SESSION_SECRET` 会立即使已有登录 Cookie 全部失效；轮换 `XGET_LOGIN_SECRET`
+会立即更换登录密钥。
 
 ## 浏览器登录
 
@@ -76,19 +82,22 @@ docker pull docker.fast.dxshelley.fun/library/alpine:latest
 docker pull docker.fast.dxshelley.fun/library/nginx:latest
 ```
 
-Docker 客户端会将登录凭据保存到本地 Docker 配置，后续 `pull` 会自动用该凭据换取短期
-Bearer token，不需要每次重新登录。使用浏览器签发的 Access Token 时，Token 有效期为 90
-天；直接使用 `XGET_LOGIN_SECRET` 时，有效期由管理员轮换该 Secret 控制。当前只支持公开镜像的
-`pull`，不支持 `push` 或上游私有仓库凭据转发。xget Bearer token 不会转发到 Docker Hub。
+Docker 客户端会将登录凭据保存到本地 Docker 配置，后续 `pull`
+会自动用该凭据换取短期 Bearer token，不需要每次重新登录。使用浏览器签发的 Access
+Token 时，Token 有效期为 90 天；直接使用 `XGET_LOGIN_SECRET`
+时，有效期由管理员轮换该 Secret 控制。当前只支持公开镜像的 `pull`，不支持 `push`
+或上游私有仓库凭据转发。xget Bearer token 不会转发到 Docker Hub。
 
 Docker Hub 官方镜像需要显式使用 `library` 命名空间，例如 `library/alpine` 和
-`library/nginx`。带有其他命名空间的路径（例如 `nginx/nginx`）表示 Docker Hub 上的独立
-`nginx/nginx` 仓库，不等同于官方 `nginx` 镜像；如果该仓库不存在，Docker CLI 可能会显示
+`library/nginx`。带有其他命名空间的路径（例如 `nginx/nginx`）表示 Docker
+Hub 上的独立 `nginx/nginx` 仓库，不等同于官方 `nginx`
+镜像；如果该仓库不存在，Docker CLI 可能会显示
 `Login prior to pull`，这不代表本地 90 天登录态失效。
 
 Ubuntu 等没有 Docker credential helper 的系统，通常会将凭据写入
-`~/.docker/config.json`，并显示 unencrypted warning。这不会影响后续使用，但应限制该文件
-权限；生产环境建议安装并配置 Docker credential helper。确认当前登录信息：
+`~/.docker/config.json`，并显示 unencrypted
+warning。这不会影响后续使用，但应限制该文件权限；生产环境建议安装并配置 Docker
+credential helper。确认当前登录信息：
 
 ```bash
 docker login docker.fast.dxshelley.fun
@@ -96,9 +105,7 @@ docker pull docker.fast.dxshelley.fun/library/alpine:latest
 ```
 
 如果 macOS Docker CLI 报错
-`error saving credentials: User interaction is not allowed. (-25308)`，这是本机
-Keychain 无法在当前终端会话中保存凭据，不是 xget 服务端认证失败。可使用临时配置目录绕过
-Keychain 完成登录和拉取：
+`error saving credentials: User interaction is not allowed. (-25308)`，这是本机 Keychain 无法在当前终端会话中保存凭据，不是 xget 服务端认证失败。可使用临时配置目录绕过 Keychain 完成登录和拉取：
 
 ```bash
 export DOCKER_CONFIG="$(mktemp -d)"
@@ -107,6 +114,6 @@ printf '%s\n' '<XGET_LOGIN_SECRET>' | \
 docker pull docker.fast.dxshelley.fun/library/alpine:latest
 ```
 
-临时目录中的凭据只对当前 shell 有效。若希望持久保存，请在本机交互式桌面终端解锁登录
-Keychain 后重新执行 `docker login`，或按 Docker Desktop 的凭据存储配置处理；不要把登录密钥
-直接写入脚本、镜像或仓库。
+临时目录中的凭据只对当前 shell 有效。若希望持久保存，请在本机交互式桌面终端解锁登录 Keychain 后重新执行
+`docker login`，或按 Docker
+Desktop 的凭据存储配置处理；不要把登录密钥直接写入脚本、镜像或仓库。

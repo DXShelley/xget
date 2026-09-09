@@ -35,6 +35,7 @@ script_name = "quota-gateway"
 
 [vars]
 XGET_AUTH_REQUIRED = "true"
+XGET_PROXY_TARGET_ALLOWLIST = "false"
 QUOTA_GATE_NAME = "account-free-20260824"
 QUOTA_PROFILE = "account"
 QUOTA_ENFORCEMENT_MODE = "hourly"

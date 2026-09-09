@@ -211,3 +211,35 @@ export async function handleConfiguredTargetRequest(request, targetUrl) {
     targetUrl
   );
 }
+
+/**
+ * Proxies an HTTPS target without requiring a registered site. This is intended
+ * only for authenticated transparent proxy deployments.
+ * @param {Request} request
+ * @param {URL} targetUrl
+ * @param {import('../config/index.js').ApplicationConfig} config
+ * @returns {Promise<Response | null>}
+ */
+export async function handleTransparentTargetRequest(request, targetUrl, config) {
+  if (targetUrl.protocol !== 'https:' || targetUrl.username || targetUrl.password) return null;
+
+  /** @type {ConfiguredSite} */
+  const site = {
+    upstreamOrigin: targetUrl.origin,
+    allowedMethods: config.SECURITY.ALLOWED_METHODS,
+    proxyPolicy: {
+      paths: /** @type {'all'} */ ('all'),
+      timeoutSeconds: config.TIMEOUT_SECONDS,
+      maxRetries: config.MAX_RETRIES,
+      stripClientIdentityHeaders: true
+    },
+    browserCapabilities: {
+      forwardCredentials: false,
+      rewriteSameOriginRedirects: false
+    },
+    requestFilters: [],
+    responseFilters: []
+  };
+
+  return await proxyConfiguredRequest(request, site, targetUrl);
+}

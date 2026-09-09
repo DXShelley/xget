@@ -1,5 +1,9 @@
 import { createProxyEntryResponse } from './entry-page.js';
-import { handleConfiguredTargetRequest } from './handle-configured-site.js';
+import { CONFIG } from '../config/index.js';
+import {
+  handleConfiguredTargetRequest,
+  handleTransparentTargetRequest
+} from './handle-configured-site.js';
 import {
   getBrowserSites,
   resolveBrowserSiteByTargetUrl,
@@ -40,25 +44,32 @@ function createCanonicalProxyUrl(site, targetUrl) {
  * Handles Fast entry, path-proxy, and isolated-origin routes.
  * @param {Request} request
  * @param {URL} url
+ * @param {import('../config/index.js').ApplicationConfig} config
  * @returns {Promise<Response | null>} A route response, or null for another router.
  */
-export async function handleFastRoute(request, url) {
+export async function handleFastRoute(request, url, config = CONFIG) {
   if (url.hostname === FAST_PROXY_HOST && url.pathname === '/') {
     if (!url.searchParams.has('target')) {
       return createProxyEntryResponse(getBrowserSites());
     }
 
+    const target = url.searchParams.get('target');
+    if (!target) return createErrorResponse('Invalid proxy target', 400);
+
+    let targetUrl;
     try {
-      const target = url.searchParams.get('target');
-      if (!target) return createErrorResponse('Invalid proxy target', 400);
-      const targetUrl = new URL(target);
-      const site = resolveBrowserSiteByTargetUrl(targetUrl);
-      return site
-        ? Response.redirect(createCanonicalProxyUrl(site, targetUrl), 302)
-        : createErrorResponse('Invalid proxy target', 400);
+      targetUrl = new URL(target);
     } catch {
       return createErrorResponse('Invalid proxy target', 400);
     }
+
+    const site = resolveBrowserSiteByTargetUrl(targetUrl);
+    if (site) return Response.redirect(createCanonicalProxyUrl(site, targetUrl), 302);
+    if (config && !config.SECURITY.PROXY_TARGET_ALLOWLIST) {
+      const response = await handleTransparentTargetRequest(request, targetUrl, config);
+      if (response) return response;
+    }
+    return createErrorResponse('Invalid proxy target', 400);
   }
 
   if (url.hostname === FAST_PROXY_HOST && url.pathname.startsWith('/_/')) {
