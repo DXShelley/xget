@@ -1,4 +1,4 @@
-import { resolveSite } from '../site-registry.js';
+import { resolveSite, resolveSiteByProxyHost } from '../site-registry.js';
 
 export const RESOURCE_PREFIX = '/__xget/page-resource/';
 export const PAGE_SUFFIX = '.fast.dxshelley.fun';
@@ -38,6 +38,7 @@ export function isPageHost(hostname) {
   return (
     hostname.endsWith(PAGE_SUFFIX) &&
     !resolveSite(hostname) &&
+    !resolveSiteByProxyHost(hostname) &&
     label.includes('-') &&
     /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)
   );

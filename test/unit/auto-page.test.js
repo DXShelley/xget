@@ -127,6 +127,7 @@ describe('automatic public pages', () => {
   it.each([
     'fast.dxshelley.fun',
     'docker.fast.dxshelley.fun',
+    'claude-web.fast.dxshelley.fun',
     'claude-code.fast.dxshelley.fun',
     'ai-studio.fast.dxshelley.fun',
     `site-${'a'.repeat(32)}.fast.dxshelley.fun.evil.example`,
@@ -441,6 +442,23 @@ describe('automatic public pages', () => {
     expect(new URL(publicPage.headers.get('Location') || '').hostname).toBe(
       'unregistered-example.fast.dxshelley.fun'
     );
+  });
+
+  it('keeps registered isolated hosts on their authenticated adapter when public pages are enabled', async () => {
+    const env = {
+      ...environment(),
+      XGET_AUTH_REQUIRED: 'true',
+      XGET_PROXY_TARGET_ALLOWLIST: 'false'
+    };
+    const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+    const response = await handleRequest(
+      new Request('https://claude-web.fast.dxshelley.fun/download'),
+      env,
+      ctx
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/__xget/auth/login?return_to=%2Fdownload');
   });
 
   it('returns 404 for unscoped resources but leaves platform routing and legacy mode available', async () => {

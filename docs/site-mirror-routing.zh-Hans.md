@@ -39,6 +39,10 @@ Worker 主处理器只负责 CORS、错误兜底、平台缓存管线和最终�
    `<alias>.fast.dxshelley.fun` 隔离 Host。
 5. `XgetPlatformAdapter`：处理剩余的包管理、镜像与协议平台路由。
 
+自动公开页只拥有未登记的生成域名。路由特征在入口固定前，会先查询精确镜像 Host 和
+`<alias>.fast.dxshelley.fun` 的已登记站点；因此 `claude-web.fast.dxshelley.fun/download`
+始终由 `claude-web` 的 Web 适配器及其认证流程处理，不会落入自动公开页的 `PAGE_MAP`。
+
 `FastRoute` 位于
 [`src/proxy/fast-route.js`](../src/proxy/fast-route.js)，不再把入口解析、白名单跳转和隔离 Host 路由混在主处理器中。`src/config/platforms.js`
 和 `test/helpers/test-utils.js`
