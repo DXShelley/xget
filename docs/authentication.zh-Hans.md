@@ -8,6 +8,8 @@ AI 推理接口 `/ip/*`
 key；请求中的 `Authorization`、`x-api-key`
 等认证请求头会按协议转发给上游，不会被 xget 登录 Cookie 替代。
 
+公开 npm registry 路径 `/npm/*` 同样不要求浏览器登录，保证 `npm install` 能直接读取 JSON 元数据和 tarball；认证仍适用于普通网页代理、Git 和 Docker 请求。
+
 ## 部署配置
 
 必须通过 Cloudflare Secret 设置 `XGET_SESSION_SECRET` 和

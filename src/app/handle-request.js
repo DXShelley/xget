@@ -90,6 +90,7 @@ export async function handleRequest(request, env, ctx) {
       !authEndpoint &&
       request.method !== 'OPTIONS' &&
       !requestContext.isAI &&
+      !url.pathname.startsWith('/npm/') &&
       !isProtocolRequest(requestContext) &&
       String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
         ? new Response('Authentication required', {
