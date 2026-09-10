@@ -126,6 +126,36 @@ describe('browser authentication', () => {
     expect(response.headers.get('Location')).toContain('/__xget/auth/login');
   });
 
+  it('keeps registered Web hosts under browser authentication when their path resembles AI', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('must not run'));
+    try {
+      const response = await handleRequest(
+        new Request('https://claude-ai.fast.dxshelley.fun/ip/organizations'),
+        env,
+        /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toContain('/__xget/auth/login');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('routes authentication endpoints through browser authentication despite Git-like headers', async () => {
+    const response = await handleRequest(
+      new Request('https://fast.example/__xget/auth/login', {
+        headers: { 'User-Agent': 'git/2.45.0' }
+      }),
+      env,
+      /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('xget login');
+  });
+
   it.each([
     ['OpenAI', 'openai/v1/chat/completions', 'https://api.openai.com/v1/chat/completions'],
     [

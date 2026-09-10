@@ -266,6 +266,28 @@ describe('Worker regression coverage', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('preserves upstream CSP for generic platform responses', async () => {
+    const upstreamCsp = "default-src 'self'; script-src 'self' https://cdn.example";
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html><script src="https://cdn.example/app.js"></script></html>', {
+        status: 200,
+        headers: {
+          'Content-Security-Policy': upstreamCsp,
+          'Content-Type': 'text/html; charset=utf-8'
+        }
+      })
+    );
+
+    const response = await worker.fetch(
+      new Request('https://example.com/gh/user/repo/page.html'),
+      {},
+      executionContext
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Security-Policy')).toBe(upstreamCsp);
+  });
+
   it('reuses cached full content for range requests when a ranged entry is absent', async () => {
     cacheDefault.match.mockResolvedValueOnce(null).mockResolvedValueOnce(
       new Response('full-body', {

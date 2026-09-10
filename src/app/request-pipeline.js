@@ -125,6 +125,7 @@ async function routingFilter(context, next) {
   );
   if ('response' in resolvedTarget) return resolvedTarget.response;
   context.route = { ...resolvedTarget, effectivePath: normalizedPath.effectivePath };
+  context.isProxiedResponse = true;
   return await next();
 }
 

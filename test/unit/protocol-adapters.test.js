@@ -36,7 +36,14 @@ describe('protocol adapter registry', () => {
     ],
     ['ai', new Request('https://fast.example/ip/openai/v1/chat/completions')],
     ['huggingface', new Request('https://fast.example/hf/api/models/example')],
-    ['package', new Request('https://fast.example/npm/example')]
+    ['package', new Request('https://fast.example/npm/example')],
+    ['web', new Request('https://claude-ai.fast.dxshelley.fun/ip/organizations')],
+    [
+      'web',
+      new Request('https://fast.example/__xget/auth/login', {
+        headers: { 'User-Agent': 'git/2.45.0' }
+      })
+    ]
   ])('binds the %s adapter once at request entry', (feature, request) => {
     const context = createRequestContext(request, {});
 

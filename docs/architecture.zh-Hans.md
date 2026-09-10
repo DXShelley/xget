@@ -57,7 +57,7 @@ flowchart TB
 `src/app/handle-request.js`
 是唯一的应用级请求入口。它只负责创建请求上下文并执行双向流水线：
 
-1. 在入口一次识别 `web`、`git`、`docker`、`ai`、`huggingface` 或 `package`，并把对应适配器固定到 `RequestContext`。
+1. 在入口先按系统端点和注册站点 Host 确定路由所有权；已注册的浏览器站点与 `/__xget/auth/*` 固定为 `web`。其余通用平台请求再一次识别 `git`、`docker`、`ai`、`huggingface` 或 `package`，并把对应适配器固定到 `RequestContext`。
 2. 请求正向经过认证、配额、预检、站点路由、协议路由、校验、目标解析、缓存和传输节点。
 3. 上游响应沿已进入的节点反向返回，统一应用缓存写入、CORS、安全头和性能头。
 
