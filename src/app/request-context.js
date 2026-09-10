@@ -21,6 +21,7 @@ import { normalizeDockerHubMirrorUrl } from '../protocols/docker.js';
 import { resolveProtocolAdapter } from '../protocol-adapters/registry.js';
 import { getRequestTraits } from '../utils/validation.js';
 import { resolveRequestFeature } from './request-feature.js';
+import { resolveRouteAdapterForFeature, resolveRouteFeature } from './route-adapters/registry.js';
 
 /**
  * Builds the shared request context used by all runtime adapters.
@@ -39,6 +40,8 @@ import { resolveRequestFeature } from './request-feature.js';
  *   protocolFeature: 'public-page' | 'web' | 'git' | 'docker' | 'ai' | 'huggingface' | 'package',
  *   request: Request,
  *   principal?: { id: string, authMethod: string, expiresAt: string } | null,
+ *   routeAdapter: { kind: string, handle: (context: any) => Promise<{ response: Response, isProxiedResponse: boolean } | null> } | null,
+ *   routeFeature: 'public-page' | 'web-site' | 'github' | 'configured-site' | 'fast' | null,
  *   url: URL
  * }} Request context with parsed config, URL, and protocol traits.
  */
@@ -48,6 +51,8 @@ export function createRequestContext(request, env) {
   const url = normalizeDockerHubMirrorUrl(new URL(request.url));
   const traits = getRequestTraits(request, url);
   const protocolFeature = resolveRequestFeature(traits, url, config, runtimeEnv);
+  const routeFeature = resolveRouteFeature({ env: runtimeEnv, protocolFeature, url });
+  const routeAdapter = resolveRouteAdapterForFeature(routeFeature);
 
   return {
     ...traits,
@@ -60,6 +65,8 @@ export function createRequestContext(request, env) {
       request.headers.has('Access-Control-Request-Method'),
     protocolFeature,
     request,
+    routeAdapter,
+    routeFeature,
     url
   };
 }

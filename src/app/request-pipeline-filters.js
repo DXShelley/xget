@@ -6,7 +6,7 @@ import { addPerformanceHeaders } from '../utils/performance.js';
 import { addCorsHeaders, addSecurityHeaders, createErrorResponse } from '../utils/security.js';
 import { getAllowedMethods, validateRequest } from '../utils/validation.js';
 import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
-import { handleApplicationRoute } from './application-route.js';
+import { handleApplicationRoute } from './route-adapters/registry.js';
 
 /** @param {any} context @param {() => Promise<Response>} next */
 async function responseBoundaryFilter(context, next) {

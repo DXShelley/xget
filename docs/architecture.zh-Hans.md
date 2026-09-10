@@ -25,7 +25,7 @@ flowchart TB
         Git[xget-git\ngit.dxshelley.fun]
         Entry[src/index.js]
         App[handleRequest]
-        Context[固定协议特征与适配器]
+        Context[固定协议特征、协议适配器\n与站点路由策略]
         Pipeline[双向请求/响应流水线]
     end
 
@@ -33,6 +33,7 @@ flowchart TB
         GitHub[GitHub 专用适配器]
         Configured[配置适配器]
         Web[专用 Web 适配器]
+        Route[站点路由策略]
         Protocol[协议适配器]
         PublicPage[公开页面适配器]
     end
@@ -51,6 +52,7 @@ flowchart TB
     Pipeline --> GitHub --> GH
     Pipeline --> Configured --> Sites
     Pipeline --> Web --> Sites
+    Pipeline --> Route --> Sites
     Pipeline --> Protocol --> Platforms
     Pipeline --> PublicPage --> Sites
     Pipeline --> Client
@@ -65,7 +67,8 @@ flowchart TB
    allowlist 时，未登记的公开 HTTPS 目标和已生成页面 Host 固定为
    `public-page`。其余通用平台请求再由协议注册表识别
    `git`、`docker`、`ai`、`huggingface` 或 `package`，并把对应适配器固定到
-   `RequestContext`。
+   `RequestContext`。随后 `src/app/route-adapters/registry.js`
+   以同一份不可变上下文固定一个并列的站点路由策略：公开页、专用 Web、GitHub、配置站点或 Fast 入口；未选中路由策略的请求继续由协议流水线处理。
 2. 请求正向经过认证、配额、预检、站点路由、协议路由、校验、目标解析、缓存和传输节点。
 3. 上游响应沿已进入的节点反向返回，统一应用缓存写入、CORS、安全头和性能头。
 
@@ -303,6 +306,7 @@ flowchart TD
 | 目录或文件               | 职责                                                          |
 | ------------------------ | ------------------------------------------------------------- |
 | `src/app/`               | 应用入口、请求上下文、路由所有权和流水线装配。                |
+| `src/app/route-adapters/` | 公开页、Web、GitHub、配置站点和 Fast 入口的并列路由策略；入口固定选择，流水线只调用已选策略。 |
 | `src/routing/`           | 路径规范化、目标解析和首页跳转。                              |
 | `src/proxy/`             | 配置站点代理、站点注册表和通用代理策略。                      |
 | `src/github/`            | GitHub Web/协议专用请求、响应、重写和缓存语义。               |

@@ -11,8 +11,6 @@
 import { createRequestContext } from './request-context.js';
 import { runRequestPipeline } from './request-pipeline.js';
 
-export { handleApplicationRoute } from './application-route.js';
-
 /**
  * Builds the immutable protocol context and delegates request/response handling to the pipeline.
  * @param {Request} request The incoming HTTP request.

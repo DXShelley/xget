@@ -8,8 +8,7 @@ import {
 import {
   getBrowserSites,
   resolveBrowserSiteByTargetUrl,
-  resolveSiteByAlias,
-  resolveSiteByProxyHost
+  resolveSiteByAlias
 } from './site-registry.js';
 import { createErrorResponse } from '../utils/security.js';
 
@@ -116,9 +115,5 @@ export async function handleFastRoute(request, url, config = CONFIG, options = {
     });
     return await handleConfiguredTargetRequest(request, targetUrl);
   }
-
-  const isolatedSite = resolveSiteByProxyHost(url.hostname);
-  if (!isolatedSite) return null;
-  const targetUrl = createConfiguredTargetUrl(isolatedSite, url);
-  return await handleConfiguredTargetRequest(request, targetUrl);
+  return null;
 }

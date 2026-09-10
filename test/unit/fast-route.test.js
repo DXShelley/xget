@@ -29,12 +29,9 @@ describe('Fast route', () => {
     }
   );
 
-  it.each([
-    'https://google-dev-docs.fast.dxshelley.fun//outside.example/path?q=1',
-    'https://fast.dxshelley.fun/_/google-dev-docs//outside.example/path?q=1'
-  ])('keeps a double-slash proxy path on the configured upstream: %s', async value => {
+  it('keeps a double-slash alias path on the configured upstream', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
-    const url = new URL(value);
+    const url = new URL('https://fast.dxshelley.fun/_/google-dev-docs//outside.example/path?q=1');
     const response = await handleFastRoute(new Request(url), url);
     expect(response?.status).toBe(200);
     expect(fetchSpy.mock.calls[0]?.[0]).toBe(
@@ -354,30 +351,5 @@ describe('Fast route', () => {
       expect(response?.status).toBe(400);
     }
     expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('sends an isolated host to its fixed configured upstream', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('upstream'));
-    const response = await handleFastRoute(
-      new Request('https://claude-code.fast.dxshelley.fun/docs/quickstart'),
-      new URL('https://claude-code.fast.dxshelley.fun/docs/quickstart')
-    );
-
-    expect(response?.status).toBe(200);
-    expect(fetchSpy.mock.calls.at(-1)?.[0]).toBe('https://code.claude.com/docs/quickstart');
-  });
-
-  it('uses the generic configured-site retry policy for Claude Code documentation', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(new Response('unavailable', { status: 503 }))
-      .mockResolvedValueOnce(new Response('unavailable', { status: 503 }));
-    const url = new URL('https://claude-code.fast.dxshelley.fun/docs/quickstart');
-
-    const response = await handleFastRoute(new Request(url), url);
-
-    expect(response?.status).toBe(503);
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
-    expect(fetchSpy.mock.calls[0]?.[0]).toBe('https://code.claude.com/docs/quickstart');
   });
 });

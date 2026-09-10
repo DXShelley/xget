@@ -9,7 +9,9 @@ import {
 import { handleAutoPage, registerPage } from '../../src/proxy/auto-page/handle.js';
 import { env as bindings } from 'cloudflare:test';
 import { rewriteCss, rewriteModule, rewriteHtml } from '../../src/proxy/auto-page/rewrite.js';
-import { handleApplicationRoute, handleRequest } from '../../src/app/handle-request.js';
+import { handleRequest } from '../../src/app/handle-request.js';
+import { createRequestContext } from '../../src/app/request-context.js';
+import { handleApplicationRoute } from '../../src/app/route-adapters/registry.js';
 import { CONFIG, createConfig } from '../../src/config/index.js';
 
 /**
@@ -20,6 +22,16 @@ function environment() {
     ...bindings,
     XGET_PROXY_TARGET_ALLOWLIST: 'false'
   });
+}
+
+/**
+ * Builds a complete entry context before invoking its fixed route strategy.
+ * @param {Request} request
+ * @param {Record<string, unknown>} env
+ * @param {import('../../src/config/index.js').ApplicationConfig} config
+ */
+function routeContext(request, env, config) {
+  return { ...createRequestContext(request, env), config };
 }
 
 describe('automatic public pages', () => {
@@ -37,12 +49,9 @@ describe('automatic public pages', () => {
         XGET_PROXY_TARGET_ALLOWLIST: String(strict)
       };
       const url = new URL('https://fast.dxshelley.fun/');
-      const result = await handleApplicationRoute({
-        request: new Request(url),
-        url,
-        env,
-        config: createConfig(env)
-      });
+      const result = await handleApplicationRoute(
+        routeContext(new Request(url), env, createConfig(env))
+      );
       const directives = result?.response.headers.get('Content-Security-Policy')?.split('; ') || [];
       const form = directives.find(value => value.startsWith('form-action ')) || '';
       expect(form.includes('https://*.fast.dxshelley.fun')).toBe(allowed);
@@ -464,22 +473,12 @@ describe('automatic public pages', () => {
   it('returns 404 for unscoped resources but leaves platform routing and legacy mode available', async () => {
     const env = environment();
     const url = new URL('https://fast.dxshelley.fun/_astro/app.js');
-    const result = await handleApplicationRoute({
-      request: new Request(url),
-      url,
-      env,
-      config: CONFIG
-    });
+    const result = await handleApplicationRoute(routeContext(new Request(url), env, CONFIG));
     expect(result?.response.status).toBe(404);
     expect(result?.response.headers.has('Location')).toBe(false);
     const platform = new URL('https://fast.dxshelley.fun/gh/a/b');
     expect(
-      await handleApplicationRoute({
-        request: new Request(platform),
-        url: platform,
-        env,
-        config: CONFIG
-      })
+      await handleApplicationRoute(routeContext(new Request(platform), env, CONFIG))
     ).toBeNull();
     expect(
       await handleAutoPage(

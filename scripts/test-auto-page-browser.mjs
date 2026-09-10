@@ -10,8 +10,8 @@ const fixture = process.env.XGET_HTML_FIXTURE
   ? await readFile(process.env.XGET_HTML_FIXTURE, 'utf8')
   : '';
 const source = `
-import { handleApplicationRoute } from './src/app/handle-request.js';
-import { CONFIG } from './src/config/index.js';
+import { createRequestContext } from './src/app/request-context.js';
+import { handleApplicationRoute } from './src/app/route-adapters/registry.js';
 import { rewriteHtml } from './src/proxy/auto-page/rewrite.js';
 export { PageMap } from './src/proxy/auto-page/map.js';
 const html = '<html><head><title>Public page proxy</title><link rel="stylesheet" href="/_astro/main.css"><script type="module" src="/_astro/app.js"></script></head><body><h1>Public page proxy</h1><p id="result">Loading</p><img id="picture" src="https://cdn.example/pixel.png"><a href="https://other.example/next">Next page</a><a id="framework-link" href="https://framework.example/">Try framework link</a><a id="resource-link">Open resource page</a><script>document.getElementById("resource-link").href = "/__xget/page-resource/aHR0cHM6Ly9jZG4uZXhhbXBsZQ/guide?edition=2026#notes"; window.addEventListener("click", event => { if (event.target.closest("#framework-link")) { event.preventDefault(); location.assign("https://framework.example/original-framework-target"); } }, true);</script></body></html>';
@@ -30,7 +30,7 @@ globalThis.fetch = async (input) => {
 };
 export default {async fetch(request, env) {
   if(new URL(request.url).pathname === '/__fixture-check') return new Response(await rewriteHtml(${JSON.stringify(fixture)}, new URL('https://learn.chatgpt.com/docs/changelog'), 'https://fixture-0123456789abcdef0123456789abcdef.fast.dxshelley.fun'));
-  return (await handleApplicationRoute({ request, url: new URL(request.url), env, config: CONFIG }))?.response || new Response('Unknown test route', {status:404});
+  return (await handleApplicationRoute(createRequestContext(request, env)))?.response || new Response('Unknown test route', {status:404});
 }};
 `;
 const bundle = await build({
