@@ -12,19 +12,43 @@ describe('application route adapters', () => {
   it.each([
     [
       'public-page',
+      'public-page',
       new Request('https://example-public.fast.dxshelley.fun/guide'),
       { PAGE_MAP: {}, XGET_PROXY_TARGET_ALLOWLIST: 'false' }
     ],
-    ['web-site', new Request('https://claude-ai.fast.dxshelley.fun/'), {}],
-    ['github', new Request('https://git.dxshelley.fun/openai/codex'), {}],
-    ['configured-site', new Request('https://claude-code.fast.dxshelley.fun/docs/start'), {}],
-    ['fast', new Request('https://fast.dxshelley.fun/npm/example'), {}],
-    ['none', new Request('https://docker.fast.dxshelley.fun/v2/library/alpine/tags/list'), {}]
-  ])('fixes the %s route strategy at request entry', (feature, request, env) => {
+    ['web-site', 'web-site', new Request('https://claude-ai.fast.dxshelley.fun/'), {}],
+    ['github', 'github', new Request('https://git.dxshelley.fun/openai/codex'), {}],
+    [
+      'configured-site',
+      'configured-site',
+      new Request('https://claude-code.fast.dxshelley.fun/docs/start'),
+      {}
+    ],
+    ['fast', 'fast', new Request('https://fast.dxshelley.fun/npm/example'), {}],
+    [
+      'none',
+      'none',
+      new Request('https://docker.fast.dxshelley.fun/v2/library/alpine/tags/list'),
+      {}
+    ]
+  ])('fixes the %s route strategy at request entry', (feature, adapterKind, request, env) => {
     const context = createRequestContext(request, env);
 
     expect(context.routeFeature || 'none').toBe(feature);
+    expect(context.routeAdapter?.kind || 'none').toBe(adapterKind);
+    expect(context.routeAdapter === null || Object.isFrozen(context.routeAdapter)).toBe(true);
     expect(resolveRouteFeature(context) || 'none').toBe(feature);
+  });
+
+  it('keeps registered host ownership ahead of protocol-shaped paths', () => {
+    const context = createRequestContext(
+      new Request('https://claude-code.fast.dxshelley.fun/v2/library/alpine/manifests/latest'),
+      {}
+    );
+
+    expect(context.protocolFeature).toBe('web');
+    expect(context.routeFeature).toBe('configured-site');
+    expect(context.routeAdapter?.kind).toBe('configured-site');
   });
 
   it('executes only the selected configured-site strategy', async () => {

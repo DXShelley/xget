@@ -180,24 +180,38 @@ Worker 或 WebSocket 的站点必须转为专用适配器，或以专门过滤�
 GitHub 是专用适配器的参考实现。其逻辑集中在
 `src/github/`，不得复制到通用路由层。
 
-### 4.4 协议策略适配器与双向流水线
+### 4.4 协议适配器、路由策略与双向流水线
 
 ```mermaid
 flowchart TB
-    Context[RequestContext 固定 protocolFeature] --> Registry[ProtocolAdapterRegistry]
-    Registry --> Web[WebAdapter]
-    Registry --> Git[GitAdapter]
-    Registry --> Docker[DockerAdapter]
-    Registry --> AI[AIAdapter]
-    Registry --> Package[PackageAdapter]
-    Registry --> PublicPage[PublicPageAdapter]
-    Registry --> Pipeline[Security -> Authentication -> Quota -> Routing -> Cache -> Transport]
+    Context[RequestContext]
+    Context --> ProtocolFeature[protocolFeature]
+    Context --> RouteFeature[routeFeature]
+    ProtocolFeature --> ProtocolRegistry[ProtocolAdapterRegistry]
+    RouteFeature --> RouteRegistry[RouteAdapterRegistry]
+    ProtocolRegistry --> Web[WebAdapter]
+    ProtocolRegistry --> Git[GitAdapter]
+    ProtocolRegistry --> Docker[DockerAdapter]
+    ProtocolRegistry --> AI[AI / Package Adapter]
+    ProtocolRegistry --> PublicProtocol[PublicPage Protocol Adapter]
+    RouteRegistry --> PublicRoute[PublicPage Route Adapter]
+    RouteRegistry --> SiteRoutes[Web / GitHub / Configured / Fast]
+    ProtocolRegistry --> Pipeline[Response Boundary ⇄ Authentication ⇄ Quota ⇄ Route ⇄ Validation ⇄ Cache ⇄ Transport]
+    RouteRegistry --> Pipeline
     Pipeline --> Upstream[上游]
-    Upstream --> Pipeline
+    Upstream --> Pipeline --> Response[Response]
 ```
 
 `src/protocol-adapters/` 是协议差异的唯一归属。`ProtocolAdapterRegistry`
-在入口选中一个策略；认证、路径规范化、请求头、Docker 重试/重定向、缓存资格和协议响应语义均由该适配器提供。过滤器只处理自己的单一阶段，不直接按协议路径分支。
+在入口按 `protocolFeature` 选中一个策略；认证、路径规范化、请求头、Docker
+重试/重定向、缓存资格和协议响应语义均由该适配器提供。与此同时，
+`src/app/route-adapters/registry.js` 按 `routeFeature` 选中一个并列的站点路由
+策略。前者描述协议处理，后者描述哪个应用级站点路由处理请求；两者都只在入口
+选择一次，过滤器只执行上下文中已固定的策略，不直接按协议路径分支或遍历适配器。
+
+`public-page` 是两类策略共享的特例：协议适配器负责匿名认证与缓存资格，路由
+策略负责页面映射、重写和上游读取。已登记 Host 的路由所有权优先于形似 Docker、
+Git 或包管理器的路径，避免协议特征越过站点边界。
 
 | 请求类型                                   | 认证适配器     | 未认证行为                         |
 | ------------------------------------------ | -------------- | ---------------------------------- |
