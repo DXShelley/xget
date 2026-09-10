@@ -7,9 +7,6 @@
     "deploy": "vercel --prod",
     "vercel-build": "echo 'No build step required'"
   },
-  "dependencies": {
-    "express": "^4.19.2"
-  },
   "devDependencies": {
     "@vercel/node": "^3.0.0"
   }

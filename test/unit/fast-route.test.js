@@ -366,4 +366,18 @@ describe('Fast route', () => {
     expect(response?.status).toBe(200);
     expect(fetchSpy.mock.calls.at(-1)?.[0]).toBe('https://code.claude.com/docs/quickstart');
   });
+
+  it('uses the generic configured-site retry policy for Claude Code documentation', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('unavailable', { status: 503 }))
+      .mockResolvedValueOnce(new Response('unavailable', { status: 503 }));
+    const url = new URL('https://claude-code.fast.dxshelley.fun/docs/quickstart');
+
+    const response = await handleFastRoute(new Request(url), url);
+
+    expect(response?.status).toBe(503);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe('https://code.claude.com/docs/quickstart');
+  });
 });

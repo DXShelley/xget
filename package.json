@@ -2,7 +2,6 @@
   "dependencies": {
     "css-tree": "^3.1.0",
     "es-module-lexer": "^2.0.0",
-    "express": "^5.2.1",
     "postcss-value-parser": "^4.2.0"
   },
   "devDependencies": {
@@ -16,9 +15,6 @@
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsdoc": "^62.8.0",
-    "istanbul-lib-coverage": "^3.2.2",
-    "istanbul-lib-report": "^3.0.1",
-    "istanbul-reports": "^3.2.0",
     "prettier": "^3.8.1",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.3",
