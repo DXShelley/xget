@@ -45,9 +45,10 @@ function createCanonicalProxyUrl(site, targetUrl) {
  * @param {Request} request
  * @param {URL} url
  * @param {import('../config/index.js').ApplicationConfig} config
+ * @param {{ authMethod: string } | null | undefined} [principal] Authenticated browser identity.
  * @returns {Promise<Response | null>} A route response, or null for another router.
  */
-export async function handleFastRoute(request, url, config = CONFIG) {
+export async function handleFastRoute(request, url, config = CONFIG, principal) {
   if (url.hostname === FAST_PROXY_HOST && url.pathname === '/') {
     if (!url.searchParams.has('target')) {
       return createProxyEntryResponse(getBrowserSites());
@@ -65,7 +66,11 @@ export async function handleFastRoute(request, url, config = CONFIG) {
 
     const site = resolveBrowserSiteByTargetUrl(targetUrl);
     if (site) return Response.redirect(createCanonicalProxyUrl(site, targetUrl), 302);
-    if (config && !config.SECURITY.PROXY_TARGET_ALLOWLIST) {
+    if (
+      config &&
+      !config.SECURITY.PROXY_TARGET_ALLOWLIST &&
+      principal?.authMethod === 'browser-session'
+    ) {
       const response = await handleTransparentTargetRequest(request, targetUrl, config);
       if (response) return response;
     }

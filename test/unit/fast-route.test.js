@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createConfig } from '../../src/config/index.js';
 import { handleFastRoute } from '../../src/proxy/fast-route.js';
 
+const AUTHENTICATED_BROWSER_PRINCIPAL = { authMethod: 'browser-session' };
+
 describe('Fast route', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -28,13 +30,14 @@ describe('Fast route', () => {
     );
   });
 
-  it('transparently proxies an unregistered HTTPS target by default', async () => {
+  it('transparently proxies an unregistered HTTPS target only for an authenticated opt-in deployment', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('transparent'));
     const target = encodeURIComponent('https://example.com/resource?download=1');
     const response = await handleFastRoute(
       new Request(`https://fast.dxshelley.fun/?target=${target}`),
       new URL(`https://fast.dxshelley.fun/?target=${target}`),
-      createConfig()
+      createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'false' }),
+      AUTHENTICATED_BROWSER_PRINCIPAL
     );
 
     expect(response?.status).toBe(200);
@@ -54,7 +57,8 @@ describe('Fast route', () => {
         }
       }),
       new URL(`https://fast.dxshelley.fun/?target=${target}`),
-      createConfig()
+      createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'false' }),
+      AUTHENTICATED_BROWSER_PRINCIPAL
     );
 
     const headers = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
@@ -63,17 +67,32 @@ describe('Fast route', () => {
     expect(headers.get('X-Forwarded-For')).toBeNull();
   });
 
-  it('rejects an unregistered target when the allowlist switch is enabled', async () => {
+  it('rejects an unregistered target by default', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const target = encodeURIComponent('https://example.com/resource');
     const response = await handleFastRoute(
       new Request(`https://fast.dxshelley.fun/?target=${target}`),
       new URL(`https://fast.dxshelley.fun/?target=${target}`),
-      createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'true' })
+      createConfig()
     );
 
     expect(response?.status).toBe(400);
     expect(await response?.text()).toBe('Invalid proxy target');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('requires a browser session when transparent proxying is enabled', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const target = encodeURIComponent('https://example.com/resource');
+    const request = new Request(`https://fast.dxshelley.fun/?target=${target}`);
+    const url = new URL(request.url);
+    const config = createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'false' });
+
+    for (const principal of [undefined, { authMethod: 'compatibility' }]) {
+      const response = await handleFastRoute(request, url, config, principal);
+      expect(response?.status).toBe(400);
+      expect(await response?.text()).toBe('Invalid proxy target');
+    }
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -87,7 +106,8 @@ describe('Fast route', () => {
       const response = await handleFastRoute(
         new Request(`https://fast.dxshelley.fun/?target=${encodedTarget}`),
         new URL(`https://fast.dxshelley.fun/?target=${encodedTarget}`),
-        createConfig()
+        createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'false' }),
+        AUTHENTICATED_BROWSER_PRINCIPAL
       );
       expect(response?.status).toBe(400);
     }

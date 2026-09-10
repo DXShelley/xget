@@ -35,7 +35,7 @@ script_name = "quota-gateway"
 
 [vars]
 XGET_AUTH_REQUIRED = "true"
-XGET_PROXY_TARGET_ALLOWLIST = "false"
+XGET_PROXY_TARGET_ALLOWLIST = "true"
 QUOTA_GATE_NAME = "account-free-20260824"
 QUOTA_PROFILE = "account"
 QUOTA_ENFORCEMENT_MODE = "hourly"
@@ -52,7 +52,7 @@ script_name = "quota-gateway"
 
 [env.git.vars]
 XGET_AUTH_REQUIRED = "true"
-XGET_PROXY_TARGET_ALLOWLIST = "false"
+XGET_PROXY_TARGET_ALLOWLIST = "true"
 GITHUB_WEB_HOST = "git.dxshelley.fun"
 QUOTA_GATE_NAME = "account-free-20260824"
 QUOTA_PROFILE = "account"

@@ -26,9 +26,8 @@ npx wrangler secret put XGET_SESSION_SECRET --env git
 npx wrangler secret put XGET_LOGIN_SECRET --env git
 ```
 
-生产配置使用 `XGET_AUTH_REQUIRED=true`。如果需要将 `?target=`
-限制为配置站点，额外设置
-`XGET_PROXY_TARGET_ALLOWLIST=true`；该开关默认关闭，以便认证后的请求使用 HTTPS 透明代理。轮换
+生产配置使用 `XGET_AUTH_REQUIRED=true`。`?target=` 默认仅允许已登记站点；如确有受控的透明代理需求，显式设置
+`XGET_PROXY_TARGET_ALLOWLIST=false`，且请求必须已建立浏览器登录态。轮换
 `XGET_SESSION_SECRET` 会立即使已有登录 Cookie 全部失效；轮换 `XGET_LOGIN_SECRET`
 会立即更换登录密钥。
 

@@ -14,10 +14,10 @@ import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
 
 /**
  * Dispatches routes that own a fixed browser-facing host before platform routing.
- * @param {{ request: Request, url: URL, env: Record<string, unknown>, config: import('../config/index.js').ApplicationConfig }} options
+ * @param {{ request: Request, url: URL, env: Record<string, unknown>, config: import('../config/index.js').ApplicationConfig, principal?: { id: string, authMethod: string, expiresAt: string } | null }} options
  * @returns {Promise<{ response: Response, isProxiedResponse: boolean } | null>}
  */
-export async function handleApplicationRoute({ request, url, env, config }) {
+export async function handleApplicationRoute({ request, url, env, config, principal }) {
   const webAdapterResponse = await handleWebAdapterRequest({ request, url });
   if (webAdapterResponse) return { response: webAdapterResponse, isProxiedResponse: true };
 
@@ -27,7 +27,7 @@ export async function handleApplicationRoute({ request, url, env, config }) {
   const configuredResponse = await handleConfiguredSiteRequest(request);
   if (configuredResponse) return { response: configuredResponse, isProxiedResponse: true };
 
-  const fastRouteResponse = await handleFastRoute(request, url, config);
+  const fastRouteResponse = await handleFastRoute(request, url, config, principal);
   return fastRouteResponse ? { response: fastRouteResponse, isProxiedResponse: true } : null;
 }
 

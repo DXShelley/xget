@@ -17,10 +17,8 @@
 
 `fast.dxshelley.fun` 保留 Xget 的平台前缀路由，例如 `/npm/*`、`/pypi/*`、
 `/cr/*` 和 `/ip/*`，并提供已登记站点的统一入口。用户可在入口页粘贴普通 HTTPS
-URL。默认情况下，`?target=`
-支持透明代理 HTTPS 目标，用户无需手工 URL 编码；目标必须使用 HTTPS，且不能包含用户名或密码。若配置
-`XGET_PROXY_TARGET_ALLOWLIST=true`，Worker 会校验其 Origin 后仅跳转至已登记站点，未登记目标返回
-`400 Invalid proxy target`。已登记的专属 `WebAdapter`
+URL。默认情况下，`?target=` 只接受已登记 Origin，未登记目标返回
+`400 Invalid proxy target`。仅在显式配置 `XGET_PROXY_TARGET_ALLOWLIST=false` 且已有浏览器登录态时，Worker 才允许 HTTPS 透明代理；目标不能包含用户名或密码。已登记的专属 `WebAdapter`
 目标会直接跳转到其固定镜像 Host；它们不会回退为通用配置站点代理。
 
 `docker.fast.dxshelley.fun` 是 Docker Hub 的 Registry
@@ -88,9 +86,8 @@ https://claude-code.fast.dxshelley.fun/docs/zh-CN/quickstart?locale=zh-CN&source
 https://fast.dxshelley.fun/_/claude-code/docs/zh-CN/quickstart
 ```
 
-已登记站点默认代理其上游 Origin 下的全部路径和 query，而非只允许某几个文档目录。未知 alias 仍被拒绝。透明代理模式只接受 HTTPS 且不含用户名密码的 URL，并沿用全局 HTTP 方法、超时和重试配置；生产环境应结合
-`XGET_AUTH_REQUIRED=true` 使用。开启 `XGET_PROXY_TARGET_ALLOWLIST=true`
-后，未登记 Origin 会被拒绝。
+已登记站点默认代理其上游 Origin 下的全部路径和 query，而非只允许某几个文档目录。未知 alias 仍被拒绝。透明代理模式只接受 HTTPS 且不含用户名密码的 URL，并沿用全局 HTTP 方法、超时和重试配置；它必须显式设置
+`XGET_PROXY_TARGET_ALLOWLIST=false`，并要求浏览器登录态。默认配置下，未登记 Origin 会被拒绝。
 
 入口页列出已登记站点的快捷访问。提交成功时，最近八条已登记目标 URL 与域名频次仅保存在当前浏览器的
 `localStorage`；这些记录不发送到 Worker、不写入日志，也可在入口页立即清除。快捷入口和本机历史都必须再次通过同一份 Origin 白名单校验。

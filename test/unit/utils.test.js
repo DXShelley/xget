@@ -47,14 +47,17 @@ describe('Utility Functions', () => {
       expect(config.SECURITY.ALLOWED_METHODS).toEqual(['GET', 'HEAD']);
     });
 
-    it('does not validate proxy target origins unless explicitly enabled', () => {
-      expect(createConfig().SECURITY.PROXY_TARGET_ALLOWLIST).toBe(false);
+    it('requires registered proxy target origins unless explicitly disabled', () => {
+      expect(createConfig().SECURITY.PROXY_TARGET_ALLOWLIST).toBe(true);
       expect(
         createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'true' }).SECURITY.PROXY_TARGET_ALLOWLIST
       ).toBe(true);
       expect(
-        createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'yes' }).SECURITY.PROXY_TARGET_ALLOWLIST
+        createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'false' }).SECURITY.PROXY_TARGET_ALLOWLIST
       ).toBe(false);
+      expect(
+        createConfig({ XGET_PROXY_TARGET_ALLOWLIST: 'yes' }).SECURITY.PROXY_TARGET_ALLOWLIST
+      ).toBe(true);
     });
   });
 

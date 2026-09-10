@@ -22,16 +22,18 @@ const DEFAULT_ALLOWED_METHODS = Object.freeze(['GET', 'HEAD']);
 const SUPPORTED_HTTP_METHODS = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
- * Parses a boolean environment override. Only an explicit true enables a feature.
+ * Parses a boolean environment override without weakening a secure fallback.
  * @param {unknown} value
+ * @param {boolean} [fallback]
  * @returns {boolean} Whether the setting is enabled.
  */
-function parseBoolean(value) {
-  return (
-    String(value || '')
-      .trim()
-      .toLowerCase() === 'true'
-  );
+function parseBoolean(value, fallback = false) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'true') return true;
+  if (normalized === 'false') return false;
+  return fallback;
 }
 
 /**
@@ -150,7 +152,7 @@ function parseAllowedMethods(value) {
  * - `ALLOWED_METHODS` - Comma-separated HTTP methods (default: 'GET,HEAD')
  * - `ALLOWED_ORIGINS` - Comma-separated CORS origins (default: '*')
  * - `MAX_PATH_LENGTH` - Override max path length (default: 2048)
- * - `XGET_PROXY_TARGET_ALLOWLIST` - Require configured target origins for `?target=` (default: false)
+ * - `XGET_PROXY_TARGET_ALLOWLIST` - Require configured target origins for `?target=` (default: true)
  * @param {Record<string, unknown>} env - Environment variables from Cloudflare Workers env object
  * @returns {ApplicationConfig} Complete application configuration with applied overrides
  * @example
@@ -206,7 +208,7 @@ export function createConfig(env = {}) {
       ALLOWED_METHODS: parseAllowedMethods(env.ALLOWED_METHODS),
       ALLOWED_ORIGINS: allowedOrigins.length ? allowedOrigins : ['*'],
       MAX_PATH_LENGTH: parseBoundedInteger(env.MAX_PATH_LENGTH, 2048, 256, 8192),
-      PROXY_TARGET_ALLOWLIST: parseBoolean(env.XGET_PROXY_TARGET_ALLOWLIST)
+      PROXY_TARGET_ALLOWLIST: parseBoolean(env.XGET_PROXY_TARGET_ALLOWLIST, true)
     },
     PLATFORMS
   };

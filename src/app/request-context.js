@@ -18,8 +18,9 @@
 
 import { CONFIG, createConfig } from '../config/index.js';
 import { normalizeDockerHubMirrorUrl } from '../protocols/docker.js';
-import { resolveProtocolAdapter, resolveProtocolFeature } from '../protocol-adapters/registry.js';
+import { resolveProtocolAdapter } from '../protocol-adapters/registry.js';
 import { getRequestTraits } from '../utils/validation.js';
+import { resolveRequestFeature } from './request-feature.js';
 
 /**
  * Builds the shared request context used by all runtime adapters.
@@ -46,7 +47,7 @@ export function createRequestContext(request, env) {
   const config = env === undefined ? CONFIG : createConfig(runtimeEnv);
   const url = normalizeDockerHubMirrorUrl(new URL(request.url));
   const traits = getRequestTraits(request, url);
-  const protocolFeature = resolveProtocolFeature(traits, url);
+  const protocolFeature = resolveRequestFeature(traits, url);
 
   return {
     ...traits,
