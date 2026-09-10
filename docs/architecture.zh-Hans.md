@@ -25,6 +25,7 @@ flowchart TB
         Git[xget-git\ngit.dxshelley.fun]
         Entry[src/index.js]
         App[handleRequest]
+        Auth[认证责任链]
         Routes[固定浏览器路由 + 平台路由]
         Core[校验、目标解析、缓存、上游请求、响应收尾]
     end
@@ -46,7 +47,7 @@ flowchart TB
     Client --> Git
     Fast --> Entry
     Git --> Entry
-    Entry --> App --> Routes
+    Entry --> App --> Auth --> Routes
     Routes --> GitHub --> GH
     Routes --> Configured --> Sites
     Routes --> Web --> Sites
@@ -62,8 +63,8 @@ flowchart TB
 `src/app/handle-request.js`
 是唯一的应用级请求入口。它负责创建请求上下文、处理预检请求，并按以下优先级分发：
 
-1. 固定浏览器路由：专用 Web 适配器、GitHub、配置站点、Fast 内置路由。
-2. Docker 协议探测和认证。
+1. 认证责任链：按请求类型选择浏览器、Git、Docker 或匿名认证适配器。
+2. 固定浏览器路由：专用 Web 适配器、GitHub、配置站点、Fast 内置路由。
 3. 通用平台路由：校验、路径规范化、目标解析、缓存和上游请求。
 4. 统一响应收尾：CORS、安全头和性能头。
 
@@ -72,18 +73,19 @@ flowchart TB
 
 ## 3. 路由与部署拓扑
 
-| Worker      | 域名范围                                     | 职责                                | 部署命令              |
-| ----------- | -------------------------------------------- | ----------------------------------- | --------------------- |
-| `xget-fast` | `fast.dxshelley.fun`、`*.fast.dxshelley.fun` | 通用平台前缀、配置站点和 Web 适配器 | `npm run deploy:fast` |
-| `xget-git`  | `git.dxshelley.fun`                          | GitHub 全站透明镜像                 | `npm run deploy:git`  |
-| `quota-gateway` | `door.dxshelley.fun` | 账户共享免费额度校准与 Durable Object 账本 | `npm run deploy:quota` |
+| Worker          | 域名范围                                     | 职责                                       | 部署命令               |
+| --------------- | -------------------------------------------- | ------------------------------------------ | ---------------------- |
+| `xget-fast`     | `fast.dxshelley.fun`、`*.fast.dxshelley.fun` | 通用平台前缀、配置站点和 Web 适配器        | `npm run deploy:fast`  |
+| `xget-git`      | `git.dxshelley.fun`                          | GitHub 全站透明镜像                        | `npm run deploy:git`   |
+| `quota-gateway` | `door.dxshelley.fun`                         | 账户共享免费额度校准与 Durable Object 账本 | `npm run deploy:quota` |
 
 `wrangler.toml` 以默认环境定义 `xget-fast`，以 `env.git` 定义
-`xget-git`；`quota-gateway/wrangler.toml` 定义独立的限额 Worker。`npm run deploy`
-必须顺序部署三个 Worker。
+`xget-git`；`quota-gateway/wrangler.toml`
+定义独立的限额 Worker。`npm run deploy` 必须顺序部署三个 Worker。
 
 GitHub Actions 的 `workers.yml` 是唯一自动部署工作流：主分支的 CI 成功后执行
-`npm run deploy`，依次发布 `xget-fast`、`xget-git` 和 `quota-gateway`。其他平台的同步、Pages、Netlify、Vercel 和镜像发布工作流只保留手动触发，不能重新引入自动
+`npm run deploy`，依次发布 `xget-fast`、`xget-git` 和
+`quota-gateway`。其他平台的同步、Pages、Netlify、Vercel 和镜像发布工作流只保留手动触发，不能重新引入自动
 `workflow_run`，除非明确恢复该平台的自动发布策略。
 
 ## 4. 适配器架构
@@ -171,6 +173,38 @@ Worker 或 WebSocket 的站点必须转为专用适配器，或以专门过滤�
 
 GitHub 是专用适配器的参考实现。其逻辑集中在
 `src/github/`，不得复制到通用路由层。
+
+### 4.4 认证责任链
+
+```mermaid
+flowchart LR
+    Request[RequestContext] --> AuthEndpoint[认证端点适配器]
+    AuthEndpoint --> Git[Git 与 LFS
+Basic 认证适配器]
+    Git --> Docker[Docker Registry
+Bearer 认证适配器]
+    Docker --> Public[AI、Hugging Face、包管理器
+匿名适配器]
+    Public --> Browser[浏览器代理
+Cookie 认证适配器]
+    Browser --> Decision[principal 或协议响应]
+    Decision --> Route[站点或协议适配器]
+```
+
+`src/auth/request-authorizer.js`
+是认证责任链的唯一编排点。每个处理器只识别自己拥有的请求类型，并在匹配时返回
+`principal`、协议规定的 challenge，或匿名通行结果；不匹配时继续交给下一处理器。
+
+| 请求类型                                   | 认证适配器     | 未认证行为                         |
+| ------------------------------------------ | -------------- | ---------------------------------- |
+| 认证端点 `/__xget/auth/*`                  | 浏览器认证端点 | 由端点自身响应                     |
+| Git Smart HTTP 与 Git LFS                  | Basic          | `401` 与 `WWW-Authenticate: Basic` |
+| Docker/OCI Registry                        | Bearer         | `401` 与 Registry Bearer challenge |
+| AI `/ip/*`、Hugging Face API、包管理器目录 | 匿名           | 直接代理，保留上游凭证语义         |
+| 其余网页代理与透明浏览器代理               | Cookie         | `302` 到登录页                     |
+
+浏览器 Cookie 不参与 Git、Docker、AI 或包管理器认证；Git 与 Docker 的 Xget 凭证也不会作为上游浏览器或包管理器凭证转发。新增代理类型时，应新增一个认证处理器或在其所属协议适配器中扩展，不能回到
+`handleRequest` 添加路径条件。
 
 ## 5. 过滤器责任链
 

@@ -26,13 +26,7 @@ import { addCorsHeaders, addSecurityHeaders, createErrorResponse } from '../util
 import { getAllowedMethods, isProtocolRequest, validateRequest } from '../utils/validation.js';
 import { createRequestContext } from './request-context.js';
 import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
-import {
-  gitAuthenticationChallenge,
-  handleBrowserAuth,
-  validateDockerCredential,
-  validateBrowserSession,
-  validateGitCredential
-} from '../auth/browser.js';
+import { authorizeRequest } from '../auth/request-authorizer.js';
 
 /**
  * Dispatches routes that own a fixed browser-facing host before platform routing.
@@ -68,63 +62,12 @@ export async function handleRequest(request, env, ctx) {
   const { config, isCorsPreflight, isDocker, url } = requestContext;
 
   try {
-    const authEndpoint = new URL(request.url).pathname.startsWith('/__xget/auth/');
-    const authResponse = await handleBrowserAuth(request, requestContext.env);
-    const browserPrincipal = requestContext.isAI
-      ? null
-      : await validateBrowserSession(request, requestContext.env);
-    const gitPrincipal = requestContext.isGit
-      ? await validateGitCredential(request, requestContext.env)
-      : null;
-    const dockerPrincipal = requestContext.isDocker
-      ? await validateDockerCredential(request, requestContext.env)
-      : null;
-    const principal = requestContext.isGit
-      ? gitPrincipal
-      : requestContext.isDocker
-        ? dockerPrincipal
-        : browserPrincipal;
-    const loginRedirect =
-      !authResponse &&
-      !principal &&
-      !authEndpoint &&
-      request.method !== 'OPTIONS' &&
-      !requestContext.isAI &&
-      !url.pathname.startsWith('/npm/') &&
-      !isProtocolRequest(requestContext) &&
-      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
-        ? new Response('Authentication required', {
-            headers: {
-              Location: `/__xget/auth/login?return_to=${encodeURIComponent(url.pathname + url.search)}`
-            },
-            status: 302
-          })
-        : null;
-
-    const gitAuthResponse =
-      requestContext.isGit &&
-      !gitPrincipal &&
-      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
-        ? gitAuthenticationChallenge()
-        : null;
-    const dockerAuthResponse =
-      requestContext.isDocker &&
-      !requestContext.url.pathname.includes('/v2/auth') &&
-      !dockerPrincipal &&
-      String(requestContext.env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true'
-        ? new Response('Docker authentication required', {
-            headers: {
-              'Cache-Control': 'no-store',
-              'Docker-Distribution-Api-Version': 'registry/2.0',
-              'WWW-Authenticate': `Bearer realm="${url.origin}${url.pathname.startsWith('/cr/') ? `/cr/${url.pathname.split('/')[2]}/v2/auth` : '/v2/auth'}",service="xget"`
-            },
-            status: 401
-          })
-        : null;
-    const terminalAuthResponse =
-      authResponse || loginRedirect || gitAuthResponse || dockerAuthResponse;
-    if (terminalAuthResponse) {
-      response = terminalAuthResponse;
+    const { principal, response: authorizationResponse } = await authorizeRequest(
+      request,
+      requestContext
+    );
+    if (authorizationResponse) {
+      response = authorizationResponse;
     } else {
       requestContext.principal = principal;
       const quotaResponse = await reserveWorkerRequest(requestContext.env);
