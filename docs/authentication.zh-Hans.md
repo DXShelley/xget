@@ -8,6 +8,8 @@ AI 推理接口 `/ip/*`
 key；请求中的 `Authorization`、`x-api-key`
 等认证请求头会按协议转发给上游，不会被 xget 登录 Cookie 替代。
 
+认证由入口固定的协议适配器执行：Web 使用 Cookie，Git/Git LFS 使用 Basic，Docker 使用 Bearer；AI、Hugging Face 与包管理器适配器只保留调用方到上游的凭证语义。
+
 公开包管理器目录（包括
 `/npm/*`、`/pypi/*`、`/maven/*`、`/crates/*`）同样不要求浏览器登录，保证客户端能读取元数据和制品；认证仍按各自协议作用于普通网页代理、Git/Git
 LFS 和 Docker 请求。

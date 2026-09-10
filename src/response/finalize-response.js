@@ -23,6 +23,7 @@ import {
   rewriteNpmRegistryStream,
   shouldFilterPlatformTextResponse
 } from '../platforms/response-filters.js';
+import { BASE_PROTOCOL_ADAPTER } from '../protocol-adapters/base.js';
 import { addSecurityHeaders, createErrorResponse } from '../utils/security.js';
 
 /**
@@ -32,6 +33,7 @@ import { addSecurityHeaders, createErrorResponse } from '../utils/security.js';
  *   platform: string,
  *   request: Request,
  *   requestContext: {
+ *     adapter?: any,
  *     isAI: boolean,
  *     isDocker: boolean,
  *     isGit: boolean,
@@ -55,7 +57,7 @@ async function finalizeErrorResponse({
     return response;
   }
 
-  if (requestContext.isDocker && response.status === 401) {
+  if (requestContext.adapter?.preserveUpstreamAuthenticationChallenge && response.status === 401) {
     if (!response.headers.has('WWW-Authenticate')) {
       return createErrorResponse(
         'Authentication required for this container registry resource. This may be a private repository.',
@@ -89,6 +91,7 @@ async function finalizeErrorResponse({
  *   platform: string,
  *   request: Request,
  *   requestContext: {
+ *     adapter?: any,
  *     isAI: boolean,
  *     isDocker: boolean,
  *     isGit: boolean,
@@ -115,7 +118,7 @@ async function finalizeSuccessfulResponse({
   response,
   url
 }) {
-  const { isAI, isDocker, isGit, isGitLFS, isHF } = requestContext;
+  const adapter = requestContext.adapter || BASE_PROTOCOL_ADAPTER;
 
   /** @type {string | ReadableStream<Uint8Array> | null} */
   let responseBody = response.body;
@@ -165,7 +168,7 @@ async function finalizeSuccessfulResponse({
     headers.delete('Content-Length');
   }
 
-  if (!isGit && !isGitLFS && !isDocker && !isAI && !isHF) {
+  if (!adapter.usesProtocolSemantics) {
     if (!canUseCache || hasOriginBoundRewrite) {
       headers.set('Cache-Control', 'no-store');
     } else if (hasSensitiveHeaders) {
@@ -204,11 +207,7 @@ async function finalizeSuccessfulResponse({
 
   if (
     cache &&
-    !isGit &&
-    !isGitLFS &&
-    !isDocker &&
-    !isAI &&
-    !isHF &&
+    adapter.allowsSharedCache(requestContext) &&
     !hasOriginBoundRewrite &&
     !hasSensitiveHeaders &&
     request.method === 'GET' &&
@@ -268,6 +267,7 @@ async function finalizeSuccessfulResponse({
  *   platform: string,
  *   request: Request,
  *   requestContext: {
+ *     adapter?: any,
  *     isAI: boolean,
  *     isDocker: boolean,
  *     isGit: boolean,

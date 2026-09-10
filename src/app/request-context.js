@@ -18,6 +18,7 @@
 
 import { CONFIG, createConfig } from '../config/index.js';
 import { normalizeDockerHubMirrorUrl } from '../protocols/docker.js';
+import { resolveProtocolAdapter, resolveProtocolFeature } from '../protocol-adapters/registry.js';
 import { getRequestTraits } from '../utils/validation.js';
 
 /**
@@ -26,6 +27,7 @@ import { getRequestTraits } from '../utils/validation.js';
  * @param {Record<string, unknown>} env
  * @returns {{
  *   config: import('../config/index.js').ApplicationConfig,
+ *   adapter: any,
  *   env: Record<string, unknown>,
  *   isAI: boolean,
  *   isCorsPreflight: boolean,
@@ -33,6 +35,7 @@ import { getRequestTraits } from '../utils/validation.js';
  *   isGit: boolean,
  *   isGitLFS: boolean,
  *   isHF: boolean,
+ *   protocolFeature: 'web' | 'git' | 'docker' | 'ai' | 'huggingface' | 'package',
  *   request: Request,
  *   principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *   url: URL
@@ -43,15 +46,18 @@ export function createRequestContext(request, env) {
   const config = env === undefined ? CONFIG : createConfig(runtimeEnv);
   const url = normalizeDockerHubMirrorUrl(new URL(request.url));
   const traits = getRequestTraits(request, url);
+  const protocolFeature = resolveProtocolFeature(traits, url);
 
   return {
     ...traits,
+    adapter: resolveProtocolAdapter(protocolFeature),
     config,
     env: runtimeEnv,
     isCorsPreflight:
       request.method === 'OPTIONS' &&
       request.headers.has('Origin') &&
       request.headers.has('Access-Control-Request-Method'),
+    protocolFeature,
     request,
     url
   };

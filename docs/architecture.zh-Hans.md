@@ -25,9 +25,8 @@ flowchart TB
         Git[xget-git\ngit.dxshelley.fun]
         Entry[src/index.js]
         App[handleRequest]
-        Auth[认证责任链]
-        Routes[固定浏览器路由 + 平台路由]
-        Core[校验、目标解析、缓存、上游请求、响应收尾]
+        Context[固定协议特征与适配器]
+        Pipeline[双向请求/响应流水线]
     end
 
     subgraph Adapters[适配层]
@@ -47,26 +46,20 @@ flowchart TB
     Client --> Git
     Fast --> Entry
     Git --> Entry
-    Entry --> App --> Auth --> Routes
-    Routes --> GitHub --> GH
-    Routes --> Configured --> Sites
-    Routes --> Web --> Sites
-    Routes --> Protocol --> Platforms
-    Routes --> Core
-    GitHub --> Core
-    Configured --> Core
-    Web --> Core
-    Protocol --> Core
-    Core --> Client
+    Entry --> App --> Context --> Pipeline
+    Pipeline --> GitHub --> GH
+    Pipeline --> Configured --> Sites
+    Pipeline --> Web --> Sites
+    Pipeline --> Protocol --> Platforms
+    Pipeline --> Client
 ```
 
 `src/app/handle-request.js`
-是唯一的应用级请求入口。它负责创建请求上下文、处理预检请求，并按以下优先级分发：
+是唯一的应用级请求入口。它只负责创建请求上下文并执行双向流水线：
 
-1. 认证责任链：按请求类型选择浏览器、Git、Docker 或匿名认证适配器。
-2. 固定浏览器路由：专用 Web 适配器、GitHub、配置站点、Fast 内置路由。
-3. 通用平台路由：校验、路径规范化、目标解析、缓存和上游请求。
-4. 统一响应收尾：CORS、安全头和性能头。
+1. 在入口一次识别 `web`、`git`、`docker`、`ai`、`huggingface` 或 `package`，并把对应适配器固定到 `RequestContext`。
+2. 请求正向经过认证、配额、预检、站点路由、协议路由、校验、目标解析、缓存和传输节点。
+3. 上游响应沿已进入的节点反向返回，统一应用缓存写入、CORS、安全头和性能头。
 
 任何新能力应先判断它属于既有分发分支中的哪一个，不能绕过 `handleRequest`
 直接建立新的全局代理入口。
@@ -174,26 +167,22 @@ Worker 或 WebSocket 的站点必须转为专用适配器，或以专门过滤�
 GitHub 是专用适配器的参考实现。其逻辑集中在
 `src/github/`，不得复制到通用路由层。
 
-### 4.4 认证责任链
+### 4.4 协议策略适配器与双向流水线
 
 ```mermaid
-flowchart LR
-    Request[RequestContext] --> AuthEndpoint[认证端点适配器]
-    AuthEndpoint --> Git[Git 与 LFS
-Basic 认证适配器]
-    Git --> Docker[Docker Registry
-Bearer 认证适配器]
-    Docker --> Public[AI、Hugging Face、包管理器
-匿名适配器]
-    Public --> Browser[浏览器代理
-Cookie 认证适配器]
-    Browser --> Decision[principal 或协议响应]
-    Decision --> Route[站点或协议适配器]
+flowchart TB
+    Context[RequestContext 固定 protocolFeature] --> Registry[ProtocolAdapterRegistry]
+    Registry --> Web[WebAdapter]
+    Registry --> Git[GitAdapter]
+    Registry --> Docker[DockerAdapter]
+    Registry --> AI[AIAdapter]
+    Registry --> Package[PackageAdapter]
+    Registry --> Pipeline[Security -> Authentication -> Quota -> Routing -> Cache -> Transport]
+    Pipeline --> Upstream[上游]
+    Upstream --> Pipeline
 ```
 
-`src/auth/request-authorizer.js`
-是认证责任链的唯一编排点。每个处理器只识别自己拥有的请求类型，并在匹配时返回
-`principal`、协议规定的 challenge，或匿名通行结果；不匹配时继续交给下一处理器。
+`src/protocol-adapters/` 是协议差异的唯一归属。`ProtocolAdapterRegistry` 在入口选中一个策略；认证、路径规范化、请求头、Docker 重试/重定向、缓存资格和协议响应语义均由该适配器提供。过滤器只处理自己的单一阶段，不直接按协议路径分支。
 
 | 请求类型                                   | 认证适配器     | 未认证行为                         |
 | ------------------------------------------ | -------------- | ---------------------------------- |
@@ -203,8 +192,7 @@ Cookie 认证适配器]
 | AI `/ip/*`、Hugging Face API、包管理器目录 | 匿名           | 直接代理，保留上游凭证语义         |
 | 其余网页代理与透明浏览器代理               | Cookie         | `302` 到登录页                     |
 
-浏览器 Cookie 不参与 Git、Docker、AI 或包管理器认证；Git 与 Docker 的 Xget 凭证也不会作为上游浏览器或包管理器凭证转发。新增代理类型时，应新增一个认证处理器或在其所属协议适配器中扩展，不能回到
-`handleRequest` 添加路径条件。
+浏览器 Cookie 不参与 Git、Docker、AI 或包管理器认证；Git 与 Docker 的 Xget 凭证也不会作为上游浏览器或包管理器凭证转发。新增协议必须增加并注册适配器，不能回到 `handleRequest` 或过滤器中添加协议条件。
 
 ## 5. 过滤器责任链
 
@@ -220,8 +208,7 @@ flowchart LR
     Finalize --> Response[Response]
 ```
 
-责任链使用 `src/filters/run-filters.js`
-执行。过滤器必须只处理自己的层次，遵循以下约束：
+配置站点继续使用 `src/filters/run-filters.js` 的局部有序过滤器；Worker 主请求使用 `src/filters/run-pipeline.js` 的双向流水线。过滤器必须只处理自己的层次，遵循以下约束：
 
 - 请求过滤器只修改请求上下文、上游 URL、请求头或请求体策略。
 - 响应过滤器只修改响应、响应头和可安全重写的内容。
@@ -304,6 +291,7 @@ flowchart TD
 | `src/github/`       | GitHub Web/协议专用请求、响应、重写和缓存语义。 |
 | `src/web-adapters/` | 需要资源域或浏览器内容重写的专用站点适配器。    |
 | `src/filters/`      | 请求和响应责任链执行器及可复用过滤器。          |
+| `src/protocol-adapters/` | Web、Git、Docker、AI、Hugging Face 和包管理器的并列协议策略。 |
 | `src/protocols/`    | Docker 等协议专用处理。                         |
 | `src/upstream/`     | 上游访问、缓存、重试和错误处理。                |
 | `src/response/`     | 通用响应收尾与缓存写入。                        |

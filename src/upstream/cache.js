@@ -41,13 +41,7 @@ export function getDefaultCache() {
  *   hasSensitiveHeaders: boolean,
  *   monitor: import('../utils/performance.js').PerformanceMonitor,
  *   request: Request,
- *   requestContext: {
- *     isAI: boolean,
- *     isDocker: boolean,
- *     isGit: boolean,
- *     isGitLFS: boolean,
- *     isHF: boolean
- *   }
+ *   requestContext: { adapter: { allowsSharedCache: (context: unknown) => boolean } }
  * }} options
  * @returns {Promise<Response | null>} Cached response when one can be reused, otherwise null.
  */
@@ -60,16 +54,10 @@ export async function tryReadCachedResponse({
   request,
   requestContext
 }) {
-  const { isAI, isDocker, isGit, isGitLFS, isHF } = requestContext;
-
   if (
     !cache ||
     !canUseCache ||
-    isGit ||
-    isGitLFS ||
-    isDocker ||
-    isAI ||
-    isHF ||
+    !requestContext.adapter.allowsSharedCache(requestContext) ||
     hasSensitiveHeaders
   ) {
     monitor.mark('cache_bypass');
