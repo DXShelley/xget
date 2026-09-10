@@ -16,16 +16,6 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { configureAIHeaders } from '../protocols/ai.js';
-import {
-  fetchToken,
-  getScopeFromUrl,
-  parseAuthenticate,
-  readRegistryTokenResponse,
-  responseUnauthorized
-} from '../protocols/docker.js';
-import { configureGitHeaders } from '../protocols/git.js';
-import { configureHuggingFaceHeaders } from '../protocols/huggingface.js';
 import { createErrorResponse } from '../utils/security.js';
 
 const MEDIA_FILE_PATTERN =
@@ -39,11 +29,13 @@ const MEDIA_FILE_PATTERN =
  *   config: import('../config/index.js').ApplicationConfig,
  *   request: Request,
  *   requestContext: {
+ *     adapter: any,
  *     isAI: boolean,
  *     isDocker: boolean,
  *     isGit: boolean,
  *     isGitLFS: boolean,
  *     isHF: boolean,
+ *     principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *     url: URL
  *   },
  *   shouldPassthroughRequest: boolean,
@@ -60,8 +52,6 @@ function createFetchOptions({
   shouldPassthroughRequest,
   targetUrl
 }) {
-  const { isAI, isGit, isGitLFS, isHF, url } = requestContext;
-
   /** @type {RequestInit} */
   const fetchOptions = {
     method: request.method,
@@ -82,17 +72,13 @@ function createFetchOptions({
       }
     }
 
-    if (isGit || isGitLFS) {
-      configureGitHeaders(requestHeaders, request, url, isGitLFS);
-    }
-
-    if (isAI) {
-      configureAIHeaders(requestHeaders, request);
-    }
-
-    if (isHF) {
-      configureHuggingFaceHeaders(requestHeaders, request);
-    }
+    requestContext.adapter.prepareUpstreamHeaders({
+      headers: requestHeaders,
+      isGitLFS: requestContext.isGitLFS,
+      principal: requestContext.principal,
+      request,
+      url: requestContext.url
+    });
 
     return { fetchOptions, requestHeaders };
   }
@@ -132,46 +118,12 @@ function createFetchOptions({
 }
 
 /**
- * Follows a Docker redirect without forwarding credentials to the redirected host.
- * @param {Response} response
- * @param {string} targetUrl
- * @param {RequestInit} finalFetchOptions
- * @returns {Promise<Response>} Redirect-followed response, or the original response when no redirect is needed.
- */
-async function followDockerRedirectIfNeeded(response, targetUrl, finalFetchOptions) {
-  if (
-    response.status !== 301 &&
-    response.status !== 302 &&
-    response.status !== 303 &&
-    response.status !== 307 &&
-    response.status !== 308
-  ) {
-    return response;
-  }
-
-  const location = response.headers.get('Location');
-  if (!location) {
-    return response;
-  }
-
-  const redirectHeaders = new Headers(finalFetchOptions.headers);
-  redirectHeaders.delete('Authorization');
-
-  const redirectOptions = /** @type {RequestInit} */ ({
-    ...finalFetchOptions,
-    headers: redirectHeaders,
-    redirect: 'follow'
-  });
-
-  return await fetch(new URL(location, targetUrl), redirectOptions);
-}
-
-/**
  * Executes the upstream fetch, including HEAD fallback probing and Docker redirect handling.
  * @param {{
  *   fetchOptions: RequestInit,
  *   request: Request,
  *   requestContext: {
+ *     adapter: any,
  *     isDocker: boolean
  *   },
  *   requestHeaders: Headers,
@@ -185,20 +137,18 @@ async function executeFetch({ fetchOptions, request, requestContext, requestHead
     signal: /** @type {AbortSignal} */ (fetchOptions.signal)
   });
 
-  if (requestContext.isDocker) {
-    finalFetchOptions.redirect = 'manual';
-  }
+  const configuredFetchOptions = requestContext.adapter.configureFetchOptions(finalFetchOptions);
 
   let response;
   if (request.method === 'HEAD') {
-    response = await fetch(targetUrl, finalFetchOptions);
+    response = await fetch(targetUrl, configuredFetchOptions);
 
     if (response.ok && !response.headers.get('Content-Length')) {
       const rangeHeaders = new Headers(requestHeaders);
       rangeHeaders.set('Range', 'bytes=0-0');
 
       const rangeResponse = await fetch(targetUrl, {
-        ...finalFetchOptions,
+        ...configuredFetchOptions,
         method: 'GET',
         headers: rangeHeaders
       });
@@ -228,84 +178,15 @@ async function executeFetch({ fetchOptions, request, requestContext, requestHead
       }
     }
   } else {
-    response = await fetch(targetUrl, finalFetchOptions);
+    response = await fetch(targetUrl, configuredFetchOptions);
   }
 
-  if (requestContext.isDocker) {
-    response = await followDockerRedirectIfNeeded(response, targetUrl, finalFetchOptions);
-  }
+  response = await requestContext.adapter.transformFetchedResponse(response, {
+    fetchOptions: configuredFetchOptions,
+    targetUrl
+  });
 
   return response;
-}
-
-/**
- * Retries a Docker request with an anonymous bearer token when the registry challenges first.
- * @param {{
- *   effectivePath: string,
- *   platform: string,
- *   requestHeaders: Headers,
- *   requestContext: {
- *     isDocker: boolean,
- *     url: URL
- *   },
- *   response: Response,
- *   signal: AbortSignal,
- *   targetUrl: string,
- *   finalFetchOptions: RequestInit
- * }} options
- * @returns {Promise<Response>} Successful retried response, or a synthesized auth challenge response.
- */
-async function retryDockerWithAnonymousToken({
-  effectivePath,
-  finalFetchOptions,
-  platform,
-  requestContext,
-  requestHeaders,
-  response,
-  signal,
-  targetUrl
-}) {
-  const authenticateStr = response.headers.get('WWW-Authenticate');
-  const scope = getScopeFromUrl(requestContext.url, effectivePath, platform);
-
-  if (authenticateStr) {
-    try {
-      const wwwAuthenticate = parseAuthenticate(authenticateStr);
-      const tokenResponse = await fetchToken(wwwAuthenticate, scope || '', '', signal);
-
-      if (tokenResponse.ok) {
-        const token = await readRegistryTokenResponse(tokenResponse);
-        if (token) {
-          const retryHeaders = new Headers(requestHeaders);
-          retryHeaders.set('Authorization', `Bearer ${token}`);
-
-          const retryOptions = /** @type {RequestInit} */ ({
-            ...finalFetchOptions,
-            headers: retryHeaders,
-            redirect: 'manual'
-          });
-
-          let retryResponse = await fetch(targetUrl, retryOptions);
-          retryResponse = await followDockerRedirectIfNeeded(
-            retryResponse,
-            targetUrl,
-            retryOptions
-          );
-
-          if (retryResponse.ok) {
-            return retryResponse;
-          }
-        }
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw error;
-      }
-      console.warn('Token fetch failed:', error);
-    }
-  }
-
-  return responseUnauthorized(requestContext.url, platform);
 }
 
 /**
@@ -319,11 +200,13 @@ async function retryDockerWithAnonymousToken({
  *   platform: string,
  *   request: Request,
  *   requestContext: {
+ *     adapter: any,
  *     isAI: boolean,
  *     isDocker: boolean,
  *     isGit: boolean,
  *     isGitLFS: boolean,
  *     isHF: boolean,
+ *     principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *     url: URL
  *   },
  *   shouldPassthroughRequest: boolean,
@@ -388,11 +271,10 @@ export async function fetchUpstreamResponse({
         break;
       }
 
-      if (requestContext.isDocker && response.status === 401) {
-        monitor.mark('docker_auth_challenge');
-        response = await retryDockerWithAnonymousToken({
+      if (response.status === 401) {
+        const retryResponse = await requestContext.adapter.retryUnauthorized({
           effectivePath,
-          finalFetchOptions: fetchOptions,
+          fetchOptions,
           platform,
           requestContext,
           requestHeaders,
@@ -400,11 +282,14 @@ export async function fetchUpstreamResponse({
           signal: controller.signal,
           targetUrl
         });
-
-        if (response.ok) {
-          monitor.mark('success');
+        if (retryResponse) {
+          monitor.mark('protocol_auth_challenge');
+          response = retryResponse;
+          if (response.ok) {
+            monitor.mark('success');
+          }
+          break;
         }
-        break;
       }
 
       if (response.status >= 400 && response.status < 500) {

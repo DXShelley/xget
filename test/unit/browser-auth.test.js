@@ -91,14 +91,69 @@ describe('browser authentication', () => {
     expect(response.headers.get('Location')).toBe('/');
   });
 
-  it('blocks the main request before proxy routing when unauthenticated', async () => {
+  it.each([
+    ['npm', 'npm/example', 'https://registry.npmjs.org/example'],
+    ['PyPI', 'pypi/simple/example/', 'https://pypi.org/simple/example/']
+  ])(
+    'allows public %s registry requests without browser authentication',
+    async (_, path, target) => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
+      /** @type {{ mockClear: () => void }} */ (
+        /** @type {unknown} */ (validateBrowserSession)
+      ).mockClear();
+      try {
+        const response = await handleRequest(
+          new Request(`https://fast.example/${path}`),
+          env,
+          /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+        );
+        expect(response.status).toBe(200);
+        expect(fetchSpy).toHaveBeenCalledWith(target, expect.any(Object));
+        expect(validateBrowserSession).not.toHaveBeenCalled();
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    }
+  );
+
+  it('redirects unauthenticated browser proxy requests to the login page', async () => {
     const response = await handleRequest(
-      new Request('https://fast.example/npm/example'),
+      new Request('https://fast.example/gh/example/project'),
       env,
       /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
     );
     expect(response.status).toBe(302);
     expect(response.headers.get('Location')).toContain('/__xget/auth/login');
+  });
+
+  it('keeps registered Web hosts under browser authentication when their path resembles AI', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('must not run'));
+    try {
+      const response = await handleRequest(
+        new Request('https://claude-ai.fast.dxshelley.fun/ip/organizations'),
+        env,
+        /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toContain('/__xget/auth/login');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('routes authentication endpoints through browser authentication despite Git-like headers', async () => {
+    const response = await handleRequest(
+      new Request('https://fast.example/__xget/auth/login', {
+        headers: { 'User-Agent': 'git/2.45.0' }
+      }),
+      env,
+      /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('xget login');
   });
 
   it.each([
@@ -142,6 +197,9 @@ describe('browser authentication', () => {
   );
 
   it('does not turn protocol requests into browser redirects', async () => {
+    /** @type {{ mockClear: () => void }} */ (
+      /** @type {unknown} */ (validateBrowserSession)
+    ).mockClear();
     const response = await handleRequest(
       new Request('https://fast.example/cr/docker/v2/library/alpine/manifests/latest', {
         headers: { Accept: 'application/vnd.docker.distribution.manifest.v2+json' }
@@ -149,7 +207,37 @@ describe('browser authentication', () => {
       env,
       /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
     );
-    expect(response.status).not.toBe(302);
+    expect(response.status).toBe(401);
+    expect(response.headers.get('WWW-Authenticate')).toContain('Bearer');
+    expect(validateBrowserSession).not.toHaveBeenCalled();
+  });
+
+  it('challenges unauthenticated Git requests with Basic authentication', async () => {
+    /** @type {{ mockClear: () => void }} */ (
+      /** @type {unknown} */ (validateBrowserSession)
+    ).mockClear();
+    const response = await handleRequest(
+      new Request('https://git.example/owner/repository.git/info/refs'),
+      env,
+      /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+    );
+    expect(response.status).toBe(401);
+    expect(response.headers.get('WWW-Authenticate')).toContain('Basic');
+    expect(validateBrowserSession).not.toHaveBeenCalled();
+  });
+
+  it('challenges unauthenticated Git LFS requests with Basic authentication', async () => {
+    const response = await handleRequest(
+      new Request('https://git.example/owner/repository.git/objects/batch', {
+        body: '{}',
+        headers: { 'Content-Type': 'application/vnd.git-lfs+json' },
+        method: 'POST'
+      }),
+      env,
+      /** @type {ExecutionContext} */ ({ waitUntil() {}, passThroughOnException() {} })
+    );
+    expect(response.status).toBe(401);
+    expect(response.headers.get('WWW-Authenticate')).toContain('Basic');
   });
 
   it('issues a 90-day Git credential and validates Git Basic credentials', async () => {
@@ -219,6 +307,7 @@ describe('browser authentication', () => {
       );
       expect(response.status).not.toBe(401);
       expect(fetchSpy).toHaveBeenCalled();
+      expect(new Headers(fetchSpy.mock.calls[0]?.[1]?.headers).get('Authorization')).toBeNull();
     } finally {
       fetchSpy.mockRestore();
     }

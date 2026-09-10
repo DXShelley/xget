@@ -118,4 +118,27 @@ export const PLATFORM_CATALOG = {
   'cr-gitpod': 'https://registry.gitpod.io'
 };
 
+export const PACKAGE_MANAGER_PLATFORM_KEYS = Object.freeze([
+  'npm',
+  'pypi',
+  'pypi-files',
+  'conda',
+  'conda-community',
+  'maven',
+  'apache',
+  'gradle',
+  'homebrew',
+  'homebrew-api',
+  'homebrew-bottles',
+  'rubygems',
+  'cran',
+  'cpan',
+  'ctan',
+  'golang',
+  'nuget',
+  'crates',
+  'packagist',
+  'flathub'
+]);
+
 export const PLATFORMS = PLATFORM_CATALOG;

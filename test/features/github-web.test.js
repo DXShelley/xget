@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { handleBrowserAuth } from '../../src/auth/browser.js';
+import { handleRequest } from '../../src/app/handle-request.js';
 import worker from '../../src/index.js';
 
 /** @type {ExecutionContext} */
@@ -8,7 +10,81 @@ const executionContext = {
   passThroughOnException() {}
 };
 
+const transparentProxyEnvironment = {
+  XGET_AUTH_REQUIRED: 'true',
+  XGET_LOGIN_SECRET: 'login-secret',
+  XGET_PROXY_TARGET_ALLOWLIST: 'false',
+  XGET_SESSION_SECRET: 'session-secret'
+};
+
 describe('GitHub Web integration', () => {
+  it('keeps double-slash paths on a configured host inside its upstream origin', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+    const response = await worker.fetch(
+      new Request('https://google-dev-docs.fast.dxshelley.fun//outside.example/path?q=1'),
+      {},
+      executionContext
+    );
+    expect(response.status).toBe(200);
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+      'https://developers.google.com//outside.example/path?q=1'
+    );
+  });
+
+  it('follows a transparent cross-origin redirect through the Worker without leaking credentials', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 308,
+          headers: {
+            Location: 'https://learn.chatgpt.com/docs/changelog',
+            Refresh: '0;url=https://learn.chatgpt.com/docs/changelog',
+            'Set-Cookie': 'upstream=private'
+          }
+        })
+      )
+      .mockResolvedValueOnce(new Response('changelog'));
+    const url = new URL('https://fast.dxshelley.fun/');
+    url.searchParams.set('target', 'https://developers.openai.com/codex/changelog');
+    const login = await handleBrowserAuth(
+      new Request('https://fast.dxshelley.fun/__xget/auth/login', {
+        body: new URLSearchParams({ secret: 'login-secret' }),
+        method: 'POST'
+      }),
+      transparentProxyEnvironment
+    );
+    const sessionCookie = login?.headers.get('Set-Cookie')?.split(';')[0];
+    if (!sessionCookie) throw new Error('Expected browser session cookie');
+
+    const headers = { Authorization: 'Bearer proxy-only', Cookie: sessionCookie };
+    const redirect = await handleRequest(
+      new Request(url, { headers }),
+      transparentProxyEnvironment,
+      executionContext
+    );
+    expect(redirect.status).toBe(308);
+    expect(redirect.headers.has('Refresh')).toBe(false);
+    expect(redirect.headers.has('Set-Cookie')).toBe(false);
+    const location = new URL(redirect.headers.get('Location') || '', url);
+    expect(location.origin).toBe(url.origin);
+    const result = await handleRequest(
+      new Request(location, { headers }),
+      transparentProxyEnvironment,
+      executionContext
+    );
+    expect(await result.text()).toBe('changelog');
+    expect(fetchSpy.mock.calls.map(call => call[0])).toEqual([
+      'https://developers.openai.com/codex/changelog',
+      'https://learn.chatgpt.com/docs/changelog'
+    ]);
+    for (const call of fetchSpy.mock.calls) {
+      const upstreamHeaders = new Headers(call[1]?.headers);
+      expect(upstreamHeaders.has('Authorization')).toBe(false);
+      expect(upstreamHeaders.has('Cookie')).toBe(false);
+    }
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -138,12 +214,12 @@ describe('GitHub Web integration', () => {
     );
   });
 
-  it('rejects an unconfigured target without fetching it', async () => {
+  it('rejects an unconfigured target without fetching it when the allowlist is enabled', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const target = encodeURIComponent('https://example.com/private');
     const response = await worker.fetch(
       new Request(`https://fast.dxshelley.fun/?target=${target}`),
-      {},
+      { XGET_PROXY_TARGET_ALLOWLIST: 'true' },
       executionContext
     );
 
@@ -154,18 +230,21 @@ describe('GitHub Web integration', () => {
   it.each([
     'https://user:password@code.claude.com/docs',
     'https://code.claude.com.evil.example/docs'
-  ])('rejects unsafe target %s without fetching it', async targetValue => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const target = encodeURIComponent(targetValue);
-    const response = await worker.fetch(
-      new Request(`https://fast.dxshelley.fun/?target=${target}`),
-      {},
-      executionContext
-    );
+  ])(
+    'rejects unsafe target %s without fetching it when the allowlist is enabled',
+    async targetValue => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const target = encodeURIComponent(targetValue);
+      const response = await worker.fetch(
+        new Request(`https://fast.dxshelley.fun/?target=${target}`),
+        { XGET_PROXY_TARGET_ALLOWLIST: 'true' },
+        executionContext
+      );
 
-    expect(response.status).toBe(400);
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(400);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects an unknown path proxy alias without fetching it', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');

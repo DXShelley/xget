@@ -8,6 +8,24 @@ AI 推理接口 `/ip/*`
 key；请求中的 `Authorization`、`x-api-key`
 等认证请求头会按协议转发给上游，不会被 xget 登录 Cookie 替代。
 
+认证由入口固定的协议适配器执行：Web 使用 Cookie，Git/Git
+LFS 使用 Basic，Docker 使用 Bearer；AI、Hugging
+Face 与包管理器适配器只保留调用方到上游的凭证语义。
+
+Git 和 Docker 适配器仅在认证节点已确认本地 Xget 凭证后，剥离 `Authorization`、`Cookie`
+和 `Proxy-Authorization` 再请求上游；Docker 仅在上游 challenge 后使用其短期 Registry
+token 重试。认证关闭时，调用方提供的 Docker 上游 Registry 凭证仍按协议透传。AI、Hugging Face 与包管理器也会按其协议保留调用方提供的上游凭证。
+
+公开包管理器目录（包括
+`/npm/*`、`/pypi/*`、`/maven/*`、`/crates/*`）同样不要求浏览器登录，保证客户端能读取元数据和制品；认证仍按各自协议作用于普通网页代理、Git/Git
+LFS 和 Docker 请求。
+
+启用 `PAGE_MAP` 且明确设置 `XGET_PROXY_TARGET_ALLOWLIST=false`
+后，未登记的公开 HTTPS 页面会固定为 `public-page`
+适配器：入口和生成的页面域名允许匿名 `GET`/`HEAD`，且不会向上游发送 Cookie 或
+`Authorization`。已登记目标仍优先使用其 Web 或配置站点适配器，继续要求浏览器登录；自动公开页面不会放宽普通
+`?target=` 透明代理的认证要求。
+
 ## 部署配置
 
 必须通过 Cloudflare Secret 设置 `XGET_SESSION_SECRET` 和
@@ -20,9 +38,11 @@ npx wrangler secret put XGET_SESSION_SECRET --env git
 npx wrangler secret put XGET_LOGIN_SECRET --env git
 ```
 
-生产配置使用 `XGET_AUTH_REQUIRED=true`。如果需要将 `?target=`
-限制为配置站点，额外设置
-`XGET_PROXY_TARGET_ALLOWLIST=true`；该开关默认关闭，以便认证后的请求使用 HTTPS 透明代理。轮换
+生产 `xget-fast` 配置使用 `XGET_AUTH_REQUIRED=true` 与
+`XGET_PROXY_TARGET_ALLOWLIST=false`，以启用受限的自动公开页面；`xget-git`
+继续使用严格 allowlist。`?target=`
+默认仅允许已登记站点；如确有受控的透明代理需求，显式设置
+`XGET_PROXY_TARGET_ALLOWLIST=false`，且请求必须已建立浏览器登录态。轮换
 `XGET_SESSION_SECRET` 会立即使已有登录 Cookie 全部失效；轮换 `XGET_LOGIN_SECRET`
 会立即更换登录密钥。
 

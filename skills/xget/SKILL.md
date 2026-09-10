@@ -87,3 +87,17 @@ only needs docs or templates, use the placeholder path rules below.
    platform, say so explicitly and fall back to the stable guidance in
    [references/REFERENCE.md](references/REFERENCE.md) instead of inventing a
    prefix.
+
+## Xget 项目架构改造
+
+修改 Xget Worker 本身时，先读取
+`docs/architecture.zh-Hans.md`。协议特征必须在请求入口解析一次：`src/app/request-feature.js`
+先按系统端点和已注册站点 Host 确定路由所有权，再由 `src/protocol-adapters/`
+的注册表选择固定适配器；不得在
+`handleRequest`、认证过滤器或通用缓存过滤器中追加 Web、Git、Docker、AI 或包管理器路径条件。`?target=`
+默认只能访问已登记 Origin；透明代理必须在 FastRoute 中显式启用并使用认证节点建立的浏览器主体。启用
+`PAGE_MAP` 且设置 `XGET_PROXY_TARGET_ALLOWLIST=false`
+时，未登记的公开页面入口与生成 Host 固定为
+`public-page`；已登记目标始终保留原站点适配器，不能被匿名公开页面策略接管。主 Worker 使用
+`src/filters/run-pipeline.js` 的双向请求/响应流水线；配置站点的 `runFilters`
+保持为局部适配器过滤器，修改其契约前必须完成影响分析和全量配置站点回归。

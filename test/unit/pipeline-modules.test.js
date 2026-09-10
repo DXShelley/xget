@@ -75,6 +75,59 @@ describe('Pipeline modules', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    [
+      'Git',
+      new Request('https://git.example/owner/repository.git/info/refs', {
+        headers: {
+          Authorization: 'Basic eGdldDpsb2dpbi1zZWNyZXQ=',
+          Cookie: '__Host-xget_session=secret'
+        }
+      }),
+      'https://github.com/owner/repository.git/info/refs'
+    ],
+    [
+      'Docker',
+      new Request('https://fast.example/cr/docker/v2/library/alpine/manifests/latest', {
+        headers: {
+          Accept: 'application/vnd.docker.distribution.manifest.v2+json',
+          Authorization: 'Bearer xget-access-token',
+          Cookie: '__Host-xget_session=secret'
+        }
+      }),
+      'https://registry-1.docker.io/v2/library/alpine/manifests/latest'
+    ]
+  ])(
+    'does not forward Xget credentials for %s protocol requests',
+    async (_name, request, targetUrl) => {
+      const requestContext = createRequestContext(request, {});
+      requestContext.principal = {
+        authMethod: requestContext.isDocker ? 'docker-bearer' : 'git-basic',
+        expiresAt: '2026-12-31T00:00:00.000Z',
+        id: 'test-user'
+      };
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+
+      await fetchUpstreamResponse({
+        authorization: request.headers.get('Authorization'),
+        canUseCache: false,
+        config: { ...CONFIG, MAX_RETRIES: 1 },
+        effectivePath: new URL(request.url).pathname,
+        monitor: new PerformanceMonitor(),
+        platform: requestContext.isDocker ? 'cr-docker' : 'gh',
+        request,
+        requestContext,
+        shouldPassthroughRequest: true,
+        targetUrl
+      });
+
+      const headers = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
+      expect(headers.get('Authorization')).toBeNull();
+      expect(headers.get('Cookie')).toBeNull();
+      expect(headers.get('Proxy-Authorization')).toBeNull();
+    }
+  );
+
   it('caps retry waits by the total request deadline', async () => {
     const request = new Request('https://example.com/gh/user/repo/file.txt');
     const requestContext = createRequestContext(request, {});
@@ -117,7 +170,7 @@ describe('Pipeline modules', () => {
     expect(timeoutDelays.every(delay => delay <= 1000)).toBe(true);
   });
 
-  it('rewrites npm metadata and refreshes content length during response finalization', async () => {
+  it('streams rewritten npm metadata without retaining the upstream content length', async () => {
     const request = new Request('https://example.com/npm/pkg');
     const requestContext = createRequestContext(request, {});
     const upstreamBody = JSON.stringify({
@@ -151,9 +204,7 @@ describe('Pipeline modules', () => {
     const body = await response.text();
 
     expect(body).toContain('https://example.com/npm/pkg/-/pkg-1.0.0.tgz');
-    expect(response.headers.get('Content-Length')).toBe(
-      String(new TextEncoder().encode(body).byteLength)
-    );
+    expect(response.headers.get('Content-Length')).toBeNull();
   });
 
   it('preserves upstream CSP for proxied HTML responses', async () => {

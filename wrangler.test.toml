@@ -3,3 +3,11 @@ name = "xget-test"
 main = "src/index.js"
 compatibility_date = "2026-07-22"
 compatibility_flags = ["nodejs_compat"]
+
+[[durable_objects.bindings]]
+name = "PAGE_MAP"
+class_name = "PageMap"
+
+[[migrations]]
+tag = "v1-auto-page-map"
+new_sqlite_classes = ["PageMap"]

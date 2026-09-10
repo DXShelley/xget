@@ -1,5 +1,5 @@
 import { SELF } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('Container Registry Support', () => {
   describe('Docker API Version Check', () => {
@@ -9,6 +9,7 @@ describe('Container Registry Support', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('Docker-Distribution-Api-Version')).toBe('registry/2.0');
       expect(response.headers.get('Content-Type')).toBe('application/json');
+      expect(response.headers.get('Strict-Transport-Security')).toBeTruthy();
 
       const body = await response.text();
       expect(body).toBe('{}');
@@ -237,6 +238,9 @@ describe('Container Registry Support', () => {
 
   describe('Docker Hub Specific Tests', () => {
     it('should handle Docker Hub official images (single-name images)', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response(null, { headers: { 'Content-Length': '0' } }));
       // Official images like nginx, redis are stored as library/nginx in Docker Hub
       const testUrl = 'https://example.com/cr/docker/v2/nginx/manifests/latest';
       const response = await SELF.fetch(testUrl, {
@@ -245,11 +249,19 @@ describe('Container Registry Support', () => {
         }
       });
 
-      // Should attempt to proxy to Docker Hub
-      expect(response.status).not.toBe(400);
+      expect(response.status).toBe(200);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://registry-1.docker.io/v2/library/nginx/manifests/latest',
+        expect.any(Object)
+      );
+      expect(response.headers.get('Strict-Transport-Security')).toBeTruthy();
+      expect(response.headers.has('Content-Security-Policy')).toBe(false);
     }, 30000);
 
     it('should handle Docker Hub user images (namespace/image format)', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response(null, { headers: { 'Content-Length': '0' } }));
       // User images already have namespace prefix
       const testUrl =
         'https://example.com/cr/docker/v2/nginxinc/nginx-unprivileged/manifests/latest';
@@ -259,8 +271,11 @@ describe('Container Registry Support', () => {
         }
       });
 
-      // Should attempt to proxy to Docker Hub
-      expect(response.status).not.toBe(400);
+      expect(response.status).toBe(200);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://registry-1.docker.io/v2/nginxinc/nginx-unprivileged/manifests/latest',
+        expect.any(Object)
+      );
     }, 30000);
 
     it('should allow GET for Docker Hub manifest requests', async () => {
@@ -284,5 +299,9 @@ describe('Container Registry Support', () => {
 
       expect(response.status).not.toBe(405);
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 });

@@ -1,25 +1,45 @@
 import { SELF } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('Integration Tests', () => {
   describe('End-to-End Platform Integration', () => {
     it('should proxy GitHub file requests correctly', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response(null, { headers: { 'Content-Length': '0' } }));
       const testUrl = 'https://example.com/gh/microsoft/vscode/blob/main/package.json';
-      const response = await SELF.fetch(testUrl, { method: 'HEAD' });
+      try {
+        const response = await SELF.fetch(testUrl, { method: 'HEAD' });
 
-      // Should attempt to proxy to GitHub
-      expect([200, 301, 302, 404]).toContain(response.status);
+        expect(response.status).toBe(200);
+        expect(fetchSpy).toHaveBeenCalledWith(
+          'https://github.com/microsoft/vscode/blob/main/package.json',
+          expect.any(Object)
+        );
 
-      // Should include security headers
-      expect(response.headers.get('Strict-Transport-Security')).toBeTruthy();
-      expect(response.headers.get('X-Performance-Metrics')).toBeTruthy();
+        expect(response.headers.get('Strict-Transport-Security')).toBeTruthy();
+        expect(response.headers.get('X-Performance-Metrics')).toBeTruthy();
+      } finally {
+        fetchSpy.mockRestore();
+      }
     });
 
     it('should handle GitHub raw file requests', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response(null, { headers: { 'Content-Length': '0' } }));
       const testUrl = 'https://example.com/gh/microsoft/vscode/raw/main/README.md';
-      const response = await SELF.fetch(testUrl, { method: 'HEAD' });
+      try {
+        const response = await SELF.fetch(testUrl, { method: 'HEAD' });
 
-      expect([200, 301, 302, 404]).toContain(response.status);
+        expect(response.status).toBe(200);
+        expect(fetchSpy).toHaveBeenCalledWith(
+          'https://github.com/microsoft/vscode/raw/main/README.md',
+          expect.any(Object)
+        );
+      } finally {
+        fetchSpy.mockRestore();
+      }
     });
 
     it('should handle GitHub release downloads', async () => {
@@ -38,11 +58,24 @@ describe('Integration Tests', () => {
     });
 
     it('should handle Hugging Face model files', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(
+          new Response(null, { headers: { 'Content-Length': '1024' }, status: 200 })
+        );
       const testUrl = 'https://example.com/hf/microsoft/DialoGPT-medium/resolve/main/config.json';
-      const response = await SELF.fetch(testUrl, { method: 'HEAD' });
+      try {
+        const response = await SELF.fetch(testUrl, { method: 'HEAD' });
 
-      expect([200, 301, 302, 404, 429]).toContain(response.status);
-    }, 10000);
+        expect(response.status).toBe(200);
+        expect(fetchSpy).toHaveBeenCalledWith(
+          'https://huggingface.co/microsoft/DialoGPT-medium/resolve/main/config.json',
+          expect.any(Object)
+        );
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    });
 
     it('should handle npm package requests', async () => {
       const testUrl = 'https://example.com/npm/react';

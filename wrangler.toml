@@ -40,6 +40,14 @@ QUOTA_GATE_NAME = "account-free-20260824"
 QUOTA_PROFILE = "account"
 QUOTA_ENFORCEMENT_MODE = "hourly"
 
+[[durable_objects.bindings]]
+name = "PAGE_MAP"
+class_name = "PageMap"
+
+[[migrations]]
+tag = "v1-auto-page-map"
+new_sqlite_classes = ["PageMap"]
+
 [env.git]
 name = "xget-git"
 workers_dev = false
@@ -52,7 +60,7 @@ script_name = "quota-gateway"
 
 [env.git.vars]
 XGET_AUTH_REQUIRED = "true"
-XGET_PROXY_TARGET_ALLOWLIST = "false"
+XGET_PROXY_TARGET_ALLOWLIST = "true"
 GITHUB_WEB_HOST = "git.dxshelley.fun"
 QUOTA_GATE_NAME = "account-free-20260824"
 QUOTA_PROFILE = "account"

@@ -1,4 +1,5 @@
 import { runFilters } from '../filters/run-filters.js';
+import { createErrorResponse } from '../utils/security.js';
 import { finalizeConfiguredResponse } from './configured-response.js';
 import { resolveSite, resolveSiteByTargetUrl } from './site-registry.js';
 
@@ -155,7 +156,9 @@ export async function handleConfiguredSiteRequest(request) {
   const mirrorUrl = new URL(request.url);
   const site = resolveSite(mirrorUrl.hostname);
   if (!site || site.adapter !== 'configured') return null;
-  const targetUrl = new URL(`${mirrorUrl.pathname}${mirrorUrl.search}`, site.upstreamOrigin);
+  const targetUrl = new URL(site.upstreamOrigin);
+  targetUrl.pathname = mirrorUrl.pathname;
+  targetUrl.search = mirrorUrl.search;
   return await proxyConfiguredRequest(request, /** @type {ConfiguredSite} */ (site), targetUrl);
 }
 
@@ -241,5 +244,31 @@ export async function handleTransparentTargetRequest(request, targetUrl, config)
     responseFilters: []
   };
 
-  return await proxyConfiguredRequest(request, site, targetUrl);
+  const response = await proxyConfiguredRequest(request, site, targetUrl);
+  if (!response || ![301, 302, 303, 307, 308].includes(response.status)) return response;
+  const location = response.headers.get('Location');
+  if (location === null) return response;
+
+  let redirectTarget;
+  try {
+    redirectTarget = new URL(location, targetUrl);
+    if (
+      redirectTarget.protocol !== 'https:' ||
+      redirectTarget.username ||
+      redirectTarget.password
+    ) {
+      throw new Error('Invalid redirect target');
+    }
+  } catch {
+    await response.body?.cancel();
+    return createErrorResponse('Invalid upstream redirect target', 502);
+  }
+
+  // Keep the browser's redirect chain on the proxy origin, including relative redirects.
+  const proxyUrl = new URL('/', request.url);
+  proxyUrl.searchParams.set('target', redirectTarget.toString());
+  proxyUrl.hash = redirectTarget.hash;
+  response.headers.set('Location', proxyUrl.toString());
+  response.headers.delete('Refresh');
+  return response;
 }

@@ -11,6 +11,7 @@
 import { handleRequest } from './app/handle-request.js';
 
 export { handleRequest } from './app/handle-request.js';
+export { PageMap } from './proxy/auto-page/map.js';
 
 export default {
   /**
