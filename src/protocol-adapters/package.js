@@ -1,5 +1,5 @@
 import { PACKAGE_MANAGER_PLATFORM_KEYS } from '../config/platform-catalog.js';
-import { BASE_PROTOCOL_ADAPTER, allowAnonymous } from './base.js';
+import { createProtocolAdapter } from './base.js';
 
 const PACKAGE_MANAGER_PATH_PREFIXES = Object.freeze(
   PACKAGE_MANAGER_PLATFORM_KEYS.map(key => `/${key.replaceAll('-', '/')}`)
@@ -12,8 +12,4 @@ export function isPackageManagerRequest(url) {
   );
 }
 
-export const PACKAGE_ADAPTER = Object.freeze({
-  ...BASE_PROTOCOL_ADAPTER,
-  kind: 'package',
-  authenticate: async () => allowAnonymous()
-});
+export const PACKAGE_ADAPTER = createProtocolAdapter({ kind: 'package' });

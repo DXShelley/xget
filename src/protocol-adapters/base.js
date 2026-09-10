@@ -16,6 +16,15 @@ export const BASE_PROTOCOL_ADAPTER = Object.freeze({
   usesProtocolSemantics: false
 });
 
+/**
+ * Creates an immutable protocol strategy by overriding the shared adapter contract.
+ * @param {Record<string, unknown>} overrides Protocol-specific behavior.
+ * @returns {typeof BASE_PROTOCOL_ADAPTER & Record<string, unknown>} Immutable protocol strategy.
+ */
+export function createProtocolAdapter(overrides) {
+  return Object.freeze({ ...BASE_PROTOCOL_ADAPTER, ...overrides });
+}
+
 /** @param {Record<string, unknown>} env @returns {boolean} */
 export function isAuthenticationRequired(env) {
   return String(env.XGET_AUTH_REQUIRED || '').toLowerCase() === 'true';

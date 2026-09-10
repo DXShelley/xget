@@ -10,8 +10,8 @@ import {
 import { normalizeEffectivePath } from '../routing/resolve-target.js';
 import { addSecurityHeaders } from '../utils/security.js';
 import {
-  BASE_PROTOCOL_ADAPTER,
   allowAnonymous,
+  createProtocolAdapter,
   isAuthenticationRequired,
   stripProxyAuthentication
 } from './base.js';
@@ -56,8 +56,7 @@ async function transformDockerFetchedResponse(response, { fetchOptions, targetUr
   return await followRedirect(response, targetUrl, fetchOptions);
 }
 
-export const DOCKER_ADAPTER = Object.freeze({
-  ...BASE_PROTOCOL_ADAPTER,
+export const DOCKER_ADAPTER = createProtocolAdapter({
   kind: 'docker',
   allowsSharedCache: () => false,
   preserveUpstreamAuthenticationChallenge: true,

@@ -1,0 +1,182 @@
+import { finalizeResponse } from '../response/finalize-response.js';
+import { createHomepageRedirect, resolveTarget } from '../routing/resolve-target.js';
+import { getDefaultCache, tryReadCachedResponse } from '../upstream/cache.js';
+import { fetchUpstreamResponse } from '../upstream/fetch-upstream.js';
+import { addPerformanceHeaders } from '../utils/performance.js';
+import { addCorsHeaders, addSecurityHeaders, createErrorResponse } from '../utils/security.js';
+import { getAllowedMethods, validateRequest } from '../utils/validation.js';
+import { reserveWorkerRequest } from '../quota/reserve-worker-request.js';
+import { handleApplicationRoute } from './application-route.js';
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function responseBoundaryFilter(context, next) {
+  let response;
+  try {
+    response = await next();
+  } catch (error) {
+    console.error('Error handling request:', error);
+    response = createErrorResponse('Internal Server Error', 500);
+  }
+
+  context.monitor.mark('complete');
+  const headers = addCorsHeaders(new Headers(response.headers), context.request, context.config);
+  if (context.adapter.usesProtocolSemantics)
+    addSecurityHeaders(headers, { includeContentSecurityPolicy: false });
+  const responseWithCors = new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+  return context.adapter.usesProtocolSemantics
+    ? responseWithCors
+    : addPerformanceHeaders(responseWithCors, context.monitor, {
+        isProxiedResponse: context.isProxiedResponse
+      });
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function authenticationFilter(context, next) {
+  const authorization = await context.adapter.authenticate(context);
+  if (authorization.response) return authorization.response;
+  context.principal = authorization.principal;
+  return await next();
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function quotaFilter(context, next) {
+  const response = await reserveWorkerRequest(context.env);
+  return response || (await next());
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function corsPreflightFilter(context, next) {
+  if (!context.isCorsPreflight) return await next();
+  const requestedMethod = context.request.headers.get('Access-Control-Request-Method') || '';
+  const allowedMethods = getAllowedMethods(
+    new Request(context.request.url, { method: requestedMethod || 'GET' }),
+    context.url,
+    context.config
+  );
+  if (!allowedMethods.includes(requestedMethod))
+    return createErrorResponse('Method not allowed', 405);
+
+  const headers = addCorsHeaders(new Headers(), context.request, context.config);
+  if (!headers.has('Access-Control-Allow-Origin'))
+    return createErrorResponse('Origin not allowed', 403);
+  headers.set('Access-Control-Allow-Methods', allowedMethods.join(', '));
+  headers.set('Access-Control-Max-Age', '86400');
+  addSecurityHeaders(headers);
+  return new Response(null, { status: 204, headers });
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function applicationRouteFilter(context, next) {
+  const route = await handleApplicationRoute(context);
+  if (!route) return await next();
+  context.isProxiedResponse = route.isProxiedResponse;
+  return route.response;
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function protocolRouteFilter(context, next) {
+  const response = await context.adapter.handleProtocolRoute(context);
+  return response || (await next());
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function validationFilter(context, next) {
+  if (context.url.pathname === '/' || context.url.pathname === '') return createHomepageRedirect();
+  const validation = validateRequest(context.request, context.url, context.config, context);
+  if (!validation.valid) {
+    return createErrorResponse(validation.error || 'Validation failed', validation.status || 400);
+  }
+  return await next();
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function routingFilter(context, next) {
+  const normalizedPath = context.adapter.normalizePath(context);
+  if ('response' in normalizedPath) return normalizedPath.response;
+  const resolvedTarget = resolveTarget(
+    context.url,
+    normalizedPath.effectivePath,
+    context.config.PLATFORMS
+  );
+  if ('response' in resolvedTarget) return resolvedTarget.response;
+  context.route = { ...resolvedTarget, effectivePath: normalizedPath.effectivePath };
+  context.isProxiedResponse = true;
+  return await next();
+}
+
+/** @param {any} context @param {() => Promise<Response>} next */
+async function cacheFilter(context, next) {
+  const authorization = context.request.headers.get('Authorization');
+  const hasSensitiveHeaders = Boolean(
+    authorization ||
+    context.request.headers.get('Cookie') ||
+    context.request.headers.get('Proxy-Authorization')
+  );
+  const canUseCache = context.request.method === 'GET' || context.request.method === 'HEAD';
+  const cache = getDefaultCache();
+  const cachedResponse = await tryReadCachedResponse({
+    cache,
+    cacheTargetUrl: context.route.cacheTargetUrl,
+    canUseCache,
+    hasSensitiveHeaders,
+    monitor: context.monitor,
+    request: context.request,
+    requestContext: context
+  });
+  if (cachedResponse) return cachedResponse;
+
+  context.cacheState = { authorization, cache, canUseCache, hasSensitiveHeaders };
+  return await next();
+}
+
+/** @param {any} context */
+async function transportFilter(context) {
+  const { authorization, cache, canUseCache, hasSensitiveHeaders } = context.cacheState;
+  const shouldPassthroughRequest = context.adapter.usesProtocolSemantics || !canUseCache;
+  const { response, responseGeneratedLocally } = await fetchUpstreamResponse({
+    authorization,
+    canUseCache,
+    config: context.config,
+    effectivePath: context.route.effectivePath,
+    monitor: context.monitor,
+    platform: context.route.platform,
+    request: context.request,
+    requestContext: context,
+    shouldPassthroughRequest,
+    targetUrl: context.route.targetUrl
+  });
+  return await finalizeResponse({
+    cache,
+    cacheTargetUrl: context.route.cacheTargetUrl,
+    canUseCache,
+    config: context.config,
+    ctx: context.ctx,
+    effectivePath: context.route.effectivePath,
+    hasSensitiveHeaders,
+    monitor: context.monitor,
+    platform: context.route.platform,
+    request: context.request,
+    requestContext: context,
+    response,
+    responseGeneratedLocally,
+    url: context.url
+  });
+}
+
+/** Immutable request/response pipeline; responses unwind through prior filters in reverse order. */
+export const REQUEST_PIPELINE = Object.freeze([
+  responseBoundaryFilter,
+  authenticationFilter,
+  quotaFilter,
+  corsPreflightFilter,
+  applicationRouteFilter,
+  protocolRouteFilter,
+  validationFilter,
+  routingFilter,
+  cacheFilter,
+  transportFilter
+]);

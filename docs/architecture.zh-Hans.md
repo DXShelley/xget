@@ -300,13 +300,13 @@ flowchart TD
 
 | 目录或文件               | 职责                                                          |
 | ------------------------ | ------------------------------------------------------------- |
-| `src/app/`               | 应用入口、请求上下文和顶层分发。                              |
+| `src/app/`               | 应用入口、请求上下文、路由所有权和流水线装配。                |
 | `src/routing/`           | 路径规范化、目标解析和首页跳转。                              |
 | `src/proxy/`             | 配置站点代理、站点注册表和通用代理策略。                      |
 | `src/github/`            | GitHub Web/协议专用请求、响应、重写和缓存语义。               |
 | `src/web-adapters/`      | 需要资源域或浏览器内容重写的专用站点适配器。                  |
 | `src/filters/`           | 请求和响应责任链执行器及可复用过滤器。                        |
-| `src/protocol-adapters/` | Web、Git、Docker、AI、Hugging Face 和包管理器的并列协议策略。 |
+| `src/protocol-adapters/` | Web、Git、Docker、AI、Hugging Face 和包管理器的并列协议策略及其统一默认契约。 |
 | `src/protocols/`         | Docker 等协议专用处理。                                       |
 | `src/upstream/`          | 上游访问、缓存、重试和错误处理。                              |
 | `src/response/`          | 通用响应收尾与缓存写入。                                      |

@@ -1,8 +1,7 @@
 import { handleBrowserAuth, validateBrowserSession } from '../auth/browser.js';
-import { BASE_PROTOCOL_ADAPTER, allowAnonymous, isAuthenticationRequired } from './base.js';
+import { allowAnonymous, createProtocolAdapter, isAuthenticationRequired } from './base.js';
 
-export const WEB_ADAPTER = Object.freeze({
-  ...BASE_PROTOCOL_ADAPTER,
+export const WEB_ADAPTER = createProtocolAdapter({
   kind: 'web',
   /** @param {{ env: Record<string, unknown>, request: Request, url: URL }} context */
   authenticate: async context => {

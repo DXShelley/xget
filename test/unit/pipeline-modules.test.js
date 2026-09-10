@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createRequestContext } from '../../src/app/request-context.js';
+import { REQUEST_PIPELINE } from '../../src/app/request-pipeline-filters.js';
 import { CONFIG } from '../../src/config/index.js';
 import { finalizeResponse } from '../../src/response/finalize-response.js';
 import { tryReadCachedResponse } from '../../src/upstream/cache.js';
@@ -12,6 +13,21 @@ afterEach(() => {
 });
 
 describe('Pipeline modules', () => {
+  it('keeps request and response responsibilities in the documented pipeline order', () => {
+    expect(REQUEST_PIPELINE.map(filter => filter.name)).toEqual([
+      'responseBoundaryFilter',
+      'authenticationFilter',
+      'quotaFilter',
+      'corsPreflightFilter',
+      'applicationRouteFilter',
+      'protocolRouteFilter',
+      'validationFilter',
+      'routingFilter',
+      'cacheFilter',
+      'transportFilter'
+    ]);
+  });
+
   it('reuses cached full content for range requests through the cache helper', async () => {
     const cache = {
       match: vi

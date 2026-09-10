@@ -1,14 +1,13 @@
 import { configureGitHeaders } from '../protocols/git.js';
 import { gitAuthenticationChallenge, validateGitCredential } from '../auth/browser.js';
 import {
-  BASE_PROTOCOL_ADAPTER,
   allowAnonymous,
+  createProtocolAdapter,
   isAuthenticationRequired,
   stripProxyAuthentication
 } from './base.js';
 
-export const GIT_ADAPTER = Object.freeze({
-  ...BASE_PROTOCOL_ADAPTER,
+export const GIT_ADAPTER = createProtocolAdapter({
   kind: 'git',
   allowsSharedCache: () => false,
   usesProtocolSemantics: true,
