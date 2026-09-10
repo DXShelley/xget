@@ -9,7 +9,12 @@ import {
 } from '../protocols/docker.js';
 import { normalizeEffectivePath } from '../routing/resolve-target.js';
 import { addSecurityHeaders } from '../utils/security.js';
-import { BASE_PROTOCOL_ADAPTER, allowAnonymous, isAuthenticationRequired } from './base.js';
+import {
+  BASE_PROTOCOL_ADAPTER,
+  allowAnonymous,
+  isAuthenticationRequired,
+  stripProxyAuthentication
+} from './base.js';
 
 /** @param {URL} url @returns {Response} */
 function dockerAuthenticationChallenge(url) {
@@ -65,6 +70,11 @@ export const DOCKER_ADAPTER = Object.freeze({
     return isAuthenticationRequired(context.env)
       ? { principal: null, response: dockerAuthenticationChallenge(context.url) }
       : allowAnonymous();
+  },
+  /** @param {{ headers: Headers, principal?: { authMethod: string } | null }} options */
+  prepareUpstreamHeaders: ({ headers, principal }) => {
+    if (principal?.authMethod === 'docker-basic' || principal?.authMethod === 'docker-bearer')
+      stripProxyAuthentication(headers);
   },
   /** @param {RequestInit} options */
   configureFetchOptions: options => ({ ...options, redirect: 'manual' }),

@@ -12,7 +12,7 @@ Workers 上的多协议、分站点代理系统。它有两条明确的产品边
 - `git.dxshelley.fun`
   是 GitHub 的专用透明镜像，路径与 GitHub 原站自然一致，不使用 `/gh` 前缀。
 
-系统只代理已注册的上游站点和协议，不提供可被任意 URL 驱动的开放代理。所有上游映射都必须来自平台配置、站点注册表或专用适配器。
+系统代理已注册的上游站点和协议；自动公开页面是唯一例外，只能在显式关闭 target allowlist 后访问无凭证的公开 HTTPS Origin，并固定为匿名 `public-page` 适配器。所有上游映射都必须来自平台配置、站点注册表或专用适配器，不能形成可携带凭证的开放代理。
 
 ## 2. 总体架构
 
@@ -34,6 +34,7 @@ flowchart TB
         Configured[配置适配器]
         Web[专用 Web 适配器]
         Protocol[协议适配器]
+        PublicPage[公开页面适配器]
     end
 
     subgraph Upstreams[受控上游]
@@ -51,13 +52,20 @@ flowchart TB
     Pipeline --> Configured --> Sites
     Pipeline --> Web --> Sites
     Pipeline --> Protocol --> Platforms
+    Pipeline --> PublicPage --> Sites
     Pipeline --> Client
 ```
 
 `src/app/handle-request.js`
 是唯一的应用级请求入口。它只负责创建请求上下文并执行双向流水线：
 
-1. `src/app/request-feature.js` 在入口先按系统端点和注册站点 Host 确定路由所有权；已注册的浏览器站点与 `/__xget/auth/*` 固定为 `web`。其余通用平台请求再由协议注册表识别 `git`、`docker`、`ai`、`huggingface` 或 `package`，并把对应适配器固定到 `RequestContext`。
+1. `src/app/request-feature.js` 在入口先按系统端点、注册站点 Host 与 `?target=`
+   的已登记 Origin 确定路由所有权；已注册的浏览器站点、已登记目标和
+   `/__xget/auth/*` 固定为 `web`。启用 `PAGE_MAP` 且显式关闭 target
+   allowlist 时，未登记的公开 HTTPS 目标和已生成页面 Host 固定为
+   `public-page`。其余通用平台请求再由协议注册表识别
+   `git`、`docker`、`ai`、`huggingface` 或 `package`，并把对应适配器固定到
+   `RequestContext`。
 2. 请求正向经过认证、配额、预检、站点路由、协议路由、校验、目标解析、缓存和传输节点。
 3. 上游响应沿已进入的节点反向返回，统一应用缓存写入、CORS、安全头和性能头。
 
@@ -177,12 +185,14 @@ flowchart TB
     Registry --> Docker[DockerAdapter]
     Registry --> AI[AIAdapter]
     Registry --> Package[PackageAdapter]
+    Registry --> PublicPage[PublicPageAdapter]
     Registry --> Pipeline[Security -> Authentication -> Quota -> Routing -> Cache -> Transport]
     Pipeline --> Upstream[上游]
     Upstream --> Pipeline
 ```
 
-`src/protocol-adapters/` 是协议差异的唯一归属。`ProtocolAdapterRegistry` 在入口选中一个策略；认证、路径规范化、请求头、Docker 重试/重定向、缓存资格和协议响应语义均由该适配器提供。过滤器只处理自己的单一阶段，不直接按协议路径分支。
+`src/protocol-adapters/` 是协议差异的唯一归属。`ProtocolAdapterRegistry`
+在入口选中一个策略；认证、路径规范化、请求头、Docker 重试/重定向、缓存资格和协议响应语义均由该适配器提供。过滤器只处理自己的单一阶段，不直接按协议路径分支。
 
 | 请求类型                                   | 认证适配器     | 未认证行为                         |
 | ------------------------------------------ | -------------- | ---------------------------------- |
@@ -190,9 +200,12 @@ flowchart TB
 | Git Smart HTTP 与 Git LFS                  | Basic          | `401` 与 `WWW-Authenticate: Basic` |
 | Docker/OCI Registry                        | Bearer         | `401` 与 Registry Bearer challenge |
 | AI `/ip/*`、Hugging Face API、包管理器目录 | 匿名           | 直接代理，保留上游凭证语义         |
+| 自动公开页面                               | 匿名           | 仅公开 HTTPS 的 GET/HEAD 页面读取  |
 | 其余网页代理与透明浏览器代理               | Cookie         | `302` 到登录页                     |
 
-浏览器 Cookie 不参与 Git、Docker、AI 或包管理器认证；Git 与 Docker 的 Xget 凭证也不会作为上游浏览器或包管理器凭证转发。新增协议必须增加并注册适配器，不能回到 `handleRequest` 或过滤器中添加协议条件。
+浏览器 Cookie 不参与 Git、Docker、AI 或包管理器认证；Git 与 Docker 的 Xget 凭证也不会作为上游浏览器或包管理器凭证转发。`public-page`
+只在入口已固定为该特征时处理，不能抢占已登记站点或成为普通透明代理的匿名豁免。新增协议必须增加并注册适配器，不能回到
+`handleRequest` 或过滤器中添加协议条件。
 
 ## 5. 过滤器责任链
 
@@ -208,7 +221,9 @@ flowchart LR
     Finalize --> Response[Response]
 ```
 
-配置站点继续使用 `src/filters/run-filters.js` 的局部有序过滤器；Worker 主请求使用 `src/filters/run-pipeline.js` 的双向流水线。过滤器必须只处理自己的层次，遵循以下约束：
+配置站点继续使用 `src/filters/run-filters.js`
+的局部有序过滤器；Worker 主请求使用 `src/filters/run-pipeline.js`
+的双向流水线。过滤器必须只处理自己的层次，遵循以下约束：
 
 - 请求过滤器只修改请求上下文、上游 URL、请求头或请求体策略。
 - 响应过滤器只修改响应、响应头和可安全重写的内容。
@@ -283,21 +298,21 @@ flowchart TD
 
 ## 9. 目录职责
 
-| 目录或文件          | 职责                                            |
-| ------------------- | ----------------------------------------------- |
-| `src/app/`          | 应用入口、请求上下文和顶层分发。                |
-| `src/routing/`      | 路径规范化、目标解析和首页跳转。                |
-| `src/proxy/`        | 配置站点代理、站点注册表和通用代理策略。        |
-| `src/github/`       | GitHub Web/协议专用请求、响应、重写和缓存语义。 |
-| `src/web-adapters/` | 需要资源域或浏览器内容重写的专用站点适配器。    |
-| `src/filters/`      | 请求和响应责任链执行器及可复用过滤器。          |
+| 目录或文件               | 职责                                                          |
+| ------------------------ | ------------------------------------------------------------- |
+| `src/app/`               | 应用入口、请求上下文和顶层分发。                              |
+| `src/routing/`           | 路径规范化、目标解析和首页跳转。                              |
+| `src/proxy/`             | 配置站点代理、站点注册表和通用代理策略。                      |
+| `src/github/`            | GitHub Web/协议专用请求、响应、重写和缓存语义。               |
+| `src/web-adapters/`      | 需要资源域或浏览器内容重写的专用站点适配器。                  |
+| `src/filters/`           | 请求和响应责任链执行器及可复用过滤器。                        |
 | `src/protocol-adapters/` | Web、Git、Docker、AI、Hugging Face 和包管理器的并列协议策略。 |
-| `src/protocols/`    | Docker 等协议专用处理。                         |
-| `src/upstream/`     | 上游访问、缓存、重试和错误处理。                |
-| `src/response/`     | 通用响应收尾与缓存写入。                        |
-| `config/sites.json` | 配置型网站的受控上游与能力声明。                |
-| `wrangler.toml`     | 双 Worker 域名与环境部署定义。                  |
-| `test/`             | 单元、回归、协议、平台和工作流策略测试。        |
+| `src/protocols/`         | Docker 等协议专用处理。                                       |
+| `src/upstream/`          | 上游访问、缓存、重试和错误处理。                              |
+| `src/response/`          | 通用响应收尾与缓存写入。                                      |
+| `config/sites.json`      | 配置型网站的受控上游与能力声明。                              |
+| `wrangler.toml`          | 双 Worker 域名与环境部署定义。                                |
+| `test/`                  | 单元、回归、协议、平台和工作流策略测试。                      |
 
 ## 10. 变更治理
 

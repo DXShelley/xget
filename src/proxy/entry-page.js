@@ -12,9 +12,10 @@ function safeJson(value) {
 /**
  * Creates the human-facing Fast proxy entry page.
  * @param {ReadonlyArray<{ alias?: string, id: string, upstreamOrigin: string }>} sites
+ * @param {string[]} formActionOrigins Canonical mirror origins from the site registry.
  * @returns {Response} Entry page response.
  */
-export function createProxyEntryResponse(sites) {
+export function createProxyEntryResponse(sites, formActionOrigins = []) {
   const nonce = crypto.randomUUID().replaceAll('-', '');
   const browserSites = sites.map(site => ({
     id: site.id,
@@ -30,7 +31,8 @@ export function createProxyEntryResponse(sites) {
   const contentSecurityPolicy = [
     "default-src 'none'",
     "base-uri 'none'",
-    "form-action 'self'",
+    `form-action 'self' ${[...new Set(formActionOrigins)].join(' ')}`.trim(),
+    "connect-src 'self'",
     "img-src 'self' data:",
     `script-src 'nonce-${nonce}'`,
     "style-src 'unsafe-inline'"

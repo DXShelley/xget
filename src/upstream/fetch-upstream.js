@@ -35,6 +35,7 @@ const MEDIA_FILE_PATTERN =
  *     isGit: boolean,
  *     isGitLFS: boolean,
  *     isHF: boolean,
+ *     principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *     url: URL
  *   },
  *   shouldPassthroughRequest: boolean,
@@ -74,6 +75,7 @@ function createFetchOptions({
     requestContext.adapter.prepareUpstreamHeaders({
       headers: requestHeaders,
       isGitLFS: requestContext.isGitLFS,
+      principal: requestContext.principal,
       request,
       url: requestContext.url
     });
@@ -204,6 +206,7 @@ async function executeFetch({ fetchOptions, request, requestContext, requestHead
  *     isGit: boolean,
  *     isGitLFS: boolean,
  *     isHF: boolean,
+ *     principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *     url: URL
  *   },
  *   shouldPassthroughRequest: boolean,

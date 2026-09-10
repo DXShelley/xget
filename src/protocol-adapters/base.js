@@ -25,3 +25,14 @@ export function isAuthenticationRequired(env) {
 export function allowAnonymous() {
   return { principal: null, response: null };
 }
+
+/**
+ * Removes credentials consumed by Xget before a protocol adapter calls its upstream.
+ * @param {Headers} headers Mutable upstream request headers.
+ * @returns {void}
+ */
+export function stripProxyAuthentication(headers) {
+  headers.delete('Authorization');
+  headers.delete('Cookie');
+  headers.delete('Proxy-Authorization');
+}

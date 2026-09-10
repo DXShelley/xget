@@ -1,5 +1,5 @@
 import { SELF } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Tests for Range Request Caching Strategy
@@ -14,6 +14,16 @@ import { describe, expect, it } from 'vitest';
 describe('Range Request Caching Strategy', () => {
   describe('Cache Behavior for Range Requests', () => {
     it('should not attempt to cache 206 responses', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+        async () =>
+          new Response('partial content', {
+            headers: {
+              'Content-Length': '15',
+              'Content-Range': 'bytes 0-14/2048'
+            },
+            status: 206
+          })
+      );
       const testUrl = 'https://example.com/gh/test/repo/sample.pdf';
 
       // Make a range request that might return 206
@@ -25,7 +35,9 @@ describe('Range Request Caching Strategy', () => {
 
       // The response should either be 200 (full content) or 206 (partial)
       // But we should never get a cache error from trying to cache 206
-      expect([200, 206, 404]).toContain(response.status);
+      expect(response.status).toBe(206);
+      const headers = new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
+      expect(headers.get('Range')).toBe('bytes=0-1023');
 
       // Check performance metrics for any cache-related errors
       const metrics = response.headers.get('X-Performance-Metrics');
@@ -234,5 +246,9 @@ describe('Range Request Caching Strategy', () => {
         expect(cacheKeys.length).toBeGreaterThanOrEqual(0);
       }
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 });

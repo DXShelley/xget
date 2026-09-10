@@ -4,6 +4,7 @@ import { DOCKER_ADAPTER } from './docker.js';
 import { GIT_ADAPTER } from './git.js';
 import { HUGGING_FACE_ADAPTER } from './huggingface.js';
 import { PACKAGE_ADAPTER, isPackageManagerRequest } from './package.js';
+import { PUBLIC_PAGE_ADAPTER } from './public-page.js';
 import { WEB_ADAPTER } from './web.js';
 
 const PROTOCOL_ADAPTERS = Object.freeze({
@@ -12,6 +13,7 @@ const PROTOCOL_ADAPTERS = Object.freeze({
   git: GIT_ADAPTER,
   huggingface: HUGGING_FACE_ADAPTER,
   package: PACKAGE_ADAPTER,
+  'public-page': PUBLIC_PAGE_ADAPTER,
   web: WEB_ADAPTER
 });
 
@@ -32,7 +34,7 @@ export function resolveProtocolFeature(traits, url) {
 
 /**
  * Returns the adapter selected at request entry.
- * @param {ReturnType<typeof resolveProtocolFeature>} feature
+ * @param {'public-page' | ReturnType<typeof resolveProtocolFeature>} feature
  */
 export function resolveProtocolAdapter(feature) {
   return PROTOCOL_ADAPTERS[feature] || BASE_PROTOCOL_ADAPTER;

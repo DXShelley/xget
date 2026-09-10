@@ -1,4 +1,5 @@
 import { createProxyEntryResponse } from './entry-page.js';
+import { PAGE_SUFFIX } from './auto-page/urls.js';
 import { CONFIG } from '../config/index.js';
 import {
   handleConfiguredTargetRequest,
@@ -18,11 +19,14 @@ const FAST_PROXY_HOST = 'fast.dxshelley.fun';
 /**
  * Builds a fixed configured upstream URL from a proxy path.
  * @param {{ upstreamOrigin: string }} site
- * @param {URL} requestUrl
+ * @param {{ pathname: string, search: string }} requestUrl
  * @returns {URL} Fixed upstream URL.
  */
 function createConfiguredTargetUrl(site, requestUrl) {
-  return new URL(`${requestUrl.pathname}${requestUrl.search}`, site.upstreamOrigin);
+  const target = new URL(site.upstreamOrigin);
+  target.pathname = requestUrl.pathname;
+  target.search = requestUrl.search;
+  return target;
 }
 
 /**
@@ -32,12 +36,20 @@ function createConfiguredTargetUrl(site, requestUrl) {
  * @returns {URL} Canonical proxy URL.
  */
 function createCanonicalProxyUrl(site, targetUrl) {
-  const suffix = `${targetUrl.pathname}${targetUrl.search}`;
-  if (!site.browserMode) return new URL(suffix, `https://${site.mirrorHost}`);
-  if (!site.alias) throw new Error('Configured proxy site is missing an alias');
-  return site.browserMode === 'isolated-origin'
-    ? new URL(suffix, `https://${site.alias}.${FAST_PROXY_HOST}`)
-    : new URL(`/_/${site.alias}${suffix}`, `https://${FAST_PROXY_HOST}`);
+  if (site.browserMode && !site.alias) throw new Error('Configured proxy site is missing an alias');
+  const origin = !site.browserMode
+    ? `https://${site.mirrorHost}`
+    : site.browserMode === 'isolated-origin'
+      ? `https://${site.alias}.${FAST_PROXY_HOST}`
+      : `https://${FAST_PROXY_HOST}`;
+  const result = new URL(origin);
+  result.pathname =
+    site.browserMode && site.browserMode !== 'isolated-origin'
+      ? `/_/${site.alias}${targetUrl.pathname}`
+      : targetUrl.pathname;
+  result.search = targetUrl.search;
+  result.hash = targetUrl.hash;
+  return result;
 }
 
 /**
@@ -45,13 +57,26 @@ function createCanonicalProxyUrl(site, targetUrl) {
  * @param {Request} request
  * @param {URL} url
  * @param {import('../config/index.js').ApplicationConfig} config
- * @param {{ authMethod: string } | null | undefined} [principal] Authenticated browser identity.
+ * @param {{ automaticPages?: boolean, principal?: { authMethod: string } | null } | boolean} [options] Route capabilities and authenticated browser identity.
  * @returns {Promise<Response | null>} A route response, or null for another router.
  */
-export async function handleFastRoute(request, url, config = CONFIG, principal) {
+export async function handleFastRoute(request, url, config = CONFIG, options = {}) {
+  const automaticPages = typeof options === 'boolean' ? options : Boolean(options.automaticPages);
+  const principal = typeof options === 'boolean' ? null : options.principal;
+  if (url.hostname === FAST_PROXY_HOST && url.pathname === '/favicon.ico') {
+    return new Response(null, { status: 204 });
+  }
   if (url.hostname === FAST_PROXY_HOST && url.pathname === '/') {
     if (!url.searchParams.has('target')) {
-      return createProxyEntryResponse(getBrowserSites());
+      const sites = getBrowserSites();
+      const formActionOrigins = sites.map(
+        site => createCanonicalProxyUrl(site, new URL(site.upstreamOrigin)).origin
+      );
+      // Browsers also apply form-action to the generated host after an entry redirect.
+      if (automaticPages && !config.SECURITY.PROXY_TARGET_ALLOWLIST) {
+        formActionOrigins.push(`https://*${PAGE_SUFFIX}`);
+      }
+      return createProxyEntryResponse(sites, formActionOrigins);
     }
 
     const target = url.searchParams.get('target');
@@ -65,7 +90,10 @@ export async function handleFastRoute(request, url, config = CONFIG, principal) 
     }
 
     const site = resolveBrowserSiteByTargetUrl(targetUrl);
-    if (site) return Response.redirect(createCanonicalProxyUrl(site, targetUrl), 302);
+    if (site) {
+      const status = request.method === 'GET' || request.method === 'HEAD' ? 302 : 307;
+      return Response.redirect(createCanonicalProxyUrl(site, targetUrl), status);
+    }
     if (
       config &&
       !config.SECURITY.PROXY_TARGET_ALLOWLIST &&
@@ -83,7 +111,10 @@ export async function handleFastRoute(request, url, config = CONFIG, principal) 
 
     const site = resolveSiteByAlias(match[1]);
     if (!site) return createErrorResponse('Unknown proxy site', 404);
-    const targetUrl = new URL(`${match[2] || '/'}${url.search}`, site.upstreamOrigin);
+    const targetUrl = createConfiguredTargetUrl(site, {
+      pathname: match[2] || '/',
+      search: url.search
+    });
     const claudeCodeDocsResponse = await handleClaudeCodeDocsRequest({ request, site, targetUrl });
     if (claudeCodeDocsResponse) return claudeCodeDocsResponse;
     return await handleConfiguredTargetRequest(request, targetUrl);

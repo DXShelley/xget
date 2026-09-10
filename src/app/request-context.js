@@ -36,7 +36,7 @@ import { resolveRequestFeature } from './request-feature.js';
  *   isGit: boolean,
  *   isGitLFS: boolean,
  *   isHF: boolean,
- *   protocolFeature: 'web' | 'git' | 'docker' | 'ai' | 'huggingface' | 'package',
+ *   protocolFeature: 'public-page' | 'web' | 'git' | 'docker' | 'ai' | 'huggingface' | 'package',
  *   request: Request,
  *   principal?: { id: string, authMethod: string, expiresAt: string } | null,
  *   url: URL
@@ -47,7 +47,7 @@ export function createRequestContext(request, env) {
   const config = env === undefined ? CONFIG : createConfig(runtimeEnv);
   const url = normalizeDockerHubMirrorUrl(new URL(request.url));
   const traits = getRequestTraits(request, url);
-  const protocolFeature = resolveRequestFeature(traits, url);
+  const protocolFeature = resolveRequestFeature(traits, url, config, runtimeEnv);
 
   return {
     ...traits,

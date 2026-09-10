@@ -307,6 +307,7 @@ describe('browser authentication', () => {
       );
       expect(response.status).not.toBe(401);
       expect(fetchSpy).toHaveBeenCalled();
+      expect(new Headers(fetchSpy.mock.calls[0]?.[1]?.headers).get('Authorization')).toBeNull();
     } finally {
       fetchSpy.mockRestore();
     }

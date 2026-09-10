@@ -1,8 +1,14 @@
 import { SELF } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('Git Protocol Integration', () => {
   it('should handle Git info/refs requests', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response('001e# service=git-upload-pack\n0000', {
+          headers: { 'Content-Type': 'application/x-git-upload-pack-advertisement' }
+        })
+    );
     const testUrl = 'https://example.com/gh/microsoft/vscode.git/info/refs?service=git-upload-pack';
     const response = await SELF.fetch(testUrl, {
       headers: {
@@ -10,10 +16,20 @@ describe('Git Protocol Integration', () => {
       }
     });
 
-    expect([200, 301, 302, 404]).toContain(response.status);
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://github.com/microsoft/vscode.git/info/refs?service=git-upload-pack',
+      expect.any(Object)
+    );
   });
 
   it('should handle Git upload-pack requests', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response('0000', {
+          headers: { 'Content-Type': 'application/x-git-upload-pack-result' }
+        })
+    );
     const testUrl = 'https://example.com/gh/microsoft/vscode.git/git-upload-pack';
     const response = await SELF.fetch(testUrl, {
       method: 'POST',
@@ -24,7 +40,11 @@ describe('Git Protocol Integration', () => {
       body: '0000' // Minimal Git protocol data
     });
 
-    expect([200, 301, 302, 400, 404]).toContain(response.status);
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://github.com/microsoft/vscode.git/git-upload-pack',
+      expect.any(Object)
+    );
   });
 
   it('should preserve Git-specific headers', async () => {
@@ -38,5 +58,9 @@ describe('Git Protocol Integration', () => {
 
     // Should not reject Git-specific headers
     expect(response.status).not.toBe(400);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 });

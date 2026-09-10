@@ -1,8 +1,11 @@
 import { SELF } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('Git LFS Protocol Integration', () => {
   it('should handle LFS info/lfs requests', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response('lfs'));
     const testUrl = 'https://example.com/gh/microsoft/vscode.git/info/lfs';
     const response = await SELF.fetch(testUrl, {
       headers: {
@@ -10,10 +13,20 @@ describe('Git LFS Protocol Integration', () => {
       }
     });
 
-    expect([200, 301, 302, 404]).toContain(response.status);
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://github.com/microsoft/vscode.git/info/lfs',
+      expect.any(Object)
+    );
   });
 
   it('should handle LFS batch API requests', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ objects: [] }), {
+          headers: { 'Content-Type': 'application/vnd.git-lfs+json' }
+        })
+    );
     const testUrl = 'https://example.com/gh/microsoft/vscode.git/objects/batch';
     const response = await SELF.fetch(testUrl, {
       method: 'POST',
@@ -33,7 +46,11 @@ describe('Git LFS Protocol Integration', () => {
       })
     });
 
-    expect([200, 301, 302, 400, 403, 404]).toContain(response.status);
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://github.com/microsoft/vscode.git/objects/batch',
+      expect.any(Object)
+    );
   });
 
   it('should handle LFS object download requests', async () => {
@@ -91,5 +108,9 @@ describe('Git LFS Protocol Integration', () => {
       expect(metrics1).not.toContain('cache_hit');
       expect(metrics2).not.toContain('cache_hit');
     }
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 });

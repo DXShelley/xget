@@ -1,6 +1,11 @@
 import { configureGitHeaders } from '../protocols/git.js';
 import { gitAuthenticationChallenge, validateGitCredential } from '../auth/browser.js';
-import { BASE_PROTOCOL_ADAPTER, allowAnonymous, isAuthenticationRequired } from './base.js';
+import {
+  BASE_PROTOCOL_ADAPTER,
+  allowAnonymous,
+  isAuthenticationRequired,
+  stripProxyAuthentication
+} from './base.js';
 
 export const GIT_ADAPTER = Object.freeze({
   ...BASE_PROTOCOL_ADAPTER,
@@ -15,8 +20,9 @@ export const GIT_ADAPTER = Object.freeze({
       ? { principal: null, response: gitAuthenticationChallenge() }
       : allowAnonymous();
   },
-  /** @param {{ headers: Headers, request: Request, url: URL, isGitLFS: boolean }} options */
-  prepareUpstreamHeaders: ({ headers, request, url, isGitLFS }) => {
+  /** @param {{ headers: Headers, principal?: { authMethod: string } | null, request: Request, url: URL, isGitLFS: boolean }} options */
+  prepareUpstreamHeaders: ({ headers, principal, request, url, isGitLFS }) => {
+    if (principal?.authMethod === 'git-basic') stripProxyAuthentication(headers);
     configureGitHeaders(headers, request, url, isGitLFS);
   }
 });
